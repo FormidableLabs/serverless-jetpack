@@ -1,11 +1,10 @@
-service: sls-packager-examples
+service: sls-packager-examples-huge
 
 package:
   # TODO: Test out `include`, `exclude` for matrix, timings.
   excludeDevDependencies: true
 
 custom:
-  service: ${env:SERVICE_NAME}
   region: ${opt:region, env:AWS_REGION}
   stage: ${opt:stage, env:STAGE}
 
@@ -23,7 +22,6 @@ provider:
   memorySize: 128 # MB value (`1024` default)
 
 functions:
-  # SCENARIO - base: The simplest, vanilla Serverless app.
   base:
     handler: src/server/base.handler
     events: # Use a generic proxy to allow Express app to route.
