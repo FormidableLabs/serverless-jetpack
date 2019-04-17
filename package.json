@@ -1,0 +1,51 @@
+{
+  "name": "aws-lambda-serverless-reference",
+  "version": "0.0.1",
+  "description": "A reference application for AWS + serverless framework.",
+  "repository": "https://github.com/FormidableLabs/aws-lambda-serverless-reference",
+  "author": "Ryan Roemer <ryan.roemer@formidable.com>",
+  "license": "MIT",
+  "scripts": {
+    "env": "echo export STAGE=${STAGE:-localdev}; echo export SERVICE_NAME=simple-reference; echo export AWS_REGION=${AWS_REGION:-us-east-1}; echo export AWS_XRAY_CONTEXT_MISSING=LOG_ERROR",
+    "lint": "eslint .",
+    "check": "yarn run lint",
+    "node:localdev": "eval $(yarn -s env) && SERVER_PORT=${SERVER_PORT:-3000} SERVER_HOST=${SERVER_HOST:-0.0.0.0} nodemon --watch src src/server/${SCENARIO:-base}.js",
+    "lambda:sls": "eval $(yarn -s env) && sls -s ${STAGE}",
+    "lambda:localdev": "yarn run lambda:sls offline start --port ${SERVER_PORT:-3001} --host ${SERVER_HOST:-0.0.0.0}",
+    "lambda:deploy": "yarn run lambda:sls deploy",
+    "lambda:info": "yarn run lambda:sls info",
+    "lambda:logs": "yarn run lambda:sls logs",
+    "lambda:metrics": "yarn run lambda:sls metrics",
+    "lambda:rollback": "yarn run lambda:sls rollback",
+    "lambda:_delete": "yarn run lambda:sls remove",
+    "cf:_params": "eval $(yarn -s env) && echo --parameters ParameterKey=Stage,ParameterValue=${STAGE} ParameterKey=ServiceName,ParameterValue=${SERVICE_NAME}",
+    "cf:bootstrap:_stack": "eval $(yarn -s env) && echo --region ${AWS_REGION} --stack-name cf-${SERVICE_NAME}-${STAGE}-bootstrap",
+    "cf:bootstrap:_tmpl": "echo --template-body file://aws/bootstrap.yml ",
+    "cf:bootstrap:create": "aws cloudformation create-stack --capabilities CAPABILITY_NAMED_IAM $(yarn -s cf:bootstrap:_tmpl) $(yarn -s cf:bootstrap:_stack) $(yarn -s cf:_params)",
+    "cf:bootstrap:update": "aws cloudformation update-stack --capabilities CAPABILITY_NAMED_IAM $(yarn -s cf:bootstrap:_tmpl) $(yarn -s cf:bootstrap:_stack) $(yarn -s cf:_params)",
+    "cf:bootstrap:status": "aws cloudformation describe-stacks --query 'Stacks[0].StackStatus' $(yarn -s cf:bootstrap:_stack)",
+    "cf:bootstrap:_delete": "aws cloudformation delete-stack $(yarn -s cf:bootstrap:_stack)",
+    "tf:service:_backend": "eval $(yarn -s env) && echo -backend-config=\"bucket=cf-${SERVICE_NAME}-${STAGE}-terraform-state\" -backend-config=\"dynamodb_table=cf-${SERVICE_NAME}-${STAGE}-terraform-locks\" -backend-config=\"region=${AWS_REGION}\" ",
+    "tf:terraform": "eval $(yarn -s env) && cd terraform && terraform",
+    "tf:service:_vars": "eval $(yarn -s env) && echo -var \"region=${AWS_REGION}\" -var \"service_name=${SERVICE_NAME}\" -var \"stage=${STAGE}\" ",
+    "tf:service:init": "yarn run tf:terraform init $(yarn -s tf:service:_backend) $(yarn -s tf:service:_vars)",
+    "tf:service:plan": "yarn run tf:terraform plan $(yarn -s tf:service:_vars)",
+    "tf:service:apply": "yarn run tf:terraform apply $(yarn -s tf:service:_vars)",
+    "tf:service:_delete": "yarn run tf:terraform destroy $(yarn -s tf:service:_vars)"
+  },
+  "dependencies": {
+    "express": "^4.16.4",
+    "serverless-http": "^1.9.0"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.13.0",
+    "eslint-config-formidable": "^4.0.0",
+    "eslint-plugin-filenames": "^1.3.2",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "nodemon": "^1.18.9",
+    "serverless": "^1.36.3",
+    "serverless-offline": "^4.2.1"
+  }
+}

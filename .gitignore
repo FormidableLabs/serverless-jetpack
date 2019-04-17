@@ -1,0 +1,15 @@
+.git
+
+.DS_Store
+.project
+.vscode
+node_modules
+npm-debug.log*
+yarn-error.log*
+package-lock.json
+
+aws/.service*
+
+.serverless
+.terraform
+_warmup
