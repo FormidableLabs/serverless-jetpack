@@ -10,10 +10,16 @@
   },
   "dependencies": {
     "express": "^4.16.4",
+    "react": "^16.8.6",
+    "react-dom": "^16.8.6",
     "serverless-http": "^1.9.0"
   },
   "devDependencies": {
+    "cypress": "^3.2.0",
+    "jest": "^24.7.1",
+    "next": "^8.1.0",
     "serverless": "^1.36.3",
-    "serverless-offline": "^4.2.1"
+    "serverless-offline": "^4.2.1",
+    "typescript": "^3.4.3"
   }
 }

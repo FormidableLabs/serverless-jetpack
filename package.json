@@ -6,11 +6,14 @@
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "private": true,
-  "workspaces": [
-    "packages/simple",
-    "packages/huge",
-    "packages/individually"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/simple",
+      "packages/huge",
+      "packages/individually"
+    ],
+    "nohoist": ["**"]
+  },
   "scripts": {
     "postinstall": "yarn install:npm",
     "_env": "echo export STAGE=${STAGE:-localdev}; echo export AWS_REGION=${AWS_REGION:-us-east-1}; ",
