@@ -1,4 +1,4 @@
 Serverless Packager Examples
 ============================
 
-Various experiments for packaging `serverless` framework applications.
+Various experiments and benchmarks for packaging `serverless` framework applications.
