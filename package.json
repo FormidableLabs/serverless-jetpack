@@ -15,7 +15,8 @@
     "nohoist": ["**"]
   },
   "scripts": {
-    "postinstall": "yarn install:npm",
+    "postinstall": "yarn install:npm && yarn rm-bad-symlinks",
+    "rm-bad-symlinks": "find . -type l ! -exec test -e {} \\; -print | xargs rm",
     "_env": "echo export STAGE=${STAGE:-localdev}; echo export AWS_REGION=${AWS_REGION:-us-east-1}; ",
     "_pkgs": "find packages -maxdepth 1 -mindepth 1 -type d",
     "install:npm": "yarn -s _pkgs -exec sh -c 'cd {} && npm install' \\;",
