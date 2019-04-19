@@ -1,8 +1,6 @@
 service: sls-packager-examples-simple
 
-package:
-  # TODO: Test out `include`, `exclude` for matrix, timings.
-  excludeDevDependencies: true
+package: ${file(./serverless.js):pkg}
 
 custom:
   region: ${opt:region, env:AWS_REGION}

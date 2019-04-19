@@ -21,6 +21,7 @@
     "_pkgs": "find packages -maxdepth 1 -mindepth 1 -type d",
     "install:npm": "yarn -s _pkgs -exec sh -c 'cd {} && npm install' \\;",
     "sls:package": "eval $(yarn -s _env) && yarn -s _pkgs -exec sh -c 'echo Packaging: {} &&  cd {} && time sls package && du -sh .serverless/*.zip' \\;",
+    "sls:config": "eval $(yarn -s _env) && yarn -s _pkgs -exec sh -c 'echo Configuration: {} &&  cd {} && sls print' \\;",
     "lint": "eslint .",
     "check": "yarn run lint"
   },

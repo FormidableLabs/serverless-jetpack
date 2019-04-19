@@ -1,8 +1,6 @@
 service: sls-packager-examples-individually
 
-package:
-  excludeDevDependencies: true
-  individually: true
+package: ${file(./serverless.js):pkg}
 
 custom:
   region: ${opt:region, env:AWS_REGION}
