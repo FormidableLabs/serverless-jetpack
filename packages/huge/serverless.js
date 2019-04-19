@@ -1,6 +1,7 @@
 "use strict";
 
 const pkg = () => ({
+  individually: false,
   excludeDevDependencies: true
 });
 
