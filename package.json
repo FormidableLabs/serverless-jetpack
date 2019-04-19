@@ -10,7 +10,7 @@
     "postinstall": "yarn install:npm && yarn rm-bad-symlinks && yarn install:yarn && yarn rm-bad-symlinks",
     "rm-bad-symlinks": "find . -type l ! -exec test -e {} \\; -print | xargs rm",
     "_env": "echo export STAGE=${STAGE:-localdev}; echo export AWS_REGION=${AWS_REGION:-us-east-1}; ",
-    "_pkgs": "find packages -maxdepth 1 -mindepth 1 -type d -name simple",
+    "_pkgs": "find packages -maxdepth 1 -mindepth 1 -type d",
     "install:npm": "yarn -s _pkgs -exec sh -c 'cd {} && npm install' \\;",
     "install:yarn": "yarn -s _pkgs -exec sh -c 'cd {} && yarn install' \\;",
     "sls:package": "eval $(yarn -s _env) && yarn -s _pkgs -exec sh -c 'echo Packaging: {} &&  cd {} && time sls package && du -sh .serverless/*.zip' \\;",
