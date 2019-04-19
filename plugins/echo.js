@@ -5,47 +5,23 @@ class EchoPlugin {
     this.serverless = serverless;
     this.options = options;
 
-    this.commands = {
-      welcome: {
-        usage: "Helps you start your first Serverless plugin",
-        lifecycleEvents: [
-          "hello",
-          "world"
-        ],
-        options: {
-          message: {
-            usage:
-              "Specify the message you want to deploy "
-              + "(e.g. \"--message 'My Message'\" or \"-m 'My Message'\")",
-            required: true,
-            shortcut: "m"
-          }
-        }
-      }
-    };
-
     this.hooks = {
-      "before:welcome:hello": this.beforeWelcome.bind(this),
-      "welcome:hello": this.welcomeUser.bind(this),
-      "welcome:world": this.displayHelloMessage.bind(this),
-      "after:welcome:world": this.afterHelloWorld.bind(this)
+      "package:cleanup": this.echo.bind(this, "package:cleanup"),
+      "package:initialize": this.echo.bind(this, "package:initialize"),
+      "package:setupProviderConfiguration":
+        this.echo.bind(this, "package:setupProviderConfiguration"),
+      "package:createDeploymentArtifacts":
+        this.echo.bind(this, "package:createDeploymentArtifacts"),
+      "package:compileFunctions":
+        this.echo.bind(this, "package:compileFunctions"),
+      "package:compileEvents": this.echo.bind(this, "package:compileEvents"),
+      "package:finalize": this.echo.bind(this, "package:finalize")
     };
   }
 
-  beforeWelcome() {
-    this.serverless.cli.log("Hello from Serverless!");
-  }
-
-  welcomeUser() {
-    this.serverless.cli.log("Your message:");
-  }
-
-  displayHelloMessage() {
-    this.serverless.cli.log(`${this.options.message}`);
-  }
-
-  afterHelloWorld() {
-    this.serverless.cli.log("Please come again!");
+  echo(msg) {
+    // eslint-disable-next-line no-console
+    console.log(`ECHO: ${msg}`);
   }
 }
 

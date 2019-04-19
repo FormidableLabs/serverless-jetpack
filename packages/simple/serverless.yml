@@ -9,7 +9,10 @@ custom:
   stage: ${opt:stage, env:STAGE}
 
 plugins:
-  - serverless-offline
+  localPath: ../../plugins
+  modules:
+    - serverless-offline
+    - echo
 
 provider:
   name: aws
