@@ -12,6 +12,7 @@ plugins:
   localPath: ../../plugins
   modules:
     - serverless-offline
+    - echo
     - wrapper
 
 provider:

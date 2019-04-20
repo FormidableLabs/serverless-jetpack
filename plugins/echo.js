@@ -27,12 +27,8 @@ class EchoPlugin {
   }
 
   echo(msg) {
-    // const pkg = this.serverless.service.package;
-    // console.log("ECHO serverless", serverless);
-    // console.log("ECHO pkg", pkg);
-
     // eslint-disable-next-line no-console
-    console.log(`ECHO: ${msg}`, arguments);
+    console.log(`ECHO: ${msg}`);
   }
 }
 

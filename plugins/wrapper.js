@@ -1,7 +1,7 @@
 "use strict";
 
 // Simple wrapper to runtime swap plugins.
-const EchoPlugin = require("./echo");
+const PackagerPlugin = require("./packager");
 const NoopPlugin = require("./noop");
 
-module.exports = process.env.PLUGIN === "true" ? EchoPlugin : NoopPlugin;
+module.exports = process.env.PLUGIN === "true" ? PackagerPlugin : NoopPlugin;
