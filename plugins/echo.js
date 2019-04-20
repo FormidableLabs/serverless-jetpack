@@ -1,5 +1,19 @@
 "use strict";
 
+const PKG_HOOKS = [
+  "package:cleanup",
+  "package:initialize",
+  "package:setupProviderConfiguration",
+  "package:createDeploymentArtifacts",
+  "package:compileFunctions",
+  "package:compileEvents",
+  "package:finalize"
+];
+
+const PKG_LIFECYLCES = PKG_HOOKS
+  .map((h) => [`before:${h}`, h, `after:${h}`])
+  .reduce((m, a) => m.concat(a), []);
+
 class EchoPlugin {
   constructor(serverless, options) {
     // eslint-disable-next-line no-console
@@ -8,18 +22,8 @@ class EchoPlugin {
     this.serverless = serverless;
     this.options = options;
 
-    this.hooks = {
-      "package:cleanup": this.echo.bind(this, "package:cleanup"),
-      "package:initialize": this.echo.bind(this, "package:initialize"),
-      "package:setupProviderConfiguration":
-        this.echo.bind(this, "package:setupProviderConfiguration"),
-      "package:createDeploymentArtifacts":
-        this.echo.bind(this, "package:createDeploymentArtifacts"),
-      "package:compileFunctions":
-        this.echo.bind(this, "package:compileFunctions"),
-      "package:compileEvents": this.echo.bind(this, "package:compileEvents"),
-      "package:finalize": this.echo.bind(this, "package:finalize")
-    };
+    this.hooks = PKG_LIFECYLCES.reduce((m, h) => ({ ...m,
+      [h]: this.echo.bind(this, h) }), {});
   }
 
   echo(msg) {
