@@ -14,6 +14,7 @@
     "install:npm": "yarn -s _pkgs -exec sh -c 'cd {} && npm install' \\;",
     "install:yarn": "yarn -s _pkgs -exec sh -c 'cd {} && yarn install' \\;",
     "sls:package": "eval $(yarn -s _env) && yarn -s _pkgs -exec sh -c 'echo Packaging: {} &&  cd {} && time sls package && du -sh .serverless/*.zip' \\;",
+    "sls:package:simple": "eval $(yarn -s _env) && cd packages/simple && time sls package && du -sh .serverless/*.zip",
     "sls:config": "eval $(yarn -s _env) && yarn -s _pkgs -exec sh -c 'echo Configuration: {} &&  cd {} && sls print' \\;",
     "lint": "eslint .",
     "check": "yarn run lint"

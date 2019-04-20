@@ -2,6 +2,9 @@
 
 class EchoPlugin {
   constructor(serverless, options) {
+    // eslint-disable-next-line no-console
+    console.log("ECHO: constructor");
+
     this.serverless = serverless;
     this.options = options;
 
@@ -20,8 +23,12 @@ class EchoPlugin {
   }
 
   echo(msg) {
+    // const pkg = this.serverless.service.package;
+    // console.log("ECHO serverless", serverless);
+    // console.log("ECHO pkg", pkg);
+
     // eslint-disable-next-line no-console
-    console.log(`ECHO: ${msg}`);
+    console.log(`ECHO: ${msg}`, arguments);
   }
 }
 
