@@ -12,6 +12,7 @@ class PackagerPlugin {
   async package() {
     const { service } = this.serverless;
     const pkg = service.package;
+    const serviceName = service.service;
 
     // Gather internal configuration.
     const pkgArtifact = pkg.artifact;
@@ -43,7 +44,8 @@ class PackagerPlugin {
       console.log("TODO HERE SERVICE PACKAGE", {
         pkgArtifact,
         pkgIndividually,
-        shouldPackageService
+        shouldPackageService,
+        serviceName
       });
     }
   }
