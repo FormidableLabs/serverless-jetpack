@@ -9,10 +9,11 @@ class PackagerPlugin {
     };
   }
 
-  package() {
+  async package() {
     const { service } = this.serverless;
     const pkg = service.package;
 
+    // Gather internal configuration.
     const pkgArtifact = pkg.artifact;
     const pkgIndividually = pkg.individually;
     const fnsPkgs = service.getAllFunctions()
@@ -26,36 +27,25 @@ class PackagerPlugin {
 
     // We recreate the logic from `packager#packageService`.
     const shouldPackageService = !pkgIndividually
-      && fnsPkgs.some((o) => !(o.disable || o.individually || o.artifact));
+      && fnsPkgs.some((obj) => !(obj.disable || obj.individually || obj.artifact));
 
-    // eslint-disable-next-line no-console
-    console.log("TODO HERE", {
-      pkgArtifact,
-      pkgIndividually,
-      shouldPackageService,
-      fnsPkgs
-    });
-  }
+    // Now, iterate all functions and decide if this plugin should package them.
+    fnsPkgs
+      .filter((obj) => (pkgIndividually || obj.individually) && !(obj.disable || obj.artifact))
+      .forEach((obj) => {
+        // eslint-disable-next-line no-console
+        console.log("TODO HERE FN PACKAGE", obj);
+      });
 
-  packageDEBUG() {
-    const { hooks } = this.serverless.pluginManager;
-
-    // RESEARCH: value for `sls package --name THIS_NAME`.
-    const pkgFunctionName = this.options.function;
-
-    // RESEARCH: Find the built-in package service.
-    const slsPackageService = (hooks["package:createDeploymentArtifacts"] || [])
-      .filter((obj) => obj.pluginName === "Package")[0];
-
-    const slsFnPackageService = (hooks["package:function:package"] || [])
-      .filter((obj) => obj.pluginName === "Package")[0];
-
-    // eslint-disable-next-line no-console
-    console.log("PKGR: TODO", {
-      slsPackageService,
-      slsFnPackageService,
-      pkgFunctionName
-    });
+    // Package entire service if applicable.
+    if (shouldPackageService) {
+      // eslint-disable-next-line no-console
+      console.log("TODO HERE SERVICE PACKAGE", {
+        pkgArtifact,
+        pkgIndividually,
+        shouldPackageService
+      });
+    }
   }
 }
 
