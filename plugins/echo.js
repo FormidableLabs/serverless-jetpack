@@ -1,28 +1,16 @@
 "use strict";
 
-const PKG_HOOKS = [
-  "package:cleanup",
-  "package:initialize",
-  "package:setupProviderConfiguration",
-  "package:createDeploymentArtifacts",
-  "package:compileFunctions",
-  "package:compileEvents",
-  "package:finalize"
-];
-
-const PKG_LIFECYLCES = PKG_HOOKS
-  .map((h) => [`before:${h}`, h, `after:${h}`])
-  .reduce((m, a) => m.concat(a), []);
-
 class EchoPlugin {
   constructor(serverless, options) {
     // eslint-disable-next-line no-console
     console.log("ECHO: constructor");
 
+    const ALL_HOOKS = Object.keys(serverless.pluginManager.hooks);
+    const PKG_HOOKS = ALL_HOOKS.filter((h) => (/(^|\:)package\:/).test(h));
+
     this.serverless = serverless;
     this.options = options;
-
-    this.hooks = PKG_LIFECYLCES.reduce((m, h) => ({ ...m,
+    this.hooks = PKG_HOOKS.reduce((m, h) => ({ ...m,
       [h]: this.echo.bind(this, h) }), {});
   }
 
