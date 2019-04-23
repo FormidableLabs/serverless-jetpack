@@ -1,5 +1,6 @@
 service: sls-packager-examples-huge
 
+# TODO(EXPERIMENT): Do we need some includes/excludes to really hit the bad slowdown?
 package:
   individually: ${file(./serverless.js):pkg.individually}
   excludeDevDependencies: ${file(./serverless.js):pkg.excludeDevDependencies}
