@@ -18,12 +18,19 @@ class PackagerPlugin {
     const pkgArtifact = pkg.artifact;
     const pkgIndividually = pkg.individually;
     const fnsPkgs = service.getAllFunctions()
-      .map((name) => ({ name, pkg: service.getFunction(name).package || {} }))
+      .map((name) => ({
+        name,
+        functionObject: service.getFunction(name)
+      }))
       .map((obj) => ({
-        name: obj.name,
-        disable: !!obj.pkg.disable,
-        individually: !!obj.pkg.individually,
-        artifact: !!obj.pkg.artifact
+        ...obj,
+        functionPackage: obj.functionObject.package || {}
+      }))
+      .map((obj) => ({
+        ...obj,
+        disable: !!obj.functionPackage.disable,
+        individually: !!obj.functionPackage.individually,
+        artifact: obj.functionPackage.artifact
       }));
 
     // We recreate the logic from `packager#packageService`.
@@ -36,10 +43,21 @@ class PackagerPlugin {
       .forEach((obj) => {
         // eslint-disable-next-line no-console
         console.log("TODO HERE FN PACKAGE", obj);
+
+        // TODO(EXPERIMENT): Check faster with no bundle.
+        if (process.env.TEMP_NO_PACKAGE) {
+          obj.functionObject.package = obj.functionObject.package || {};
+          obj.functionObject.package.artifact = "../../sls-packager-examples-simple.zip";
+        }
       });
 
     // Package entire service if applicable.
-    if (shouldPackageService) {
+    if (shouldPackageService && !pkgArtifact) {
+      // TODO(EXPERIMENT): Check faster with no bundle.
+      if (process.env.TEMP_NO_PACKAGE) {
+        pkg.artifact = "../../sls-packager-examples-simple.zip";
+      }
+
       // eslint-disable-next-line no-console
       console.log("TODO HERE SERVICE PACKAGE", {
         pkgArtifact,
