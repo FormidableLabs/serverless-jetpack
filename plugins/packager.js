@@ -2,7 +2,6 @@
 
 const { tmpdir } = require("os");
 const path = require("path");
-const { promisify } = require("util");
 const { access, copy, constants, mkdir, remove } = require("fs-extra");
 const execa = require("execa");
 const uuidv4 = require("uuid/v4");
@@ -32,19 +31,6 @@ const createBuildDir = async () => {
   await mkdir(tmpPath);
 
   return tmpPath;
-};
-
-const buildPkg = async ({ bundlePath }) => {
-  const buildDir = await createBuildDir();
-
-  // TEMP TODO
-  await copy(
-    "/Users/rye/Desktop/TMP_SLS/sls-packager-examples-simple.zip",
-    bundlePath
-  );
-
-  // Clean up
-  await remove(buildDir);
 };
 
 /**
@@ -90,17 +76,47 @@ class PackagerPlugin {
     };
   }
 
-  async packageFunction({ functionName, functionObject }) {
-    const { config: { servicePath } } = this.serverless;
+  async buildPackage({ bundleName }) {
+    const { config } = this.serverless;
+    const servicePath = config.servicePath || ".";
+    const bundlePath = path.resolve(servicePath || ".", bundleName);
 
+    const buildDir = await createBuildDir();
+
+    // TODO(OPTIONS): use options
+    // Copy over npm/yarn files.
+    await Promise.all([
+      "package.json",
+      "yarn.lock"
+    ].map((f) => copy(
+      path.resolve(servicePath, f),
+      path.resolve(buildDir, f)
+    )));
+
+    // TODO(OPTIONS): use options
+    // npm/yarn install.
+    execa("ls", ["-al", buildDir], {
+      stdio: "inherit"
+    });
+
+    // TEMP TODO
+    await copy(
+      "/Users/rye/Desktop/TMP_SLS/sls-packager-examples-simple.zip",
+      bundlePath
+    );
+
+    // Clean up
+    await remove(buildDir);
+  }
+
+  async packageFunction({ functionName, functionObject }) {
     // Mimic built-in serverless naming.
     // **Note**: We _do_ appened ".serverless" in path skipping serverless'
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
-    const bundlePath = path.join(servicePath, bundleName);
 
     // Build.
-    const buildDir = await buildPkg({ bundlePath });
+    const buildDir = await this.buildPackage({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -109,23 +125,21 @@ class PackagerPlugin {
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageFunction", {
       functionName,
-      bundlePath,
       buildDir,
       functionObject
     });
   }
 
   async packageService() {
-    const { service, config: { servicePath } } = this.serverless;
+    const { service } = this.serverless;
+    const serviceName = service.service;
     const servicePackage = service.package;
 
     // Mimic built-in serverless naming.
-    const serviceName = service.service;
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
-    const bundlePath = path.join(servicePath, bundleName);
 
     // Build.
-    const buildDir = await buildPkg({ bundlePath });
+    const buildDir = await this.buildPackage({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
@@ -133,7 +147,6 @@ class PackagerPlugin {
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageService", {
       serviceName,
-      bundlePath,
       buildDir,
       servicePackage
     });
