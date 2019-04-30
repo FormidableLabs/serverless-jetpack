@@ -7,6 +7,8 @@ const { access, copy, constants, mkdir, remove } = require("fs-extra");
 const execa = require("execa");
 const uuidv4 = require("uuid/v4");
 
+const SLS_TMP_DIR = ".serverless";
+
 // TODO const accessP = promisify(accessP);
 
 const dirExists = async (dirPath) => {
@@ -92,7 +94,9 @@ class PackagerPlugin {
     const { config: { servicePath } } = this.serverless;
 
     // Mimic built-in serverless naming.
-    const bundleName = `${functionName}.zip`;
+    // **Note**: We _do_ appened ".serverless" in path skipping serverless'
+    // internal copying logic.
+    const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
     const bundlePath = path.join(servicePath, bundleName);
 
     // Build.
@@ -117,7 +121,7 @@ class PackagerPlugin {
 
     // Mimic built-in serverless naming.
     const serviceName = service.service;
-    const bundleName = `${serviceName}.zip`;
+    const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
     const bundlePath = path.join(servicePath, bundleName);
 
     // Build.
