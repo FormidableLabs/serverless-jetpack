@@ -44,14 +44,17 @@ class PackagerPlugin {
   }
 
   async packageFunction({ functionName, functionObject }) {
+    const { config: { servicePath } } = this.serverless;
+
     // Mimic built-in serverless naming.
     const bundleName = `${functionName}.zip`;
 
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageFunction", {
       functionName,
-      bundleName,
-      functionObject
+      functionObject,
+      servicePath,
+      bundleName
     });
 
     // TODO(EXPERIMENT): Check faster with no bundle.
@@ -62,7 +65,7 @@ class PackagerPlugin {
   }
 
   async packageService() {
-    const { service } = this.serverless;
+    const { service, config: { servicePath } } = this.serverless;
     const servicePackage = service.package;
 
     // Mimic built-in serverless naming.
@@ -71,8 +74,9 @@ class PackagerPlugin {
 
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageService", {
-      servicePackage,
       serviceName: service.service,
+      servicePackage,
+      servicePath,
       bundleName
     });
 
