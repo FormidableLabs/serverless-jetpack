@@ -43,9 +43,16 @@ class PackagerPlugin {
     };
   }
 
-  async packageFunction(functionObject) {
+  async packageFunction({ functionName, functionObject }) {
+    // Mimic built-in serverless naming.
+    const bundleName = `${functionName}.zip`;
+
     // eslint-disable-next-line no-console
-    console.log("TODO HERE packageFunction", functionObject);
+    console.log("TODO HERE packageFunction", {
+      functionName,
+      bundleName,
+      functionObject
+    });
 
     // TODO(EXPERIMENT): Check faster with no bundle.
     if (process.env.TEMP_NO_PACKAGE) {
@@ -58,10 +65,15 @@ class PackagerPlugin {
     const { service } = this.serverless;
     const servicePackage = service.package;
 
+    // Mimic built-in serverless naming.
+    const serviceName = service.service;
+    const bundleName = `${serviceName}.zip`;
+
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageService", {
       servicePackage,
-      serviceName: service.service
+      serviceName: service.service,
+      bundleName
     });
 
     // TODO(EXPERIMENT): Check faster with no bundle.
@@ -76,9 +88,9 @@ class PackagerPlugin {
 
     // Gather internal configuration.
     const fnsPkgs = service.getAllFunctions()
-      .map((name) => ({
-        name,
-        functionObject: service.getFunction(name)
+      .map((functionName) => ({
+        functionName,
+        functionObject: service.getFunction(functionName)
       }))
       .map((obj) => ({
         ...obj,
@@ -96,7 +108,7 @@ class PackagerPlugin {
       .filter((obj) =>
         (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
       )
-      .map((obj) => this.packageService(obj.functionObject))
+      .map((obj) => this.packageFunction(obj))
     );
 
     // We recreate the logic from `packager#packageService` for deciding whether
