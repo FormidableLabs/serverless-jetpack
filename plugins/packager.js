@@ -1,5 +1,7 @@
 "use strict";
 
+const path = require("path");
+
 /**
  * Package Serverless applications manually.
  *
@@ -48,13 +50,13 @@ class PackagerPlugin {
 
     // Mimic built-in serverless naming.
     const bundleName = `${functionName}.zip`;
+    const bundlePath = path.join(servicePath, bundleName);
 
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageFunction", {
       functionName,
-      functionObject,
-      servicePath,
-      bundleName
+      bundlePath,
+      functionObject
     });
 
     // TODO(EXPERIMENT): Check faster with no bundle.
@@ -71,13 +73,13 @@ class PackagerPlugin {
     // Mimic built-in serverless naming.
     const serviceName = service.service;
     const bundleName = `${serviceName}.zip`;
+    const bundlePath = path.join(servicePath, bundleName);
 
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageService", {
-      serviceName: service.service,
-      servicePackage,
-      servicePath,
-      bundleName
+      serviceName,
+      bundlePath,
+      servicePackage
     });
 
     // TODO(EXPERIMENT): Check faster with no bundle.
