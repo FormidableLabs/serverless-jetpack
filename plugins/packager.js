@@ -85,7 +85,8 @@ class PackagerPlugin {
     // Copy over npm/yarn files.
     await Promise.all([
       "package.json",
-      "yarn.lock"
+      "yarn.lock",
+      "src"
     ].map((f) => copy(
       path.resolve(servicePath, f),
       path.resolve(buildDir, f)
