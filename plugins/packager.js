@@ -1,6 +1,49 @@
 "use strict";
 
+const { tmpdir } = require("os");
 const path = require("path");
+const { promisify } = require("util");
+const { access, copy, constants, mkdir, remove } = require("fs-extra");
+const execa = require("execa");
+const uuidv4 = require("uuid/v4");
+
+// TODO const accessP = promisify(accessP);
+
+const dirExists = async (dirPath) => {
+  try {
+    await access(dirPath, constants.W_OK);
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+// Create new temp build directory, return path.
+const createBuildDir = async () => {
+  // Create and verify a unique temp directory path.
+  let tmpPath;
+  do {
+    tmpPath = path.join(tmpdir(), uuidv4());
+  } while (await !dirExists(tmpPath));
+
+  // Create directory.
+  await mkdir(tmpPath);
+
+  return tmpPath;
+};
+
+const buildPkg = async ({ bundlePath }) => {
+  const buildDir = await createBuildDir();
+
+  // TEMP TODO
+  await copy(
+    "/Users/rye/Desktop/TMP_SLS/sls-packager-examples-simple.zip",
+    bundlePath
+  );
+
+  // Clean up
+  await remove(buildDir);
+};
 
 /**
  * Package Serverless applications manually.
@@ -52,18 +95,20 @@ class PackagerPlugin {
     const bundleName = `${functionName}.zip`;
     const bundlePath = path.join(servicePath, bundleName);
 
+    // Build.
+    const buildDir = await buildPkg({ bundlePath });
+
+    // Mutate serverless configuration to use our artifacts.
+    functionObject.package = functionObject.package || {};
+    functionObject.package.artifact = bundleName;
+
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageFunction", {
       functionName,
       bundlePath,
+      buildDir,
       functionObject
     });
-
-    // TODO(EXPERIMENT): Check faster with no bundle.
-    if (process.env.TEMP_NO_PACKAGE) {
-      functionObject.package = functionObject.package || {};
-      functionObject.package.artifact = "../../sls-packager-examples-simple.zip";
-    }
   }
 
   async packageService() {
@@ -75,17 +120,19 @@ class PackagerPlugin {
     const bundleName = `${serviceName}.zip`;
     const bundlePath = path.join(servicePath, bundleName);
 
+    // Build.
+    const buildDir = await buildPkg({ bundlePath });
+
+    // Mutate serverless configuration to use our artifacts.
+    servicePackage.artifact = bundleName;
+
     // eslint-disable-next-line no-console
     console.log("TODO HERE packageService", {
       serviceName,
       bundlePath,
+      buildDir,
       servicePackage
     });
-
-    // TODO(EXPERIMENT): Check faster with no bundle.
-    if (process.env.TEMP_NO_PACKAGE) {
-      servicePackage.artifact = "../../sls-packager-examples-simple.zip";
-    }
   }
 
   async package() {
