@@ -8,8 +8,6 @@ const uuidv4 = require("uuid/v4");
 
 const SLS_TMP_DIR = ".serverless";
 
-// TODO const accessP = promisify(accessP);
-
 const dirExists = async (dirPath) => {
   try {
     await access(dirPath, constants.W_OK);
@@ -94,12 +92,17 @@ class PackagerPlugin {
     )));
 
     // TODO(OPTIONS): use options
+    // TODO(OPTIONS): enable/disable stdio.
     // npm/yarn install.
-    execa("ls", ["-al", buildDir], {
-      stdio: "inherit"
+    await execa("yarn", ["install", "--production", "--frozen-lockfile"], {
+      stdio: "inherit",
+      cwd: buildDir
     });
 
     // TEMP TODO
+    await execa("ls", ["-al", buildDir], {
+      stdio: "inherit"
+    });
     await copy(
       "/Users/rye/Desktop/TMP_SLS/sls-packager-examples-simple.zip",
       bundlePath
