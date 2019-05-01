@@ -179,9 +179,9 @@ atob@^2.1.1:
   integrity sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==
 
 aws-sdk@^2.430.0:
-  version "2.441.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.441.0.tgz#40d4854aae132ab7a8d42e492669ff28db79f59d"
-  integrity sha512-PnS2lih7p6sPJYUeUSxab7VNsldcHEsCJddHXnnAZRxd2nVa8pAAbPSAauJIN9E6Z4DBhvX3nuQjj+roP/KBTg==
+  version "2.447.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.447.0.tgz#9a483157e537663b1835698f9d5806679c04a9f7"
+  integrity sha512-bAnNeYJx8U/SGb0zo13YbYvOmHhN3h+3eagP+X7uVG5kmpJMsEpn1EqZJ/Jby7qEB/DQXFGFUzg5kLt//C37/g==
   dependencies:
     buffer "4.9.1"
     events "1.1.1"
@@ -2520,9 +2520,9 @@ serverless-offline@^4.2.1:
     velocityjs "^1.1.3"
 
 serverless@^1.36.3:
-  version "1.41.0"
-  resolved "https://registry.yarnpkg.com/serverless/-/serverless-1.41.0.tgz#58f734456504a938b386dcf6b01a609e9ea8c857"
-  integrity sha512-jL7S6sjMH1NuWQXnJ+czz/Co7RV4ENqX4T51TzqlEA5hJaapzUYw1iV16Xm9dGNyMdzjr0CGIPUMd4Lpvp/p1A==
+  version "1.41.1"
+  resolved "https://registry.yarnpkg.com/serverless/-/serverless-1.41.1.tgz#c8278058eaa3a3c154b3a21fcc6536c165377a02"
+  integrity sha512-mVB8TSOWmLPvG07twtqPTZ9OToNDATZPY+6XIr63/kjbC9mU+ghrhVudLJRRjew0YewPZh+g1KXy5OyfnWZ5Rg==
   dependencies:
     archiver "^1.1.0"
     async "^1.5.2"

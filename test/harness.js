@@ -39,9 +39,10 @@ const main = async () => {
 
     log(`## ${JSON.stringify({ mode, scenario })}`);
     log("### Install");
-    await exec("echo", ["TODO INSTALL"]);
-    // await exec("rm", ["-rf", "node_modules"]);
-    // await exec(mode, ["install"]);
+    await exec("rm", ["-rf", "node_modules"]);
+    await exec(mode, ["install"]);
+    // Remove bad symlinks.
+    await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"])
 
     log("### Plugin");
     await exec("serverless", ["package"], {
