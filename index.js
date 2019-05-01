@@ -2,7 +2,8 @@
 
 const { tmpdir } = require("os");
 const path = require("path");
-const { access, copy, constants, mkdir, remove } = require("fs-extra");
+const { access, copy, constants, createWriteStream, mkdir, remove } = require("fs-extra");
+const archiver = require("archiver");
 const execa = require("execa");
 const uuidv4 = require("uuid/v4");
 
@@ -29,6 +30,30 @@ const createBuildDir = async () => {
   await mkdir(tmpPath);
 
   return tmpPath;
+};
+
+const createZip = ({ buildPath, bundlePath }) => {
+  // Use Serverless-analogous library + logic to create zipped artifact.
+  const zip = archiver.create("zip");
+  const output = createWriteStream(bundlePath);
+
+  return new Promise((resolve, reject) => { // eslint-disable-line promise/avoid-new
+    output.on("close", () => resolve());
+    output.on("error", reject);
+    zip.on("error", reject);
+
+    output.on("open", () => {
+      zip.pipe(output);
+
+      // Serverless framework packages up files individually with various tweaks
+      // (setting file times to epoch, chmod-ing things, etc.) that we don't do
+      // here. Instead we just zip up the whole build directory.
+      // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
+      zip.directory(buildPath, false);
+
+      zip.finalize();
+    });
+  });
 };
 
 /**
@@ -79,7 +104,7 @@ class PackagerPlugin {
     const servicePath = config.servicePath || ".";
     const bundlePath = path.resolve(servicePath || ".", bundleName);
 
-    const buildDir = await createBuildDir();
+    const buildPath = await createBuildDir();
 
     // TODO(OPTIONS): use options
     // Copy over npm/yarn files.
@@ -89,7 +114,7 @@ class PackagerPlugin {
       "src"
     ].map((f) => copy(
       path.resolve(servicePath, f),
-      path.resolve(buildDir, f)
+      path.resolve(buildPath, f)
     )));
 
     // TODO(OPTIONS): use options
@@ -97,20 +122,14 @@ class PackagerPlugin {
     // npm/yarn install.
     await execa("yarn", ["install", "--production", "--frozen-lockfile"], {
       stdio: "inherit",
-      cwd: buildDir
+      cwd: buildPath
     });
 
-    // TEMP TODO
-    await execa("ls", ["-al", buildDir], {
-      stdio: "inherit"
-    });
-    await copy(
-      "/Users/rye/Desktop/TMP_SLS/sls-packager-examples-simple.zip",
-      bundlePath
-    );
+    // Create package zip.
+    await createZip({ buildPath, bundlePath });
 
     // Clean up
-    await remove(buildDir);
+    await remove(buildPath);
   }
 
   async packageFunction({ functionName, functionObject }) {

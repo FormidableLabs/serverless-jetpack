@@ -2,10 +2,10 @@
   "name": "sls-packager-examples",
   "version": "0.0.1",
   "description": "A faster JavaScript packager for Serverless applications.",
+  "main": "index.js",
   "repository": "https://github.com/FormidableLabs/sls-packager-examples",
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
-  "private": true,
   "scripts": {
     "clean": "rm -rf test/packages/*/*/.serverless",
     "rm-bad-symlinks": "find test -type l ! -exec test -e {} \\; -print | xargs rm",
@@ -21,6 +21,7 @@
     "check": "yarn run lint"
   },
   "dependencies": {
+    "archiver": "^3.0.0",
     "execa": "^1.0.0",
     "fs-extra": "^7.0.1",
     "uuid": "^3.3.2"
