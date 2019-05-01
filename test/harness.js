@@ -3,6 +3,7 @@
 const path = require("path");
 const { log } = console;
 const execa = require("execa");
+const table = require("markdown-table");
 
 /**
  * Test harness.
@@ -30,22 +31,28 @@ const ENV = {
 
 const main = async () => {
   await Promise.all(MATRIX.map(async ({ mode, scenario }) => {
-    const exec = (cmd, args, opts) => execa(cmd, args, {
-      cwd: path.resolve(`test/packages/${scenario}`),
-      stdio: "inherit",
-      env: ENV,
-      ...opts
-    });
+    const exec = async (cmd, args, opts) => {
+      const start = Date.now();
+
+      await execa(cmd, args, {
+        cwd: path.resolve(`test/packages/${scenario}`),
+        stdio: "inherit",
+        env: ENV,
+        ...opts
+      });
+
+      return Date.now() - start;
+    };
 
     log(`## ${JSON.stringify({ mode, scenario })}`);
     log("### Install");
     await exec("rm", ["-rf", "node_modules"]);
     await exec(mode, ["install"]);
     // Remove bad symlinks.
-    await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"])
+    await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"]);
 
     log("### Plugin");
-    await exec("serverless", ["package"], {
+    const pluginTime = await exec("serverless", ["package"], {
       env: {
         ...ENV,
         PLUGIN: "true"
@@ -53,7 +60,16 @@ const main = async () => {
     });
 
     log("### Baseline");
-    await exec("serverless", ["package"]);
+    const slsTime = await exec("serverless", ["package"]);
+
+    log(table([
+      ["Scenario", "Mode", "Elapsed (ms)"],
+      [scenario, mode, pluginTime],
+      [scenario, "baseline", slsTime]
+    ],
+    {
+      align: ["l", "l", "r"]
+    }));
   }));
 };
 
