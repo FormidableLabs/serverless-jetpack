@@ -1,5 +1,6 @@
 "use strict";
 
+const pkg = require("./package.json");
 const { tmpdir } = require("os");
 const path = require("path");
 const { access, copy, constants, createWriteStream, mkdir, remove } = require("fs-extra");
@@ -8,6 +9,7 @@ const execa = require("execa");
 const uuidv4 = require("uuid/v4");
 
 const SLS_TMP_DIR = ".serverless";
+const PLUGIN_NAME = pkg.name;
 
 const dirExists = async (dirPath) => {
   try {
@@ -99,6 +101,11 @@ class PackagerPlugin {
     };
   }
 
+  _log(msg) {
+    const { cli } = this.serverless;
+    cli.log(`[${PLUGIN_NAME}] ${msg}`);
+  }
+
   async buildPackage({ bundleName }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
@@ -108,6 +115,7 @@ class PackagerPlugin {
 
     // TODO(OPTIONS): use options
     // Copy over npm/yarn files.
+    this._log("Copying source files and package data to build directory");
     await Promise.all([
       "package.json",
       "yarn.lock",
@@ -120,12 +128,14 @@ class PackagerPlugin {
     // TODO(OPTIONS): use options
     // TODO(OPTIONS): enable/disable stdio.
     // npm/yarn install.
+    this._log("Performing production yarn install");
     await execa("yarn", ["install", "--production", "--frozen-lockfile"], {
       stdio: "inherit",
       cwd: buildPath
     });
 
     // Create package zip.
+    this._log(`Zipping build directory ${buildPath} to artifact location: ${bundlePath}`);
     await createZip({ buildPath, bundlePath });
 
     // Clean up
