@@ -5,9 +5,6 @@
   "repository": "https://github.com/FormidableLabs/serverless-jetpack",
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
-  "scripts": {
-    "TODO": "echo TODO"
-  },
   "dependencies": {
     "express": "^4.16.4",
     "serverless-http": "^1.9.0"
