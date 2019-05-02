@@ -61,10 +61,6 @@ const createZip = ({ buildPath, bundlePath }) => {
 /**
  * Package Serverless applications manually.
  *
- * ## Configuration
- *
- * TODO
- *
  * ## How it works
  *
  * Essentially, the plugin "tricks" Serverless into thinking that an artifact
@@ -96,6 +92,14 @@ class PackagerPlugin {
   constructor(serverless, options) {
     this.serverless = serverless;
     this.options = options;
+
+    // TODO HERE -- (1) name (FastPackager?), (2) options
+    // this.commands = {
+    //   fastPackager: {
+
+    //   }
+    // }
+
     this.hooks = {
       "before:package:createDeploymentArtifacts": this.package.bind(this)
     };
@@ -104,6 +108,31 @@ class PackagerPlugin {
   _log(msg) {
     const { cli } = this.serverless;
     cli.log(`[${PLUGIN_NAME}] ${msg}`);
+  }
+
+  async installDeps({ mode, buildPath }) {
+    // Determine if can use npm ci.
+    const haveLockfile = true; // TODO(OPTIONS): Take lockfile path or null.
+    const install = "install";
+    if (mode === "npm" && haveLockfile) {
+      // TODO HERE
+
+      // await execa("npm", ["--version"])
+    }
+
+    // TODO(OPTIONS): enable/disable stdio.
+    // npm/yarn install.
+    const installArgs = [
+      mode === "yarn" ? "install" : "ci",
+      "--production",
+      mode === "yarn" ? "--frozen-lockfile" : null
+    ].filter(Boolean);
+
+    this._log(`Performing production install: ${mode} ${installArgs.join(" ")}`);
+    await execa(mode, installArgs, {
+      stdio: "inherit",
+      cwd: buildPath
+    });
   }
 
   async buildPackage({ bundleName }) {
@@ -130,18 +159,8 @@ class PackagerPlugin {
       ))
     );
 
-    // TODO(OPTIONS): enable/disable stdio.
-    // npm/yarn install.
-    const installArgs = [
-      mode === "yarn" ? "install" : "ci",
-      "--production",
-      mode === "yarn" ? "--frozen-lockfile" : null
-    ].filter(Boolean);
-    this._log(`Performing production install: ${mode} ${installArgs.join(" ")}`);
-    await execa(mode, installArgs, {
-      stdio: "inherit",
-      cwd: buildPath
-    });
+    // Install into build directory.
+    await this.installDeps({ mode, buildPath });
 
     // Create package zip.
     this._log(`Zipping build directory ${buildPath} to artifact location: ${bundlePath}`);
@@ -158,18 +177,11 @@ class PackagerPlugin {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Build.
-    const buildDir = await this.buildPackage({ bundleName });
+    await this.buildPackage({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
     functionObject.package.artifact = bundleName;
-
-    // eslint-disable-next-line no-console
-    console.log("TODO HERE packageFunction", {
-      functionName,
-      buildDir,
-      functionObject
-    });
   }
 
   async packageService() {
@@ -181,17 +193,10 @@ class PackagerPlugin {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Build.
-    const buildDir = await this.buildPackage({ bundleName });
+    await this.buildPackage({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
-
-    // eslint-disable-next-line no-console
-    console.log("TODO HERE packageService", {
-      serviceName,
-      buildDir,
-      servicePackage
-    });
   }
 
   async package() {

@@ -24,12 +24,12 @@ const { TEST_MODE, TEST_SCENARIO } = process.env;
 const CONFIGS = [
   { mode: "yarn" },
   { mode: "npm" }
-].filter(({ mode }) => !TEST_MODE || TEST_MODE.indexOf(mode) > -1);
+].filter(({ mode }) => !TEST_MODE || TEST_MODE.split(",").includes(mode));
 const SCENARIOS = [
   "simple",
   "individually",
   "huge"
-].filter((s) => !TEST_SCENARIO || TEST_SCENARIO.indexOf(s) > -1);
+].filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));
 
 const MATRIX = CONFIGS
   .map((c) => SCENARIOS.map((scenario) => ({ ...c, scenario })))
@@ -122,7 +122,7 @@ const benchmark = async () => {
 
     h3("Baseline");
     const baselineTime = await exec("serverless", ["package"]);
-    pkgData.push([scenario, "baseline", baselineTime]);
+    pkgData.push([scenario, `base (${mode})`, baselineTime]);
   }
 
   h2(chalk `Benchmark: {gray package}`);
