@@ -153,12 +153,12 @@ class Jetpack {
     return this.__options;
   }
 
-  async installDeps({ mode, buildPath }) {
-    const { lockfile } = this._options;
+  async installDeps({ buildPath }) {
+    const { mode, lockfile } = this._options;
 
     // Determine if can use npm ci.
     let install = "install";
-    if (mode === "npm" && !!lockfile) {
+    if (mode === "npm" && lockfile) {
       const { stdout } = await execa("npm", ["--version"]);
 
       const version = stdout.split(".");
@@ -199,11 +199,14 @@ class Jetpack {
     const buildPath = await createBuildDir();
 
     // Gather options.
-    const { mode } = this._options;
+    this._logDebug(`Options: ${JSON.stringify(this._options)}`);
+    const { lockfile } = this._options;
     const srcs = [
       "package.json",
-      mode === "yarn" ? "yarn.lock" : "package-lock.json"
-    ].concat(["src"]); // TODO(OPTIONS): use options
+      lockfile
+    ]
+      .concat(["src"]) // TODO(OPTIONS): use options
+      .filter(Boolean);
 
     // Copy over npm/yarn files.
     this._logDebug(`Copying sources ('${srcs.join("', '")}') to build directory`);
@@ -213,7 +216,7 @@ class Jetpack {
     )));
 
     // Install into build directory.
-    await this.installDeps({ mode, buildPath });
+    await this.installDeps({ buildPath });
 
     // Create package zip.
     this._logDebug(`Zipping build directory ${buildPath} to artifact location: ${bundlePath}`);

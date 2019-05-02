@@ -6,7 +6,8 @@ const pkg = () => ({
 });
 
 const jetpack = () => ({
-  mode: process.env.MODE
+  mode: process.env.MODE,
+  lockfile: process.env.LOCKFILE === "false" ? null : undefined // undefined === default
 });
 
 module.exports = {

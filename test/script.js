@@ -22,8 +22,10 @@ const { TEST_MODE, TEST_SCENARIO } = process.env;
  * ```
  */
 const CONFIGS = [
-  { mode: "yarn" },
-  { mode: "npm" }
+  { mode: "yarn", lockfile: "true" },
+  { mode: "yarn", lockfile: "false" },
+  { mode: "npm", lockfile: "true" },
+  { mode: "npm", lockfile: "false" }
 ].filter(({ mode }) => !TEST_MODE || TEST_MODE.split(",").includes(mode));
 const SCENARIOS = [
   "simple",
@@ -42,7 +44,7 @@ const ENV = {
 };
 
 const TABLE_OPTS = {
-  align: ["l", "l", "l", "r"],
+  align: ["l", "l", "l", "l", "r"],
   stringLength: (cell) => strip(cell).length // fix alignment with chalk.
 };
 
@@ -86,11 +88,11 @@ const install = async () => {
 // eslint-disable-next-line max-statements
 const benchmark = async () => {
   const pkgData = [
-    ["Scenario", "Mode", "Type", "Time"].map((t) => gray(t))
+    ["Scenario", "Mode", "Lockfile", "Type", "Time"].map((t) => gray(t))
   ];
 
   // Execute scenarios in serial.
-  for (const { scenario, mode } of MATRIX) {
+  for (const { scenario, mode, lockfile } of MATRIX) {
     const exec = async (cmd, args, opts) => {
       const start = Date.now();
 
@@ -104,7 +106,7 @@ const benchmark = async () => {
       return Date.now() - start;
     };
 
-    h2(chalk `Scenario: {gray ${JSON.stringify({ scenario, mode })}}`);
+    h2(chalk `Scenario: {gray ${JSON.stringify({ scenario, mode, lockfile })}}`);
 
     // Remove bad symlinks.
     await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"]);
@@ -115,14 +117,15 @@ const benchmark = async () => {
     const pluginTime = await exec("serverless", ["package"], {
       env: {
         ...ENV,
-        MODE: mode
+        MODE: mode,
+        LOCKFILE: lockfile
       }
     });
-    pkgData.push([scenario, mode, "plugin", pluginTime]);
+    pkgData.push([scenario, mode, lockfile, "plugin", pluginTime]);
 
     h3("Baseline");
     const baselineTime = await exec("serverless", ["package"]);
-    pkgData.push([scenario, mode, "baseline", baselineTime]);
+    pkgData.push([scenario, mode, lockfile, "baseline", baselineTime]);
   }
 
   h2(chalk `Benchmark: {gray package}`);
