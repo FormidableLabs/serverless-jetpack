@@ -1,0 +1,19 @@
+{
+  "name": "sls-packager-examples-individually",
+  "version": "0.0.1",
+  "description": "A individually-packaged example sls application.",
+  "repository": "https://github.com/FormidableLabs/sls-packager-examples",
+  "author": "Ryan Roemer <ryan.roemer@formidable.com>",
+  "license": "MIT",
+  "scripts": {
+    "TODO": "echo TODO"
+  },
+  "dependencies": {
+    "express": "^4.16.4",
+    "serverless-http": "^1.9.0"
+  },
+  "devDependencies": {
+    "serverless": "^1.41.1",
+    "serverless-offline": "^4.2.1"
+  }
+}

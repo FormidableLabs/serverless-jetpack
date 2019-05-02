@@ -1,0 +1,37 @@
+service: sls-packager-examples-individually
+
+package:
+  individually: ${file(./serverless.js):pkg.individually}
+  excludeDevDependencies: ${file(./serverless.js):pkg.excludeDevDependencies}
+
+custom:
+  region: ${opt:region, env:AWS_REGION}
+  stage: ${opt:stage, env:STAGE}
+
+plugins:
+  localPath: ../../plugins
+  modules:
+    - serverless-offline
+    - wrapper
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  region: ${self:custom.region}
+  stage: ${self:custom.stage}
+  environment:
+    STAGE: ${self:custom.stage}
+  timeout: 30 # seconds (`300` max)
+  memorySize: 128 # MB value (`1024` default)
+
+functions:
+  base:
+    handler: src/server/base.handler
+    events: # Use a generic proxy to allow Express app to route.
+      - http: ANY /base
+      - http: 'ANY /base/{proxy+}'
+  another:
+    handler: src/server/base.handler
+    events:
+      - http: ANY /another
+      - http: 'ANY /another/{proxy+}'

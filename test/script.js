@@ -50,10 +50,25 @@ const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
 const h3 = (msg) => log(chalk `\n{green ### ${msg}}`);
 
 const build = async () => {
+  const files = [
+    "package.json",
+    "serverless.yml",
+    "serverless.js",
+    "src"
+  ];
+
+  for (const scenario of SCENARIOS) {
+    const execOpts = {
+      cwd: path.resolve(`test/packages/${scenario}/yarn`),
+      stdio: "inherit"
+    };
+
+    log(chalk `{cyan ${scenario}}: Copying files`);
+    await execa("cp", [].concat("-rp", files, "../npm"), execOpts);
+  }
 };
 
 const install = async () => {
-  // Execute scenarios in serial.
   for (const { scenario, mode } of MATRIX) {
     const execOpts = {
       cwd: path.resolve(`test/packages/${scenario}/${mode}`),
