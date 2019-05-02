@@ -127,6 +127,32 @@ class Jetpack {
     }
   }
 
+  get _options() {
+    if (this.__options) { return this.__options; }
+
+    const { service } = this.serverless;
+
+    // Static defaults.
+    const defaults = {
+      mode: "yarn"
+    };
+
+    const custom = (service.custom || {})[pkg.name];
+    this.__options = Object.assign({}, defaults, custom, this.options);
+
+    // Dynamic defaults
+    if (typeof this.__options.lockfile === "undefined") {
+      this.__options.lockfile = this.__options.mode === "yarn" ? "yarn.lock" : "package-lock.json";
+    }
+
+    // Validation
+    if (!["yarn", "npm"].includes(this.__options.mode)) {
+      throw new Error(`[${pkg.name}] Invalid 'mode' option: ${this.__options.mode}`);
+    }
+
+    return this.__options;
+  }
+
   async installDeps({ mode, buildPath }) {
     // Determine if can use npm ci.
     const haveLockfile = true; // TODO(OPTIONS): Take lockfile path or null.
@@ -159,9 +185,9 @@ class Jetpack {
 
     const buildPath = await createBuildDir();
 
-    // TODO(OPTIONS): use options
-    const mode = process.env.MODE || "yarn";
-    const srcs = ["src"];
+    // Gather options.
+    const { mode } = this._options;
+    const srcs = ["src"]; // TODO(OPTIONS): use options
 
     // Copy over npm/yarn files.
     this._logDebug("Copying source files and package data to build directory");
