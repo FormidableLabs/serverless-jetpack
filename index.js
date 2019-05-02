@@ -88,17 +88,28 @@ const createZip = ({ buildPath, bundlePath }) => {
  * - `service.package.individually`
  * - `function.package.individually`
  */
-class PackagerPlugin {
+class Jetpack {
   constructor(serverless, options) {
     this.serverless = serverless;
     this.options = options;
 
-    // TODO HERE -- (1) name (FastPackager?), (2) options
-    // this.commands = {
-    //   fastPackager: {
-
-    //   }
-    // }
+    this.commands = {
+      jetpack: {
+        usage: pkg.description,
+        options: {
+          mode: {
+            usage: "Installation mode (default: `yarn`)",
+            shortcut: "m"
+          },
+          lockfile: {
+            usage:
+              "Path to lockfile (default: `yarn.lock` for `mode: yarn`, "
+              + "`package-lock.json` for `mode: npm`)",
+            shortcut: "l"
+          }
+        }
+      }
+    };
 
     this.hooks = {
       "before:package:createDeploymentArtifacts": this.package.bind(this)
@@ -248,4 +259,4 @@ class PackagerPlugin {
   }
 }
 
-module.exports = PackagerPlugin;
+module.exports = Jetpack;

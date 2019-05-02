@@ -63,8 +63,11 @@ $ yarn run test:build
 # Run a benchmark.
 $ yarn run test:benchmark
 
-# If the stats are notably different than what's in README.md, update the table
-# and commit your changes.
+# Generate the usage message.
+$ MODE=yarn serverless jetpack --help
+
+# If the benchmark stats and/or the usage message are notably different than
+# what's in README.md, update relevant sections and commit your changes.
 $ vim README.md
 
 # Run all final checks.
