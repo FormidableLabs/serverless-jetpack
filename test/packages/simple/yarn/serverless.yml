@@ -1,4 +1,4 @@
-service: sls-packager-examples-simple
+service: serverless-jetpack-simple
 
 package:
   individually: ${file(./serverless.js):pkg.individually}

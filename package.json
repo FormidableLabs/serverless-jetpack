@@ -1,9 +1,9 @@
 {
-  "name": "sls-packager-examples",
+  "name": "serverless-jetpack",
   "version": "0.0.1",
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
-  "repository": "https://github.com/FormidableLabs/sls-packager-examples",
+  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "keywords": [

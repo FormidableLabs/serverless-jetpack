@@ -1,4 +1,4 @@
-service: sls-packager-examples-huge
+service: serverless-jetpack-huge
 
 # TODO(EXPERIMENT): Do we need some includes/excludes to really hit the bad slowdown?
 package:

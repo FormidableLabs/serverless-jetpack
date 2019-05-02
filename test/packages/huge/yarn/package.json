@@ -1,8 +1,8 @@
 {
-  "name": "sls-packager-examples-huge",
+  "name": "serverless-jetpack-huge",
   "version": "0.0.1",
   "description": "A huge example sls application.",
-  "repository": "https://github.com/FormidableLabs/sls-packager-examples",
+  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "scripts": {
