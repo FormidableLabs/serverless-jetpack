@@ -26,6 +26,9 @@
     "lint": "eslint .",
     "check": "yarn run lint"
   },
+  "engines": {
+    "node": ">=8.0.0"
+  },
   "dependencies": {
     "archiver": "^3.0.0",
     "execa": "^1.0.0",
