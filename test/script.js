@@ -11,14 +11,14 @@ const strip = require("strip-ansi");
 const { TEST_MODE, TEST_SCENARIO } = process.env;
 
 /**
- * Test harness.
+ * Test script helper.
  *
  * Drive all the various scenarios. To limit modes or scenario, try:
  *
  * ```sh
- * $ TEST_MODE=yarn TEST_SCENARIO=simple node test/harness.js
- * $ TEST_MODE=yarn TEST_SCENARIO=simple,huge node test/harness.js
- * $ TEST_MODE=yarn,npm TEST_SCENARIO=simple node test/harness.js
+ * $ TEST_MODE=yarn TEST_SCENARIO=simple      node test/script.js install
+ * $ TEST_MODE=yarn TEST_SCENARIO=simple,huge node test/script.js build
+ * $ TEST_MODE=yarn,npm TEST_SCENARIO=simple  node test/script.js benchmark
  * ```
  */
 const CONFIGS = [
@@ -49,8 +49,27 @@ const TABLE_OPTS = {
 const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
 const h3 = (msg) => log(chalk `\n{green ### ${msg}}`);
 
+const build = async () => {
+};
+
+const install = async () => {
+  // Execute scenarios in serial.
+  for (const { scenario, mode } of MATRIX) {
+    const execOpts = {
+      cwd: path.resolve(`test/packages/${scenario}/${mode}`),
+      stdio: "inherit"
+    };
+
+    log(chalk `{cyan ${scenario}/${mode}}: Installing`);
+    await execa(mode, ["install"], execOpts);
+
+    log(chalk `{cyan ${scenario}/${mode}}: Removing bad symlinks`);
+    await execa("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"], execOpts);
+  }
+};
+
 // eslint-disable-next-line max-statements
-const main = async () => {
+const benchmark = async () => {
   const installData = [
     ["Scenario", "Mode", "Time"].map((t) => gray(t))
   ];
@@ -58,14 +77,13 @@ const main = async () => {
     ["Scenario", "Mode", "Time"].map((t) => gray(t))
   ];
 
-  // Execute scenarios in serial (so we don't clobber shared resources like
-  // `node_modules`, etc.).
-  for (const { mode, scenario } of MATRIX) {
+  // Execute scenarios in serial.
+  for (const { scenario, mode } of MATRIX) {
     const exec = async (cmd, args, opts) => {
       const start = Date.now();
 
       await execa(cmd, args, {
-        cwd: path.resolve(`test/packages/${scenario}`),
+        cwd: path.resolve(`test/packages/${scenario}/${mode}`),
         stdio: "inherit",
         env: ENV,
         ...opts
@@ -74,7 +92,7 @@ const main = async () => {
       return Date.now() - start;
     };
 
-    h2(chalk `Scenario: {gray ${JSON.stringify({ mode, scenario })}}`);
+    h2(chalk `Scenario: {gray ${JSON.stringify({ scenario, mode })}}`);
     h3("Install");
     await exec("rm", ["-rf", "node_modules"]);
     const installTime = await exec(mode, ["install"]);
@@ -105,6 +123,22 @@ const main = async () => {
 
   h2(chalk `Benchmark: {gray package}`);
   log(table(pkgData, TABLE_OPTS));
+};
+
+const main = async () => {
+  const actionStr = process.argv[2]; // eslint-disable-line no-magic-numbers
+  const actions = {
+    build,
+    install,
+    benchmark
+  };
+
+  const action = actions[actionStr];
+  if (!action) {
+    throw new Error(`Invalid action: ${actionStr}`);
+  }
+
+  return action();
 };
 
 if (require.main === module) {

@@ -8,7 +8,9 @@
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf test/packages/*/*/.serverless",
-    "test:harness": "node test/harness.js",
+    "test:install": "node test/script.js install",
+    "test:build": "node test/script.js build",
+    "test:benchmark": "node test/script.js benchmark",
     "lint": "eslint .",
     "check": "yarn run lint"
   },
