@@ -6,6 +6,17 @@
   "repository": "https://github.com/FormidableLabs/sls-packager-examples",
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
+  "keywords": [
+    "serverless",
+    "serverless artifact",
+    "serverless package",
+    "serverless plugin",
+    "amazon web services",
+    "aws",
+    "lambda",
+    "npm",
+    "yarn"
+  ],
   "scripts": {
     "clean": "rm -rf test/packages/*/*/.serverless",
     "test:install": "node test/script.js install",
