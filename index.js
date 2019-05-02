@@ -110,6 +110,12 @@ class PackagerPlugin {
     cli.log(`[${PLUGIN_NAME}] ${msg}`);
   }
 
+  _logDebug(msg) {
+    if (process.env.SLS_DEBUG) {
+      this._log(msg);
+    }
+  }
+
   async installDeps({ mode, buildPath }) {
     // Determine if can use npm ci.
     const haveLockfile = true; // TODO(OPTIONS): Take lockfile path or null.
@@ -128,7 +134,7 @@ class PackagerPlugin {
       mode === "yarn" ? "--frozen-lockfile" : null
     ].filter(Boolean);
 
-    this._log(`Performing production install: ${mode} ${installArgs.join(" ")}`);
+    this._logDebug(`Performing production install: ${mode} ${installArgs.join(" ")}`);
     await execa(mode, installArgs, {
       stdio: "inherit",
       cwd: buildPath
@@ -147,7 +153,7 @@ class PackagerPlugin {
     const srcs = ["src"];
 
     // Copy over npm/yarn files.
-    this._log("Copying source files and package data to build directory");
+    this._logDebug("Copying source files and package data to build directory");
     await Promise.all([
       "package.json",
       mode === "yarn" ? "yarn.lock" : "package-lock.json"
@@ -163,7 +169,7 @@ class PackagerPlugin {
     await this.installDeps({ mode, buildPath });
 
     // Create package zip.
-    this._log(`Zipping build directory ${buildPath} to artifact location: ${bundlePath}`);
+    this._logDebug(`Zipping build directory ${buildPath} to artifact location: ${bundlePath}`);
     await createZip({ buildPath, bundlePath });
 
     // Clean up
@@ -177,6 +183,7 @@ class PackagerPlugin {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Build.
+    this._log(`Packaging function: ${bundleName}`);
     await this.buildPackage({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
@@ -193,6 +200,7 @@ class PackagerPlugin {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Build.
+    this._log(`Packaging service: ${bundleName}`);
     await this.buildPackage({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
