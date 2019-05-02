@@ -31,45 +31,4 @@ Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serve
 
 TODO_INSERT
 
-## Development
-
-Our development revolves around various fixture packages we have in `test`. First, get setup with:
-
-```sh
-$ yarn
-$ yarn test:install
-```
-
-to install the root project and a lot of fixture packages. (This is **meant** to take a while as we install a lot of dependencies to give us sizable app simulations to work with...) You will need to re-run `test:install` whenever you update dependencies inside `test/` packages.
-
-Our present fixture setup is:
-
-```
-$ tree test/packages/ -L 2
-test/packages/
-├── huge
-│   ├── npm
-│   └── yarn
-├── individually
-│   ├── npm
-│   └── yarn
-└── simple
-    ├── npm
-    └── yarn
-```
-
-For ease of development, we want to do `yarn test:install` and install the respective yarn/npm packages **once**. However, this means we keep duplicates of source code / package.json files across the `npm`/`yarn` variant directories. To keep things in sync, we designate the `yarn` directory as "the source of truth" for everything except for `SCENARIO/npm/package-lock.json` and copy files across scenarios with:
-
-```sh
-$ yarn test:build
-```
-
-From there you can run various packaging configurations and perform benchmarks.
-
-```sh
-$ TEST_MODE=yarn TEST_SCENARIO=simple yarn test:benchmark
-$ TEST_MODE=yarn TEST_SCENARIO=simple,huge yarn test:benchmark
-$ TEST_MODE=yarn,npm TEST_SCENARIO=simple yarn test:benchmark
-```
-
 [Serverless]: https://serverless.com/

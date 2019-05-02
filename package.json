@@ -18,6 +18,7 @@
     "yarn"
   ],
   "scripts": {
+    "preversion": "yarn run check",
     "clean": "rm -rf test/packages/*/*/.serverless",
     "test:install": "node test/script.js install",
     "test:build": "node test/script.js build",
