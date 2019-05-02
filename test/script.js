@@ -42,7 +42,7 @@ const ENV = {
 };
 
 const TABLE_OPTS = {
-  align: ["l", "l", "r"],
+  align: ["l", "l", "l", "r"],
   stringLength: (cell) => strip(cell).length // fix alignment with chalk.
 };
 
@@ -86,7 +86,7 @@ const install = async () => {
 // eslint-disable-next-line max-statements
 const benchmark = async () => {
   const pkgData = [
-    ["Scenario", "Mode", "Time"].map((t) => gray(t))
+    ["Scenario", "Mode", "Type", "Time"].map((t) => gray(t))
   ];
 
   // Execute scenarios in serial.
@@ -118,11 +118,11 @@ const benchmark = async () => {
         MODE: mode
       }
     });
-    pkgData.push([scenario, mode, pluginTime]);
+    pkgData.push([scenario, mode, "plugin", pluginTime]);
 
     h3("Baseline");
     const baselineTime = await exec("serverless", ["package"]);
-    pkgData.push([scenario, `base (${mode})`, baselineTime]);
+    pkgData.push([scenario, mode, "baseline", baselineTime]);
   }
 
   h2(chalk `Benchmark: {gray package}`);
