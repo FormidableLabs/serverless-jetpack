@@ -154,10 +154,11 @@ class Jetpack {
   }
 
   async installDeps({ mode, buildPath }) {
+    const { lockfile } = this._options;
+
     // Determine if can use npm ci.
-    const haveLockfile = true; // TODO(OPTIONS): Take lockfile path or null.
     let install = "install";
-    if (mode === "npm" && haveLockfile) {
+    if (mode === "npm" && !!lockfile) {
       const { stdout } = await execa("npm", ["--version"]);
 
       const version = stdout.split(".");
@@ -176,17 +177,16 @@ class Jetpack {
       }
     }
 
-    // TODO(OPTIONS): enable/disable stdio.
     // npm/yarn install.
     const installArgs = [
       install,
       "--production",
-      mode === "yarn" ? "--frozen-lockfile" : null
+      mode === "yarn" && !!lockfile ? "--frozen-lockfile" : null
     ].filter(Boolean);
 
     this._logDebug(`Performing production install: ${mode} ${installArgs.join(" ")}`);
     await execa(mode, installArgs, {
-      stdio: "inherit",
+      // stdio: "inherit",  // TODO(OPTIONS): enable/disable stdio.
       cwd: buildPath
     });
   }
@@ -200,20 +200,17 @@ class Jetpack {
 
     // Gather options.
     const { mode } = this._options;
-    const srcs = ["src"]; // TODO(OPTIONS): use options
-
-    // Copy over npm/yarn files.
-    this._logDebug("Copying source files and package data to build directory");
-    await Promise.all([
+    const srcs = [
       "package.json",
       mode === "yarn" ? "yarn.lock" : "package-lock.json"
-    ]
-      .concat(srcs)
-      .map((f) => copy(
-        path.resolve(servicePath, f),
-        path.resolve(buildPath, f)
-      ))
-    );
+    ].concat(["src"]); // TODO(OPTIONS): use options
+
+    // Copy over npm/yarn files.
+    this._logDebug(`Copying sources ('${srcs.join("', '")}') to build directory`);
+    await Promise.all(srcs.map((f) => copy(
+      path.resolve(servicePath, f),
+      path.resolve(buildPath, f)
+    )));
 
     // Install into build directory.
     await this.installDeps({ mode, buildPath });
