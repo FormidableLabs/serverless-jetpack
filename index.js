@@ -133,7 +133,7 @@ class PackagerPlugin {
     // TODO(OPTIONS): enable/disable stdio.
     // npm/yarn install.
     const installArgs = [
-      "install",
+      mode === "yarn" ? "install" : "ci",
       "--production",
       mode === "yarn" ? "--frozen-lockfile" : null
     ].filter(Boolean);
