@@ -9,7 +9,7 @@ custom:
   stage: ${opt:stage, env:STAGE}
 
 plugins:
-  localPath: ../../plugins
+  localPath: ../../../plugins
   modules:
     - serverless-offline
     - wrapper

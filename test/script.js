@@ -85,9 +85,6 @@ const install = async () => {
 
 // eslint-disable-next-line max-statements
 const benchmark = async () => {
-  const installData = [
-    ["Scenario", "Mode", "Time"].map((t) => gray(t))
-  ];
   const pkgData = [
     ["Scenario", "Mode", "Time"].map((t) => gray(t))
   ];
@@ -108,17 +105,12 @@ const benchmark = async () => {
     };
 
     h2(chalk `Scenario: {gray ${JSON.stringify({ scenario, mode })}}`);
-    h3("Install");
-    await exec("rm", ["-rf", "node_modules"]);
-    const installTime = await exec(mode, ["install"]);
-    installData.push([scenario, mode, installTime]);
 
     // Remove bad symlinks.
     await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"]);
 
     // TODO: relative bin path to serverless.
     // TODO: Implement `mode` (figure out `npm ci` for 5.7.0 or just npm install)
-
     h3("Plugin");
     const pluginTime = await exec("serverless", ["package"], {
       env: {
@@ -132,9 +124,6 @@ const benchmark = async () => {
     const baselineTime = await exec("serverless", ["package"]);
     pkgData.push([scenario, "baseline", baselineTime]);
   }
-
-  h2(chalk `Benchmark: {gray install}`);
-  log(table(installData, TABLE_OPTS));
 
   h2(chalk `Benchmark: {gray package}`);
   log(table(pkgData, TABLE_OPTS));
