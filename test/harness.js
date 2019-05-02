@@ -2,23 +2,35 @@
 
 const path = require("path");
 const { log } = console;
+const chalk = require("chalk");
+const { gray } = chalk;
 const execa = require("execa");
 const table = require("markdown-table");
+const strip = require("strip-ansi");
+
+const { MODE, SCENARIO } = process.env;
 
 /**
  * Test harness.
  *
- * Drive all the various scenarios.
+ * Drive all the various scenarios. To limit modes or scenario, try:
+ *
+ * ```sh
+ * $ MODE=yarn SCENARIO=simple node test/harness.js
+ * $ MODE=yarn SCENARIO=simple,huge node test/harness.js
+ * $ MODE=yarn,npm SCENARIO=simple node test/harness.js
+ * ```
  */
 const CONFIGS = [
-  { mode: "yarn" }
-  // { mode: "npm" }
-];
+  { mode: "yarn" },
+  { mode: "npm" }
+].filter(({ mode }) => !MODE || MODE.indexOf(mode) > -1);
 const SCENARIOS = [
-  "simple"
-  // "individually",
-  // "huge"
-];
+  "simple",
+  "individually",
+  "huge"
+].filter((s) => !SCENARIO || SCENARIO.indexOf(s) > -1);
+
 const MATRIX = CONFIGS
   .map((c) => SCENARIOS.map((scenario) => ({ ...c, scenario })))
   .reduce((m, a) => m.concat(a), []);
@@ -29,8 +41,26 @@ const ENV = {
   ...process.env
 };
 
+const TABLE_OPTS = {
+  align: ["l", "l", "r"],
+  stringLength: (cell) => strip(cell).length // fix alignment with chalk.
+};
+
+const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
+const h3 = (msg) => log(chalk `\n{green ### ${msg}}`);
+
+// eslint-disable-next-line max-statements
 const main = async () => {
-  await Promise.all(MATRIX.map(async ({ mode, scenario }) => {
+  const installData = [
+    ["Scenario", "Mode", "Elapsed (ms)"].map((t) => gray(t))
+  ];
+  const pkgData = [
+    ["Scenario", "Mode", "Elapsed (ms)"].map((t) => gray(t))
+  ];
+
+  // Execute scenarios in serial (so we don't clobber shared resources like
+  // `node_modules`, etc.).
+  for (const { mode, scenario } of MATRIX) {
     const exec = async (cmd, args, opts) => {
       const start = Date.now();
 
@@ -44,33 +74,37 @@ const main = async () => {
       return Date.now() - start;
     };
 
-    log(`## ${JSON.stringify({ mode, scenario })}`);
-    log("### Install");
+    h2(chalk `Scenario: {gray ${JSON.stringify({ mode, scenario })}}`);
+    h3("Install");
     await exec("rm", ["-rf", "node_modules"]);
-    await exec(mode, ["install"]);
+    const installTime = await exec(mode, ["install"]);
+    installData.push([scenario, mode, installTime]);
+
     // Remove bad symlinks.
     await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"]);
 
-    log("### Plugin");
+    // TODO: relative bin path to serverless.
+    // TODO: Implement `mode` (figure out `npm ci` for 5.7.0 or just npm install)
+
+    h3("Plugin");
     const pluginTime = await exec("serverless", ["package"], {
       env: {
         ...ENV,
-        PLUGIN: "true"
+        MODE: mode
       }
     });
+    pkgData.push([scenario, mode, pluginTime]);
 
-    log("### Baseline");
-    const slsTime = await exec("serverless", ["package"]);
+    h3("Baseline");
+    const baselineTime = await exec("serverless", ["package"]);
+    pkgData.push([scenario, "baseline", baselineTime]);
+  }
 
-    log(table([
-      ["Scenario", "Mode", "Elapsed (ms)"],
-      [scenario, mode, pluginTime],
-      [scenario, "baseline", slsTime]
-    ],
-    {
-      align: ["l", "l", "r"]
-    }));
-  }));
+  h2(chalk `Benchmark: {gray install}`);
+  log(table(installData, TABLE_OPTS));
+
+  h2(chalk `Benchmark: {gray package}`);
+  log(table(pkgData, TABLE_OPTS));
 };
 
 if (require.main === module) {

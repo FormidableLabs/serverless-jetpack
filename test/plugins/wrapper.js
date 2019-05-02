@@ -4,4 +4,4 @@
 const PackagerPlugin = require("../../index");
 const NoopPlugin = require("./noop");
 
-module.exports = process.env.PLUGIN === "true" ? PackagerPlugin : NoopPlugin;
+module.exports = process.env.MODE ? PackagerPlugin : NoopPlugin;
