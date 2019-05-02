@@ -114,22 +114,31 @@ class PackagerPlugin {
     const buildPath = await createBuildDir();
 
     // TODO(OPTIONS): use options
+    const mode = process.env.MODE || "yarn";
+    const srcs = ["src"];
+
     // Copy over npm/yarn files.
     this._log("Copying source files and package data to build directory");
     await Promise.all([
       "package.json",
-      "yarn.lock",
-      "src"
-    ].map((f) => copy(
-      path.resolve(servicePath, f),
-      path.resolve(buildPath, f)
-    )));
+      mode === "yarn" ? "yarn.lock" : "package-lock.json"
+    ]
+      .concat(srcs)
+      .map((f) => copy(
+        path.resolve(servicePath, f),
+        path.resolve(buildPath, f)
+      ))
+    );
 
-    // TODO(OPTIONS): use options
     // TODO(OPTIONS): enable/disable stdio.
     // npm/yarn install.
-    this._log("Performing production yarn install");
-    await execa("yarn", ["install", "--production", "--frozen-lockfile"], {
+    const installArgs = [
+      "install",
+      "--production",
+      mode === "yarn" ? "--frozen-lockfile" : null
+    ].filter(Boolean);
+    this._log(`Performing production install: ${mode} ${installArgs.join(" ")}`);
+    await execa(mode, installArgs, {
       stdio: "inherit",
       cwd: buildPath
     });

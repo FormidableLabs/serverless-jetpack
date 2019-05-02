@@ -8,7 +8,7 @@ const execa = require("execa");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
 
-const { MODE, SCENARIO } = process.env;
+const { TEST_MODE, TEST_SCENARIO } = process.env;
 
 /**
  * Test harness.
@@ -16,20 +16,20 @@ const { MODE, SCENARIO } = process.env;
  * Drive all the various scenarios. To limit modes or scenario, try:
  *
  * ```sh
- * $ MODE=yarn SCENARIO=simple node test/harness.js
- * $ MODE=yarn SCENARIO=simple,huge node test/harness.js
- * $ MODE=yarn,npm SCENARIO=simple node test/harness.js
+ * $ TEST_MODE=yarn TEST_SCENARIO=simple node test/harness.js
+ * $ TEST_MODE=yarn TEST_SCENARIO=simple,huge node test/harness.js
+ * $ TEST_MODE=yarn,npm TEST_SCENARIO=simple node test/harness.js
  * ```
  */
 const CONFIGS = [
   { mode: "yarn" },
   { mode: "npm" }
-].filter(({ mode }) => !MODE || MODE.indexOf(mode) > -1);
+].filter(({ mode }) => !TEST_MODE || TEST_MODE.indexOf(mode) > -1);
 const SCENARIOS = [
   "simple",
   "individually",
   "huge"
-].filter((s) => !SCENARIO || SCENARIO.indexOf(s) > -1);
+].filter((s) => !TEST_SCENARIO || TEST_SCENARIO.indexOf(s) > -1);
 
 const MATRIX = CONFIGS
   .map((c) => SCENARIOS.map((scenario) => ({ ...c, scenario })))
@@ -52,10 +52,10 @@ const h3 = (msg) => log(chalk `\n{green ### ${msg}}`);
 // eslint-disable-next-line max-statements
 const main = async () => {
   const installData = [
-    ["Scenario", "Mode", "Elapsed (ms)"].map((t) => gray(t))
+    ["Scenario", "Mode", "Time"].map((t) => gray(t))
   ];
   const pkgData = [
-    ["Scenario", "Mode", "Elapsed (ms)"].map((t) => gray(t))
+    ["Scenario", "Mode", "Time"].map((t) => gray(t))
   ];
 
   // Execute scenarios in serial (so we don't clobber shared resources like
