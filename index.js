@@ -156,17 +156,30 @@ class Jetpack {
   async installDeps({ mode, buildPath }) {
     // Determine if can use npm ci.
     const haveLockfile = true; // TODO(OPTIONS): Take lockfile path or null.
-    const install = "install";
+    let install = "install";
     if (mode === "npm" && haveLockfile) {
-      // TODO HERE
+      const { stdout } = await execa("npm", ["--version"]);
 
-      // await execa("npm", ["--version"])
+      const version = stdout.split(".");
+      if (version.length < 3) { // eslint-disable-line no-magic-numbers
+        throw new Error(`Found unparseable npm verions: ${stdout}`);
+      }
+
+      const major = parseInt(version[0], 10);
+      const minor = parseInt(version[1], 10);
+
+      // `npm ci` is not available prior to 5.7.0
+      if (major > 5 || major === 5 && minor >= 7) { // eslint-disable-line no-magic-numbers
+        install = "ci";
+      } else {
+        this._logDebug(`Found old npm version ${stdout}. Unable to use 'npm ci'.`);
+      }
     }
 
     // TODO(OPTIONS): enable/disable stdio.
     // npm/yarn install.
     const installArgs = [
-      mode === "yarn" ? "install" : "ci",
+      install,
       "--production",
       mode === "yarn" ? "--frozen-lockfile" : null
     ].filter(Boolean);
