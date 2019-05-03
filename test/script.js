@@ -33,8 +33,8 @@ const SCENARIOS = [
   "huge"
 ].filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));
 
-const MATRIX = CONFIGS
-  .map((c) => SCENARIOS.map((scenario) => ({ ...c, scenario })))
+const MATRIX = SCENARIOS
+  .map((scenario) => CONFIGS.map((c) => ({ ...c, scenario })))
   .reduce((m, a) => m.concat(a), []);
 
 const ENV = {
@@ -111,10 +111,8 @@ const benchmark = async () => {
     // Remove bad symlinks.
     await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"]);
 
-    // TODO: relative bin path to serverless.
-    // TODO: Implement `mode` (figure out `npm ci` for 5.7.0 or just npm install)
     h3("Plugin");
-    const pluginTime = await exec("serverless", ["package"], {
+    const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {
       env: {
         ...ENV,
         MODE: mode,
