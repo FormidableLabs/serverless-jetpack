@@ -61,10 +61,14 @@ $ yarn run test:install
 $ yarn run test:build
 
 # Run a benchmark.
+# First, check that `npm` versions is 5.7.0+ (which has `npm ci`).
+$ npm --version
+# Then, actually generate the benchmark.
+# _Note_: Unfortunately, this takes some **time**. Grab a ☕
 $ yarn run test:benchmark
 
 # Generate the usage message.
-$ MODE=yarn serverless jetpack --help
+$ yarn run usage
 
 # If the benchmark stats and/or the usage message are notably different than
 # what's in README.md, update relevant sections and commit your changes.

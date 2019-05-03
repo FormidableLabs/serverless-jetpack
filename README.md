@@ -51,7 +51,7 @@ Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serve
 
 **Lockfiles**
 
-It is a best practice to use lockfiles (`yarn.lock` or `package-lock.json`) generally, and specifically important for the approach this plugin takes because it does **new** `yarn|npm` installs into a temporary directory. Without lockfiles you may be packaging/deploying something _different_ from what is in the root project.
+It is a best practice to use lockfiles (`yarn.lock` or `package-lock.json`) generally, and specifically important for the approach this plugin takes because it does **new** `yarn|npm` installs into a temporary directory. Without lockfiles you may be packaging/deploying something _different_ from what is in the root project. And, production installs with this plugin are much, much _faster_ with a lockfile than without.
 
 To this end, the plugin assumes that a lockfile is provided by default and you must explicitly set the option to `lockfile: null` to avoid having a lockfile copied over. When a lockfile is present then the strict (and fast!) `yarn install --frozen-lockfile  --production` and `npm ci --production` commands are used to guarantee the packaged `node_modules` matches the relevant project modules. And, the installs will **fail** (by design) if the lockfile is out of date.
 
@@ -69,34 +69,46 @@ In cases like these, simply set the `lockfile` option to relatively point to the
 
 The following is a simple, "on my machine" benchmark generated with `yarn test:benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
 
-When run with a lockfile (producing the fastest `yarn|npm` install) our scenarios produce over a 4x speedup for `serverless-jetpack` over built-in packaging.
+When run with a lockfile (producing the fastest `yarn|npm` install), **all** of our scenarios have faster packaging with `serverless-jetpack`. In some cases, this means over a **4x** speedup. The results also indicate that if your project is **not** using a lockfile, then built-in Serverless packaging may be faster.
 
-| Scenario     | Mode | Lockfile | Type     |  Time |
-| :----------- | :--- | :------- | :------- | ----: |
-| simple       | yarn | true     | jetpack  |  5726 |
-| simple       | yarn | true     | baseline |  6510 |
-| simple       | yarn | false    | jetpack  |  6203 |
-| simple       | yarn | false    | baseline |  6081 |
-| simple       | npm  | true     | jetpack  |  5407 |
-| simple       | npm  | true     | baseline |  6742 |
-| simple       | npm  | false    | jetpack  |  8597 |
-| simple       | npm  | false    | baseline |  7438 |
-| individually | yarn | true     | jetpack  |  5856 |
-| individually | yarn | true     | baseline | 11325 |
-| individually | yarn | false    | jetpack  |  6974 |
-| individually | yarn | false    | baseline | 10414 |
-| individually | npm  | true     | jetpack  |  6430 |
-| individually | npm  | true     | baseline | 11778 |
-| individually | npm  | false    | jetpack  |  9536 |
-| individually | npm  | false    | baseline | 12550 |
-| huge         | yarn | true     | jetpack  |  6304 |
-| huge         | yarn | true     | baseline | 25895 |
-| huge         | yarn | false    | jetpack  | 13842 |
-| huge         | yarn | false    | baseline | 94972 |
-| huge         | npm  | true     | jetpack  |  6803 |
-| huge         | npm  | true     | baseline | 28672 |
-| huge         | npm  | false    | jetpack  | 24700 |
-| huge         | npm  | false    | baseline | 29956 |
+As a quick guide to the results table:
+
+- `Scenario`: Contrived scenarios for the purpose of generating results.
+    - `simple`: Very small production and development dependencies.
+    - `individually`: Same dependencies as `simple`, but with `individually` packaging.
+    - `huge`: Lots and lots of development dependencies.
+- `Mode`: Use `yarn` or `npm`?
+- `Lockfile`: Use a lockfile (fastest) or omit?
+- `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
+- `Time`: Elapsed build time in milliseconds.
+- `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
+
+| Scenario     | Mode | Lockfile | Type     |  Time |  vs Base |
+| :----------- | :--- | :------- | :------- | ----: | -------: |
+| simple       | yarn | true     | plugin   |  4880 | -25.15 % |
+| simple       | yarn | true     | baseline |  6520 |          |
+| simple       | npm  | true     | plugin   |  5700 | -16.00 % |
+| simple       | npm  | true     | baseline |  6786 |          |
+| simple       | yarn | false    | plugin   |  7121 |   7.81 % |
+| simple       | yarn | false    | baseline |  6605 |          |
+| simple       | npm  | false    | plugin   |  7942 | -12.74 % |
+| simple       | npm  | false    | baseline |  9102 |          |
+| individually | yarn | true     | plugin   |  6209 | -56.67 % |
+| individually | yarn | true     | baseline | 14329 |          |
+| individually | npm  | true     | plugin   |  7367 | -51.62 % |
+| individually | npm  | true     | baseline | 15228 |          |
+| individually | yarn | false    | plugin   |  8850 | -37.34 % |
+| individually | yarn | false    | baseline | 14124 |          |
+| individually | npm  | false    | plugin   | 15115 | -22.39 % |
+| individually | npm  | false    | baseline | 19475 |          |
+| huge         | yarn | true     | plugin   |  6331 | -83.39 % |
+| huge         | yarn | true     | baseline | 38109 |          |
+| huge         | npm  | true     | plugin   |  5289 | -86.15 % |
+| huge         | npm  | true     | baseline | 38187 |          |
+| huge         | yarn | false    | plugin   | 16515 | -58.77 % |
+| huge         | yarn | false    | baseline | 40057 |          |
+| huge         | npm  | false    | plugin   | 27866 | -44.21 % |
+| huge         | npm  | false    | baseline | 49950 |          |
 
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/

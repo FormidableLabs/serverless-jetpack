@@ -23,8 +23,8 @@ const { TEST_MODE, TEST_SCENARIO } = process.env;
  */
 const CONFIGS = [
   { mode: "yarn", lockfile: "true" },
-  { mode: "yarn", lockfile: "false" },
   { mode: "npm", lockfile: "true" },
+  { mode: "yarn", lockfile: "false" },
   { mode: "npm", lockfile: "false" }
 ].filter(({ mode }) => !TEST_MODE || TEST_MODE.split(",").includes(mode));
 const SCENARIOS = [
@@ -44,7 +44,7 @@ const ENV = {
 };
 
 const TABLE_OPTS = {
-  align: ["l", "l", "l", "l", "r"],
+  align: ["l", "l", "l", "l", "r", "r"],
   stringLength: (cell) => strip(cell).length // fix alignment with chalk.
 };
 
@@ -88,7 +88,7 @@ const install = async () => {
 // eslint-disable-next-line max-statements
 const benchmark = async () => {
   const pkgData = [
-    ["Scenario", "Mode", "Lockfile", "Type", "Time"].map((t) => gray(t))
+    ["Scenario", "Mode", "Lockfile", "Type", "Time", "vs Base"].map((t) => gray(t))
   ];
 
   // Execute scenarios in serial.
@@ -111,7 +111,7 @@ const benchmark = async () => {
     // Remove bad symlinks.
     await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"]);
 
-    h3("Plugin");
+    h3("Jetpack");
     const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {
       env: {
         ...ENV,
@@ -119,11 +119,15 @@ const benchmark = async () => {
         LOCKFILE: lockfile
       }
     });
-    pkgData.push([scenario, mode, lockfile, "plugin", pluginTime]);
 
     h3("Baseline");
     const baselineTime = await exec("serverless", ["package"]);
-    pkgData.push([scenario, mode, lockfile, "baseline", baselineTime]);
+
+    // Data.
+    // eslint-disable-next-line no-magic-numbers
+    const pct = ((pluginTime - baselineTime) / baselineTime * 100).toFixed(2);
+    pkgData.push([scenario, mode, lockfile, "plugin", pluginTime, `${pct} %`]);
+    pkgData.push([scenario, mode, lockfile, "baseline", baselineTime, ""]);
   }
 
   h2(chalk `Benchmark: {gray package}`);
