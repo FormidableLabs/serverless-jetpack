@@ -83,32 +83,34 @@ As a quick guide to the results table:
 - `Time`: Elapsed build time in milliseconds.
 - `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
 
-| Scenario     | Mode | Lockfile | Type     |  Time |  vs Base |
-| :----------- | :--- | :------- | :------- | ----: | -------: |
-| simple       | yarn | true     | jetpack  |  4880 | -25.15 % |
-| simple       | yarn | true     | baseline |  6520 |          |
-| simple       | npm  | true     | jetpack  |  5700 | -16.00 % |
-| simple       | npm  | true     | baseline |  6786 |          |
-| simple       | yarn | false    | jetpack  |  7121 |   7.81 % |
-| simple       | yarn | false    | baseline |  6605 |          |
-| simple       | npm  | false    | jetpack  |  7942 | -12.74 % |
-| simple       | npm  | false    | baseline |  9102 |          |
-| individually | yarn | true     | jetpack  |  6209 | -56.67 % |
-| individually | yarn | true     | baseline | 14329 |          |
-| individually | npm  | true     | jetpack  |  7367 | -51.62 % |
-| individually | npm  | true     | baseline | 15228 |          |
-| individually | yarn | false    | jetpack  |  8850 | -37.34 % |
-| individually | yarn | false    | baseline | 14124 |          |
-| individually | npm  | false    | jetpack  | 15115 | -22.39 % |
-| individually | npm  | false    | baseline | 19475 |          |
-| huge         | yarn | true     | jetpack  |  6331 | -83.39 % |
-| huge         | yarn | true     | baseline | 38109 |          |
-| huge         | npm  | true     | jetpack  |  5289 | -86.15 % |
-| huge         | npm  | true     | baseline | 38187 |          |
-| huge         | yarn | false    | jetpack  | 16515 | -58.77 % |
-| huge         | yarn | false    | baseline | 40057 |          |
-| huge         | npm  | false    | jetpack  | 27866 | -44.21 % |
-| huge         | npm  | false    | baseline | 49950 |          |
+The rows that are **bolded** are the preferred configurations for `serverless-jetpack`, which is to say, configured with a lockfile and `npm@5.7.0+` if using `npm`.
+
+| Scenario         | Mode     | Lockfile | Type        |     Time |      vs Base |
+| :--------------- | :------- | :------- | :---------- | -------: | -----------: |
+| **simple**       | **yarn** | **true** | **jetpack** | **4375** | **-41.10 %** |
+| simple           | yarn     | true     | baseline    |     7428 |              |
+| **simple**       | **npm**  | **true** | **jetpack** | **5709** | **-37.22 %** |
+| simple           | npm      | true     | baseline    |     9093 |              |
+| simple           | yarn     | false    | jetpack     |     7167 |      -2.70 % |
+| simple           | yarn     | false    | baseline    |     7366 |              |
+| simple           | npm      | false    | jetpack     |    10262 |      25.27 % |
+| simple           | npm      | false    | baseline    |     8192 |              |
+| **individually** | **yarn** | **true** | **jetpack** | **5182** | **-60.39 %** |
+| individually     | yarn     | true     | baseline    |    13083 |              |
+| **individually** | **npm**  | **true** | **jetpack** | **6732** | **-47.44 %** |
+| individually     | npm      | true     | baseline    |    12809 |              |
+| individually     | yarn     | false    | jetpack     |    10747 |     -23.32 % |
+| individually     | yarn     | false    | baseline    |    14016 |              |
+| individually     | npm      | false    | jetpack     |    13072 |     -21.81 % |
+| individually     | npm      | false    | baseline    |    16719 |              |
+| **huge**         | **yarn** | **true** | **jetpack** | **6766** | **-80.36 %** |
+| huge             | yarn     | true     | baseline    |    34451 |              |
+| **huge**         | **npm**  | **true** | **jetpack** | **5998** | **-83.72 %** |
+| huge             | npm      | true     | baseline    |    36832 |              |
+| huge             | yarn     | false    | jetpack     |    20626 |     -40.46 % |
+| huge             | yarn     | false    | baseline    |    34640 |              |
+| huge             | npm      | false    | jetpack     |    22255 |     -45.49 % |
+| huge             | npm      | false    | baseline    |    40825 |              |
 
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/
