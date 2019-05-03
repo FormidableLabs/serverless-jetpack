@@ -56,7 +56,7 @@ To this end, the plugin assumes that a lockfile is provided by default and you m
 
 **Monorepos and lockfiles**
 
-Many projects use features like [yarn workspaces](https://yarnpkg.com/lang/en/docs/workspaces/) and/or [lerna](https://lerna.js.org/) to have a large root project that then has many separate serverless functions/packages in separate directories. In cases like these, the relevant lock file may not be in something like `packages/NAME/yarn.lock`, but instead at the project root like `yarn.lock`.
+Many projects use features like [yarn workspaces][] and/or [lerna][] to have a large root project that then has many separate serverless functions/packages in separate directories. In cases like these, the relevant lock file may not be in something like `packages/NAME/yarn.lock`, but instead at the project root like `yarn.lock`.
 
 In cases like these, simply set the `lockfile` option to relatively point to the appropriate lockfile (e.g., `lockfile: ../../yarn.lock`).
 
@@ -66,6 +66,37 @@ In cases like these, simply set the `lockfile` option to relatively point to the
 
 ## Benchmarks
 
-TODO_INSERT
+The following is a simple, "on my machine" benchmark generated with `yarn test:benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
+
+When run with a lockfile (producing the fastest `yarn|npm` install) our scenarios produce over a 4x speedup for `serverless-jetpack` over built-in packaging.
+
+| Scenario     | Mode | Lockfile | Type     |  Time |
+| :----------- | :--- | :------- | :------- | ----: |
+| simple       | yarn | true     | jetpack  |  5726 |
+| simple       | yarn | true     | baseline |  6510 |
+| simple       | yarn | false    | jetpack  |  6203 |
+| simple       | yarn | false    | baseline |  6081 |
+| simple       | npm  | true     | jetpack  |  5407 |
+| simple       | npm  | true     | baseline |  6742 |
+| simple       | npm  | false    | jetpack  |  8597 |
+| simple       | npm  | false    | baseline |  7438 |
+| individually | yarn | true     | jetpack  |  5856 |
+| individually | yarn | true     | baseline | 11325 |
+| individually | yarn | false    | jetpack  |  6974 |
+| individually | yarn | false    | baseline | 10414 |
+| individually | npm  | true     | jetpack  |  6430 |
+| individually | npm  | true     | baseline | 11778 |
+| individually | npm  | false    | jetpack  |  9536 |
+| individually | npm  | false    | baseline | 12550 |
+| huge         | yarn | true     | jetpack  |  6304 |
+| huge         | yarn | true     | baseline | 25895 |
+| huge         | yarn | false    | jetpack  | 13842 |
+| huge         | yarn | false    | baseline | 94972 |
+| huge         | npm  | true     | jetpack  |  6803 |
+| huge         | npm  | true     | baseline | 28672 |
+| huge         | npm  | false    | jetpack  | 24700 |
+| huge         | npm  | false    | baseline | 29956 |
 
 [Serverless]: https://serverless.com/
+[lerna]: https://lerna.js.org/
+[yarn workspaces]: https://yarnpkg.com/lang/en/docs/workspaces/
