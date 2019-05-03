@@ -11,6 +11,8 @@ With the `serverless-jetpack` plugin, many common, slow Serverless packaging sce
 
 ## Usage
 
+### The short, short version
+
 First, install the plugin:
 
 ```sh
@@ -18,20 +20,63 @@ $ yarn add --dev serverless-jetpack
 $ npm add --save-dev serverless-jetpack
 ```
 
-Then, take a tour of all the options:
+Add to `serverless.yml`
 
-```sh
-$ serverless jetpack --help
-Plugin: Jetpack
-jetpack ....................... A faster JavaScript packager for Serverless applications.
-    --mode / -m ........................ Installation mode (default: `yarn`)
-    --lockfile / -l .................... Path to lockfile (default: `yarn.lock` for `mode: yarn`, `package-lock.json` for `mode: npm`)
-    --stdio / -s ....................... `child_process` stdio mode for our shell commands like yarn|npm installs (default: `null`)
+```yml
+plugins:
+  - serverless-jetpack
 ```
 
-And, integrate into your `serverless.yml` configuration file:
+... and you're off to faster packaging awesomeness! 🚀
 
-TODO_INSERT_SLS_CONFIG
+### A little more detail...
+
+The plugin has the following options:
+
+- `mode`: Either `yarn` (default) or `npm`. The installation tool to use which must be already installed on your system. _Note_: If you are using `npm`, `npm@5.7.0+` is **strongly** recommended so that the plugin can use `npm ci` for much faster installations.
+- `lockfile`: Defaults to `yarn.lock` for `mode: yarn` and `package-lock.json` for `mode: npm`.
+    - You can set it to a different relative location like: `lockfile: ../../yarn.lock` for monorepo projects wherein the lockfile exists outside of the package directory.
+    - Setting `lockfile: null` will skip using lockfiles entirely. This will be slower and more dangerous (since you can wind up with different dependencies than your root project). But it is available if your project does not use lockfiles.
+- `stdio`: Enable/disable shell output for `yarn|npm install` commands. Defaults to `false`.
+
+Which can be integrated into a more complex `serverless.yml` configuration like:
+
+```yml
+package:
+  # Any `include`, `exclude` logic is applied to the whole service, the same
+  # as built-in serverless packaging.
+  # include: ...
+  exclude:
+    - "*"
+    - "**/node_modules/aws-sdk/**" # included on Lambda.
+    - "!package.json"
+
+plugins:
+  # Add the plugin here.
+  - serverless-jetpack
+
+custom:
+  # Optional configuration options go here:
+  serverless-jetpack:
+    mode: npm                           # Default `yarn`
+    lockfile: ../../package-lock.json   # Different location
+    stdio: true                         # Default `false`
+
+functions:
+  base:
+    # ...
+  another:
+    # ...
+    package:
+      # These work just like built-in serverless packaging - added to the
+      # service-level exclude/include fields.
+      exclude:
+        - "**"
+      include:
+        - "src/**"
+        - "node_modules/**"
+        - "package.json"
+```
 
 ## How it works
 
