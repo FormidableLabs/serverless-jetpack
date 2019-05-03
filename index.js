@@ -137,6 +137,7 @@ class Jetpack {
       mode: "yarn"
     };
 
+    // TODO(OPTIONS): How are we getting `custom` off functions?
     const custom = (service.custom || {})[pkg.name];
     this.__options = Object.assign({}, defaults, custom, this.options);
 
