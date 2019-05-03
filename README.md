@@ -1,5 +1,5 @@
-Serverless Jetpack
-==================
+Serverless Jetpack 🚀
+====================
 
 A faster JavaScript packager for [Serverless][] applications.
 
