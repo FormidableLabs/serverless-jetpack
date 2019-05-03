@@ -124,7 +124,7 @@ const benchmark = async () => {
     const pluginArchive = path.join(__dirname,
       "../.test-zips", scenario, mode, lockfile, "jetpack");
     await exec("rm", ["-rf", pluginArchive]);
-    await exec("mkdir", [pluginArchive]);
+    await exec("mkdir", ["-p", pluginArchive]);
     await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
       shell: true
     });
@@ -134,7 +134,7 @@ const benchmark = async () => {
     const baselineArchive = path.join(__dirname,
       "../.test-zips", scenario, mode, lockfile, "baseline");
     await exec("rm", ["-rf", baselineArchive]);
-    await exec("mkdir", [baselineArchive]);
+    await exec("mkdir", ["-p", baselineArchive]);
     await exec("cp", ["-rp", ".serverless/*.zip", baselineArchive], {
       shell: true
     });
