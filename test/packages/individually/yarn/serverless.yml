@@ -36,3 +36,10 @@ functions:
     events:
       - http: ANY /another
       - http: 'ANY /another/{proxy+}'
+    package:
+      include:
+        - "src/**"
+        - "node_modules/**"
+        - "package.json"
+      exclude:
+        - "**"

@@ -7,6 +7,7 @@ const { access, copy, constants, createWriteStream, mkdir, remove } = require("f
 const archiver = require("archiver");
 const execa = require("execa");
 const uuidv4 = require("uuid/v4");
+const glob = require("tiny-glob");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
@@ -56,6 +57,12 @@ const createZip = ({ buildPath, bundlePath }) => {
       zip.finalize();
     });
   });
+};
+
+// Simple, stable union.
+const union = (arr1, arr2) => {
+  const set1 = new Set(arr1);
+  return arr1.concat(arr2.filter((o) => !set1.has(o)));
 };
 
 /**
@@ -161,6 +168,77 @@ class Jetpack {
     return this.__options;
   }
 
+  filePatterns({ functionObject }) {
+    const { service, pluginManager } = this.serverless;
+    const servicePackage = service.package;
+    const serviceInclude = servicePackage.include || [];
+    const serviceExclude = servicePackage.exclude || [];
+
+    const functionPackage = (functionObject || {}).package || {};
+    const functionInclude = functionPackage.include || [];
+    const functionExclude = functionPackage.exclude || [];
+
+    // Combined, unique patterns, in stable sorted order (remove _later_ instances).
+    // This is `_.union` in serverless built-in.
+    const allInclude = union(serviceInclude, functionInclude);
+
+    // Packaging logic.
+    //
+    // We essentially recreate what `serverless` does:
+    // - Default excludes
+    // - Exclude serverless config files
+    // - Exclude plugin local paths
+    // - Apply service package excludes
+    // - Apply function package excludes
+    //
+    // https://serverless.com/framework/docs/providers/aws/guide/packaging#exclude--include
+    // > At first it will apply the globs defined in exclude. After that it'll
+    // > add all the globs from include. This way you can always re-include
+    // > previously excluded files and directories.
+    //
+    //
+    // Start with serverless excludes, plus a few refinements.
+    const slsDefaultExclude = [
+      ".git/**",
+      ".gitignore",
+      ".DS_Store",
+      ".serverless/**",
+      ".serverless_plugins/**",
+
+      // The serverless configuration file. It _should_ be this function:
+      // https://github.com/serverless/serverless/blob/79eff80cab58c8494dbb02d65e20d1920f1bfd6e/lib/utils/getServerlessConfigFile.js#L9-L34
+      // but as it reduces to a glob and we don't have that function easily usable
+      // we take this shortcut.
+      "serverless.{json,yml,yaml,js}",
+
+      // Additional things no-one wants.
+      "npm-debug.log*",
+      "yarn-error.log*"
+    ];
+
+    // Get plugin local path.
+    const pluginsLocalPath = pluginManager.parsePluginsObject(service.plugins).localPath;
+
+    // Unify in similar order to serverless.
+    const allExclude = [
+      slsDefaultExclude,
+      pluginsLocalPath ? [pluginsLocalPath] : null,
+      serviceExclude,
+      functionExclude
+    ]
+      .filter((arr) => !!arr && arr.length)
+      .reduce((memo, arr) => union(memo, arr), []);
+
+    console.log("TODO HERE GLOBS", {
+      serviceInclude,
+      serviceExclude,
+      functionInclude,
+      functionExclude,
+      allInclude,
+      allExclude
+    });
+  }
+
   async installDeps({ buildPath }) {
     const { mode, lockfile, stdio } = this._options;
 
@@ -248,6 +326,11 @@ class Jetpack {
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
+    // Get sources.
+    const sources = this.filePatterns({ functionObject });
+    console.log("TODO HERE PKG FN", { sources });
+    throw new Error("HI PKG FN");
+
     // Build.
     this._log(`Packaging function: ${bundleName}`);
     await this.buildPackage({ bundleName });
@@ -264,6 +347,10 @@ class Jetpack {
 
     // Mimic built-in serverless naming.
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
+
+    // Get sources.
+    const sources = this.filePatterns();
+    console.log("TODO HERE PKG SERVICE", { sources });
 
     // Build.
     this._log(`Packaging service: ${bundleName}`);

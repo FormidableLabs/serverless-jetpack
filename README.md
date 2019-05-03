@@ -49,6 +49,12 @@ Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serve
 
 ### Complexities
 
+#### Root `node_modules` directory
+
+This plugin assumes that the directory from which you run `serverless` commands is where `node_modules` is installed and the only one in play. It's fine if you have things like a monorepo with nested packages that each have a `serverless.yml` and `package.json` as long as each one is an independent "root" of `serverless` commands.
+
+Having additional `node_modules` installs in nested directory from a root is unlikely to work properly with this plugin.
+
 #### Lockfiles
 
 It is a best practice to use lockfiles (`yarn.lock` or `package-lock.json`) generally, and specifically important for the approach this plugin takes because it does **new** `yarn|npm` installs into a temporary directory. Without lockfiles you may be packaging/deploying something _different_ from what is in the root project. And, production installs with this plugin are much, much _faster_ with a lockfile than without.

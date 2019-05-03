@@ -34,6 +34,7 @@
     "archiver": "^3.0.0",
     "execa": "^1.0.0",
     "fs-extra": "^7.0.1",
+    "tiny-glob": "^0.2.6",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
