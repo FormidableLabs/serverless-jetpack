@@ -106,6 +106,12 @@ class Jetpack {
               "Path to lockfile (default: `yarn.lock` for `mode: yarn`, "
               + "`package-lock.json` for `mode: npm`)",
             shortcut: "l"
+          },
+          stdio: {
+            usage:
+              "`child_process` stdio mode for our shell commands like "
+              + "yarn|npm installs (default: `null`)",
+            shortcut: "s"
           }
         }
       }
@@ -134,7 +140,8 @@ class Jetpack {
 
     // Static defaults.
     const defaults = {
-      mode: "yarn"
+      mode: "yarn",
+      stdio: null
     };
 
     // TODO(OPTIONS): How are we getting `custom` off functions?
@@ -155,7 +162,7 @@ class Jetpack {
   }
 
   async installDeps({ buildPath }) {
-    const { mode, lockfile } = this._options;
+    const { mode, lockfile, stdio } = this._options;
 
     // Determine if can use npm ci.
     let install = "install";
@@ -182,12 +189,13 @@ class Jetpack {
     const installArgs = [
       install,
       "--production",
-      mode === "yarn" && !!lockfile ? "--frozen-lockfile" : null
+      mode === "yarn" && !!lockfile ? "--frozen-lockfile" : null,
+      mode === "yarn" ? "--non-interactive" : null
     ].filter(Boolean);
 
     this._logDebug(`Performing production install: ${mode} ${installArgs.join(" ")}`);
     await execa(mode, installArgs, {
-      // stdio: "inherit",  // TODO(OPTIONS): enable/disable stdio.
+      stdio,
       cwd: buildPath
     });
   }
@@ -201,7 +209,7 @@ class Jetpack {
 
     // Gather options.
     this._logDebug(`Options: ${JSON.stringify(this._options)}`);
-    const { lockfile } = this._options;
+    const { mode, lockfile } = this._options;
     const srcs = [
       "package.json",
       lockfile
@@ -217,7 +225,14 @@ class Jetpack {
     )));
 
     // Install into build directory.
-    await this.installDeps({ buildPath });
+    try {
+      await this.installDeps({ buildPath });
+    } catch (err) {
+      throw new this.serverless.classes.Error(
+        `[${pkg.name}] ${mode} installation failed with message: `
+        + `'${(err.message || err.toString()).trim()}'`
+      );
+    }
 
     // Create package zip.
     this._logDebug(`Zipping build directory ${buildPath} to artifact location: ${bundlePath}`);
