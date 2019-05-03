@@ -26,6 +26,7 @@ Plugin: Jetpack
 jetpack ....................... A faster JavaScript packager for Serverless applications.
     --mode / -m ........................ Installation mode (default: `yarn`)
     --lockfile / -l .................... Path to lockfile (default: `yarn.lock` for `mode: yarn`, `package-lock.json` for `mode: npm`)
+    --stdio / -s ....................... `child_process` stdio mode for our shell commands like yarn|npm installs (default: `null`)
 ```
 
 And, integrate into your `serverless.yml` configuration file:
