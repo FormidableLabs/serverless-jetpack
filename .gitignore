@@ -13,3 +13,4 @@ aws/.service*
 .serverless
 .terraform
 _warmup
+.test-zips
