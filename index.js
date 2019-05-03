@@ -163,7 +163,7 @@ class Jetpack {
 
       const version = stdout.split(".");
       if (version.length < 3) { // eslint-disable-line no-magic-numbers
-        throw new Error(`Found unparseable npm verions: ${stdout}`);
+        throw new Error(`Found unparsable npm versions: ${stdout}`);
       }
 
       const major = parseInt(version[0], 10);
@@ -228,7 +228,7 @@ class Jetpack {
 
   async packageFunction({ functionName, functionObject }) {
     // Mimic built-in serverless naming.
-    // **Note**: We _do_ appened ".serverless" in path skipping serverless'
+    // **Note**: We _do_ append ".serverless" in path skipping serverless'
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
