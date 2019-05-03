@@ -120,8 +120,24 @@ const benchmark = async () => {
       }
     });
 
+    // Copy zips.
+    const pluginArchive = path.join(__dirname,
+      "../.test-zips", scenario, mode, lockfile, "jetpack");
+    await exec("rm", ["-rf", pluginArchive]);
+    await exec("mkdir", [pluginArchive]);
+    await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
+      shell: true
+    });
+
     h3("Baseline");
     const baselineTime = await exec("serverless", ["package"]);
+    const baselineArchive = path.join(__dirname,
+      "../.test-zips", scenario, mode, lockfile, "baseline");
+    await exec("rm", ["-rf", baselineArchive]);
+    await exec("mkdir", [baselineArchive]);
+    await exec("cp", ["-rp", ".serverless/*.zip", baselineArchive], {
+      shell: true
+    });
 
     // Data.
     // eslint-disable-next-line no-magic-numbers
