@@ -126,7 +126,7 @@ const benchmark = async () => {
     // Data.
     // eslint-disable-next-line no-magic-numbers
     const pct = ((pluginTime - baselineTime) / baselineTime * 100).toFixed(2);
-    pkgData.push([scenario, mode, lockfile, "plugin", pluginTime, `${pct} %`]);
+    pkgData.push([scenario, mode, lockfile, "jetpack", pluginTime, `${pct} %`]);
     pkgData.push([scenario, mode, lockfile, "baseline", baselineTime, ""]);
   }
 

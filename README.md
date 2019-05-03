@@ -85,29 +85,29 @@ As a quick guide to the results table:
 
 | Scenario     | Mode | Lockfile | Type     |  Time |  vs Base |
 | :----------- | :--- | :------- | :------- | ----: | -------: |
-| simple       | yarn | true     | plugin   |  4880 | -25.15 % |
+| simple       | yarn | true     | jetpack  |  4880 | -25.15 % |
 | simple       | yarn | true     | baseline |  6520 |          |
-| simple       | npm  | true     | plugin   |  5700 | -16.00 % |
+| simple       | npm  | true     | jetpack  |  5700 | -16.00 % |
 | simple       | npm  | true     | baseline |  6786 |          |
-| simple       | yarn | false    | plugin   |  7121 |   7.81 % |
+| simple       | yarn | false    | jetpack  |  7121 |   7.81 % |
 | simple       | yarn | false    | baseline |  6605 |          |
-| simple       | npm  | false    | plugin   |  7942 | -12.74 % |
+| simple       | npm  | false    | jetpack  |  7942 | -12.74 % |
 | simple       | npm  | false    | baseline |  9102 |          |
-| individually | yarn | true     | plugin   |  6209 | -56.67 % |
+| individually | yarn | true     | jetpack  |  6209 | -56.67 % |
 | individually | yarn | true     | baseline | 14329 |          |
-| individually | npm  | true     | plugin   |  7367 | -51.62 % |
+| individually | npm  | true     | jetpack  |  7367 | -51.62 % |
 | individually | npm  | true     | baseline | 15228 |          |
-| individually | yarn | false    | plugin   |  8850 | -37.34 % |
+| individually | yarn | false    | jetpack  |  8850 | -37.34 % |
 | individually | yarn | false    | baseline | 14124 |          |
-| individually | npm  | false    | plugin   | 15115 | -22.39 % |
+| individually | npm  | false    | jetpack  | 15115 | -22.39 % |
 | individually | npm  | false    | baseline | 19475 |          |
-| huge         | yarn | true     | plugin   |  6331 | -83.39 % |
+| huge         | yarn | true     | jetpack  |  6331 | -83.39 % |
 | huge         | yarn | true     | baseline | 38109 |          |
-| huge         | npm  | true     | plugin   |  5289 | -86.15 % |
+| huge         | npm  | true     | jetpack  |  5289 | -86.15 % |
 | huge         | npm  | true     | baseline | 38187 |          |
-| huge         | yarn | false    | plugin   | 16515 | -58.77 % |
+| huge         | yarn | false    | jetpack  | 16515 | -58.77 % |
 | huge         | yarn | false    | baseline | 40057 |          |
-| huge         | npm  | false    | plugin   | 27866 | -44.21 % |
+| huge         | npm  | false    | jetpack  | 27866 | -44.21 % |
 | huge         | npm  | false    | baseline | 49950 |          |
 
 [Serverless]: https://serverless.com/
