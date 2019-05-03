@@ -32,14 +32,15 @@ functions:
       - http: ANY /base
       - http: 'ANY /base/{proxy+}'
   another:
-    handler: src/server/base.handler
+    handler: src/server/another.handler
     events:
       - http: ANY /another
       - http: 'ANY /another/{proxy+}'
     package:
-      include:
-        - "src/**"
-        - "node_modules/**"
-        - "package.json"
+      # Package zip should **not** have `src/base.js`.
       exclude:
         - "**"
+      include:
+        - "src/another.js"
+        - "node_modules/**"
+        - "package.json"

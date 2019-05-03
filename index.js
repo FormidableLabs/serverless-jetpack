@@ -180,7 +180,7 @@ class Jetpack {
 
     // Combined, unique patterns, in stable sorted order (remove _later_ instances).
     // This is `_.union` in serverless built-in.
-    const allInclude = union(serviceInclude, functionInclude);
+    const includes = union(serviceInclude, functionInclude);
 
     // Packaging logic.
     //
@@ -220,7 +220,7 @@ class Jetpack {
     const pluginsLocalPath = pluginManager.parsePluginsObject(service.plugins).localPath;
 
     // Unify in similar order to serverless.
-    const allExclude = [
+    const excludes = [
       slsDefaultExclude,
       pluginsLocalPath ? [pluginsLocalPath] : null,
       serviceExclude,
@@ -229,14 +229,10 @@ class Jetpack {
       .filter((arr) => !!arr && arr.length)
       .reduce((memo, arr) => union(memo, arr), []);
 
-    console.log("TODO HERE GLOBS", {
-      serviceInclude,
-      serviceExclude,
-      functionInclude,
-      functionExclude,
-      allInclude,
-      allExclude
-    });
+    return {
+      includes,
+      excludes
+    };
   }
 
   async installDeps({ buildPath }) {
@@ -328,8 +324,7 @@ class Jetpack {
 
     // Get sources.
     const sources = this.filePatterns({ functionObject });
-    console.log("TODO HERE PKG FN", { sources });
-    throw new Error("HI PKG FN");
+    console.log("TODO HERE FN SERVICE", { sources });
 
     // Build.
     this._log(`Packaging function: ${bundleName}`);
