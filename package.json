@@ -24,8 +24,9 @@
     "test:install": "node test/script.js install",
     "test:build": "node test/script.js build",
     "test:benchmark": "node test/script.js benchmark",
+    "test:spec": "mocha test/spec",
     "lint": "eslint .",
-    "check": "yarn run lint"
+    "check": "yarn run lint && yarn test:spec"
   },
   "engines": {
     "node": ">=8.0.0"
@@ -39,6 +40,7 @@
   },
   "devDependencies": {
     "babel-eslint": "^10.0.1",
+    "chai": "^4.2.0",
     "chalk": "^2.4.2",
     "eslint": "^5.13.0",
     "eslint-config-formidable": "^4.0.0",
@@ -46,6 +48,9 @@
     "eslint-plugin-import": "^2.16.0",
     "eslint-plugin-promise": "^4.0.1",
     "markdown-table": "^1.1.2",
+    "mocha": "^6.1.4",
+    "mock-fs": "^4.9.0",
+    "serverless": "^1.41.1",
     "strip-ansi": "^5.2.0"
   }
 }

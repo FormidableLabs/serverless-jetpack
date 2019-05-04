@@ -7,9 +7,7 @@ const { access, copy, constants, createWriteStream, mkdir, remove } = require("f
 const archiver = require("archiver");
 const execa = require("execa");
 const uuidv4 = require("uuid/v4");
-
-// TODO HERE
-// const glob = require("tiny-glob");
+const glob = require("tiny-glob");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
@@ -326,8 +324,8 @@ class Jetpack {
 
     // Get sources.
     // TODO HERE
-    // const sources = this.filePatterns({ functionObject });
-    // console.log("TODO HERE FN SERVICE", { sources });
+    const { includes, excludes } = this.filePatterns({ functionObject });
+    console.log("TODO HERE FN SERVICE", { includes, excludes });
 
     // Build.
     this._log(`Packaging function: ${bundleName}`);
