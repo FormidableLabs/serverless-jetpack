@@ -102,6 +102,20 @@ describe("globbing (include/exclude) logic", () => {
       .to.have.property("message", "No file matches include / exclude patterns");
   });
 
-  it("should handle empty matches"); // TODO
-  it("should handle empty patterns"); // TODO
+  it("should match on no patterns, basic sources", async () => {
+    mock({
+      src: {
+        "index.js": "module.exports = 'foo';"
+      }
+    });
+
+    expect(await compare({})).to.eql([
+      "src/index.js"
+    ]);
+  });
+
+  it("should handle basic sources and dependencies"); // TODO
+  it("should handle basic dependencies"); // TODO
+
+  // TODO: MORE TESTS
 });
