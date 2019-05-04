@@ -270,6 +270,10 @@ class Jetpack {
       ignore
     });
 
+    if (!globbed.length) {
+      throw new this.serverless.classes.Error("No file matches include / exclude patterns");
+    }
+
     return globbed;
   }
 

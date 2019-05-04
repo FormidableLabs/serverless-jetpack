@@ -27,8 +27,21 @@ describe("globbing (include/exclude) logic", () => {
   const compare = async ({ pkgExclude, pkgInclude, fnExclude, fnInclude }) => {
     let pluginFiles;
     let pluginError;
+
+    plugin.serverless.service.package.exclude = pkgExclude;
+    plugin.serverless.service.package.include = pkgInclude;
+
     try {
-      pluginFiles = [];
+      pluginFiles = await plugin.resolveProjectFilePathsFromPatterns(
+        plugin.filePatterns({
+          functionObject: {
+            "package": {
+              include: fnInclude,
+              exclude: fnExclude
+            }
+          }
+        })
+      );
     } catch (pluginErr) {
       pluginError = pluginErr;
     }
@@ -55,24 +68,21 @@ describe("globbing (include/exclude) logic", () => {
     // Check errors.
     if (slsError) {
       expect(slsError).to.have.property("message");
-      // TODO ENABLE PLUGIN
-      pluginError = slsError; // TODO REMOVE
       expect(pluginError).to.have.property("message", slsError.message);
 
       return pluginError;
     }
 
-    // TODO ENABLE PLUGIN
-    pluginFiles = slsFiles; // TODO REMOVE
+    // Check files.
+    expect(pluginFiles).to.eql(slsFiles);
+
     return pluginFiles;
   };
 
   beforeEach(() => {
     mock({});
 
-    plugin = new Jetpack({}, {});
-
-    sls = new Sls({
+    const slsBase = {
       config: {
         servicePath: ""
       },
@@ -89,7 +99,10 @@ describe("globbing (include/exclude) logic", () => {
         },
         getAllLayers: () => []
       }
-    });
+    };
+
+    plugin = new Jetpack(slsBase);
+    sls = new Sls(slsBase);
   });
 
   afterEach(() => {
