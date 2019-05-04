@@ -3,7 +3,9 @@
 const pkg = require("./package.json");
 const { tmpdir } = require("os");
 const path = require("path");
-const { access, copy, constants, createWriteStream, mkdir, remove } = require("fs-extra");
+const {
+  access, copy, constants, createWriteStream, mkdir, remove, readdir, stat
+} = require("fs-extra");
 const archiver = require("archiver");
 const execa = require("execa");
 const uuidv4 = require("uuid/v4");
@@ -180,7 +182,7 @@ class Jetpack {
 
     // Combined, unique patterns, in stable sorted order (remove _later_ instances).
     // This is `_.union` in serverless built-in.
-    const includes = union(serviceInclude, functionInclude);
+    const include = union(serviceInclude, functionInclude);
 
     // Packaging logic.
     //
@@ -198,7 +200,7 @@ class Jetpack {
     //
     //
     // Start with serverless excludes, plus a few refinements.
-    const slsDefaultExclude = [
+    const slsDefaultExcludePatterns = [
       ".git/**",
       ".gitignore",
       ".DS_Store",
@@ -220,8 +222,8 @@ class Jetpack {
     const pluginsLocalPath = pluginManager.parsePluginsObject(service.plugins).localPath;
 
     // Unify in similar order to serverless.
-    const excludes = [
-      slsDefaultExclude,
+    const exclude = [
+      slsDefaultExcludePatterns,
       pluginsLocalPath ? [pluginsLocalPath] : null,
       serviceExclude,
       functionExclude
@@ -230,9 +232,53 @@ class Jetpack {
       .reduce((memo, arr) => union(memo, arr), []);
 
     return {
-      includes,
-      excludes
+      include,
+      exclude
     };
+  }
+
+  // Analogous file resolver to built-in serverless.
+  //
+  // The main difference is that we exclude the root project `node_modules`
+  // entirely and then add it to the `build` directory and re-pattern-match
+  // files there.
+  //
+  // See: `resolveFilePathsFromPatterns` in
+  // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
+  async resolveProjectFilePathsFromPatterns({ include, exclude }) {
+    const { config } = this.serverless;
+    const servicePath = config.servicePath || ".";
+
+    // Create project-level directory exclusion analogous to patterns.
+    // with `node_modules` included.
+    const slsDefaultExcludeDirs = new Set([
+      ".git",
+      ".serverless",
+      ".serverless_plugins",
+      "node_modules"
+    ]);
+
+    // Start with first-level directories to exclude / never traverse
+    // node_modules.
+    const rootFiles = await readdir(servicePath);
+    const rootIsDir = await Promise.all(rootFiles.map((f) => stat(f).then((s) => s.isDirectory())));
+
+    // Keep directories except node_modules.
+    const rootDirs = rootFiles.filter((f, i) => rootIsDir[i] && !slsDefaultExcludeDirs.has(f));
+
+    // _Now_, start globbing like serverless does.
+    //
+    // TODO_HERE -- Need matrix of rootDirs * globs.
+    //
+    // const globbed = await Promise.all(rootDirs.map((rootDir) => glob(["**"].concat(include || []), {
+    //   cwd: path.join(servicePath, rootDir),
+    //   dot: true,
+    //   filesOnly: true
+    // })));
+
+    // console.log({ globbed })
+
+    return rootDirs;
   }
 
   async installDeps({ buildPath }) {
@@ -324,8 +370,10 @@ class Jetpack {
 
     // Get sources.
     // TODO HERE
-    const { includes, excludes } = this.filePatterns({ functionObject });
-    console.log("TODO HERE FN SERVICE", { includes, excludes });
+    const { include, exclude } = this.filePatterns({ functionObject });
+    const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
+    console.log("TODO HERE FN SERVICE", { include, exclude, files });
+    return;
 
     // Build.
     this._log(`Packaging function: ${bundleName}`);
