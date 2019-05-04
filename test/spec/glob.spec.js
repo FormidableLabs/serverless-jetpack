@@ -8,15 +8,13 @@
 const mock = require("mock-fs");
 
 const Jetpack = require("../..");
-const {
-  resolveFilePathsFromPatterns
-} = require("serverless/lib/plugins/package/lib/packageService");
+const packageService = require("serverless/lib/plugins/package/lib/packageService");
 
 // Serverless mixes in the function, so we do for a mock.
 class Sls {
   constructor(serverless) {
     this.serverless = serverless;
-    this.resolveFilePathsFromPatterns = resolveFilePathsFromPatterns;
+    Object.assign(this, packageService);
   }
 }
 
@@ -25,24 +23,52 @@ describe("globbing (include/exclude) logic", () => {
   let sls;
 
   // Bridge to compare equality between jetpack and serverless.
-  const compare = async ({ pkgInclude, pkgExclude, fnInclude, fnExclude }) => {
-    const pluginError = "No file matches include / exclude patterns";
-    let slsError;
-
+  // eslint-disable-next-line max-statements
+  const compare = async ({ pkgExclude, pkgInclude, fnExclude, fnInclude }) => {
+    let pluginFiles;
+    let pluginError;
     try {
-      await sls.resolveFilePathsFromPatterns({
-        include: [],
-        exclude: []
+      pluginFiles = [];
+    } catch (pluginErr) {
+      pluginError = pluginErr;
+    }
+
+    // Patch serverless object to do "most" of what normal include/exclude
+    // logic is.
+    sls.serverless.service.package.exclude = pkgExclude;
+    const slsPkgExcludes = await sls.getExcludes(fnExclude || []);
+
+    sls.serverless.service.package.include = pkgInclude;
+    const slsPkgIncludes = sls.getIncludes(fnInclude || []);
+
+    let slsFiles;
+    let slsError;
+    try {
+      slsFiles = await sls.resolveFilePathsFromPatterns({
+        exclude: slsPkgExcludes,
+        include: slsPkgIncludes
       });
     } catch (slsErr) {
       slsError = slsErr;
     }
 
-    expect(slsError).to.have.property("message", pluginError);
+    // Check errors.
+    if (slsError) {
+      expect(slsError).to.have.property("message");
+      // TODO ENABLE PLUGIN
+      pluginError = slsError; // TODO REMOVE
+      expect(pluginError).to.have.property("message", slsError.message);
+
+      return pluginError;
+    }
+
+    // TODO ENABLE PLUGIN
+    pluginFiles = slsFiles; // TODO REMOVE
+    return pluginFiles;
   };
 
   beforeEach(() => {
-    mock();
+    mock({});
 
     plugin = new Jetpack({}, {});
 
@@ -52,6 +78,16 @@ describe("globbing (include/exclude) logic", () => {
       },
       classes: {
         Error
+      },
+      pluginManager: {
+        parsePluginsObject: () => ({})
+      },
+      service: {
+        "package": {
+          exclude: [],
+          include: []
+        },
+        getAllLayers: () => []
       }
     });
   });
@@ -61,7 +97,9 @@ describe("globbing (include/exclude) logic", () => {
   });
 
   it("should error on no patterns, no matches", async () => {
-    await compare({});
+    expect(await compare({}))
+      .to.be.an("Error").and
+      .to.have.property("message", "No file matches include / exclude patterns");
   });
 
   it("should handle empty matches"); // TODO
