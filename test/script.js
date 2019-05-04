@@ -8,7 +8,7 @@ const execa = require("execa");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
 
-const { TEST_MODE, TEST_SCENARIO } = process.env;
+const { TEST_MODE, TEST_SCENARIO, TEST_LOCKFILE } = process.env;
 
 /**
  * Test script helper.
@@ -26,12 +26,16 @@ const CONFIGS = [
   { mode: "npm", lockfile: "true" },
   { mode: "yarn", lockfile: "false" },
   { mode: "npm", lockfile: "false" }
-].filter(({ mode }) => !TEST_MODE || TEST_MODE.split(",").includes(mode));
+]
+  .filter(({ mode }) => !TEST_MODE || TEST_MODE.split(",").includes(mode))
+  .filter(({ lockfile }) => !TEST_LOCKFILE || TEST_LOCKFILE === lockfile);
+
 const SCENARIOS = [
   "simple",
   "individually",
   "huge"
-].filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));
+]
+  .filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));
 
 const MATRIX = SCENARIOS
   .map((scenario) => CONFIGS.map((c) => ({ ...c, scenario })))
