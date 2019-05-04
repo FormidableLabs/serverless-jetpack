@@ -18,7 +18,7 @@
     "yarn"
   ],
   "scripts": {
-    "preversion": "yarn run check",
+    "preversion": "yarn check",
     "usage": "cd test/packages/simple/yarn &&  MODE=yarn serverless jetpack -h",
     "clean": "rm -rf test/packages/*/*/.serverless",
     "test:install": "node test/script.js install",
@@ -26,7 +26,8 @@
     "test:benchmark": "node test/script.js benchmark",
     "test:spec": "mocha test/spec",
     "lint": "eslint .",
-    "check": "yarn run lint && yarn test:spec"
+    "test": "yarn test:spec",
+    "check": "yarn lint && yarn test:spec"
   },
   "engines": {
     "node": ">=8.0.0"

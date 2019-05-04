@@ -1,5 +1,10 @@
 "use strict";
 
+/**
+ * Tests to ensure that serverless-jetpack mostly matches the file exclude and
+ * include globbing logic of serverless.
+ */
+
 const Jetpack = require("../..");
 const {
   resolveFilePathsFromPatterns

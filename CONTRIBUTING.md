@@ -44,10 +44,13 @@ $ TEST_MODE=yarn TEST_SCENARIO=simple,huge yarn test:benchmark
 $ TEST_MODE=yarn,npm TEST_SCENARIO=simple yarn test:benchmark
 ```
 
-### Style
+### QA
 
 ```sh
 $ yarn run lint
+$ yarn run test
+
+# ... or all together ...
 $ yarn run check
 ```
 
@@ -56,6 +59,9 @@ $ yarn run check
 Before you go ahead and submit a PR, make sure that you have done the following:
 
 ```sh
+# Run lint and unit tests
+$ yarn run check
+
 # Make sure all fixtures are updated and valid
 $ yarn run test:install
 $ yarn run test:build
