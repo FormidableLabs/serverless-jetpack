@@ -256,6 +256,8 @@ class Jetpack {
     // 1. Everything
     // 2. Excludes
     // 3. Includes (to bring things back).
+    //
+    // TODO: **TEST** that the everything + exclude + include works like sls.
     const patterns = ["**"]
       // Negate the excludes...
       .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
