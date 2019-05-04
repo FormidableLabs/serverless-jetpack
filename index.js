@@ -3,13 +3,11 @@
 const pkg = require("./package.json");
 const { tmpdir } = require("os");
 const path = require("path");
-const {
-  access, copy, constants, createWriteStream, mkdir, remove, readdir, stat
-} = require("fs-extra");
+const { access, copy, constants, createWriteStream, mkdir, remove } = require("fs-extra");
 const archiver = require("archiver");
 const execa = require("execa");
 const uuidv4 = require("uuid/v4");
-const glob = require("tiny-glob");
+const globby = require("globby");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
@@ -247,38 +245,30 @@ class Jetpack {
   // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
   async resolveProjectFilePathsFromPatterns({ include, exclude }) {
     const { config } = this.serverless;
-    const servicePath = config.servicePath || ".";
 
-    // Create project-level directory exclusion analogous to patterns.
-    // with `node_modules` included.
-    const slsDefaultExcludeDirs = new Set([
-      ".git",
-      ".serverless",
-      ".serverless_plugins",
-      "node_modules"
-    ]);
-
-    // Start with first-level directories to exclude / never traverse
-    // node_modules.
-    const rootFiles = await readdir(servicePath);
-    const rootIsDir = await Promise.all(rootFiles.map((f) => stat(f).then((s) => s.isDirectory())));
-
-    // Keep directories except node_modules.
-    const rootDirs = rootFiles.filter((f, i) => rootIsDir[i] && !slsDefaultExcludeDirs.has(f));
+    // The `ignore` is **never even read**, which is how we gain a speedup over
+    // serverless which does read everything, then limit later.
+    const ignore = [
+      "node_modules/**"
+    ];
 
     // _Now_, start globbing like serverless does.
-    //
-    // TODO_HERE -- Need matrix of rootDirs * globs.
-    //
-    // const globbed = await Promise.all(rootDirs.map((rootDir) => glob(["**"].concat(include || []), {
-    //   cwd: path.join(servicePath, rootDir),
-    //   dot: true,
-    //   filesOnly: true
-    // })));
+    // 1. Everything
+    // 2. Excludes
+    // 3. Includes (to bring things back).
+    const patterns = ["**"]
+      // Negate the excludes...
+      .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
+      .concat(include || []);
 
-    // console.log({ globbed })
+    const globbed = await globby(patterns, {
+      cwd: config.servicePath || ".",
+      dot: true,
+      filesOnly: true,
+      ignore
+    });
 
-    return rootDirs;
+    return globbed;
   }
 
   async installDeps({ buildPath }) {
@@ -369,11 +359,11 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Get sources.
-    // TODO HERE
     const { include, exclude } = this.filePatterns({ functionObject });
     const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
-    console.log("TODO HERE FN SERVICE", { include, exclude, files });
-    return;
+    // TODO HERE - IMPLEMENT COPYING
+    // eslint-disable-next-line no-console
+    console.log("TODO HERE PKG FUNCTION", JSON.stringify({ include, exclude, files }));
 
     // Build.
     this._log(`Packaging function: ${bundleName}`);
@@ -393,9 +383,11 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Get sources.
-    // TODO HERE
-    // const sources = this.filePatterns();
-    // console.log("TODO HERE PKG SERVICE", { sources });
+    const { include, exclude } = this.filePatterns({});
+    const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
+    // TODO HERE - IMPLEMENT COPYING
+    // eslint-disable-next-line no-console
+    console.log("TODO HERE PKG FUNCTION", JSON.stringify({ include, exclude, files }));
 
     // Build.
     this._log(`Packaging service: ${bundleName}`);
