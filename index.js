@@ -8,9 +8,11 @@ const archiver = require("archiver");
 const execa = require("execa");
 const uuidv4 = require("uuid/v4");
 const globby = require("globby");
+const nanomatch = require("nanomatch");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
+const IS_WIN = process.platform === "win32";
 
 const dirExists = async (dirPath) => {
   try {
@@ -63,6 +65,34 @@ const createZip = ({ buildPath, bundlePath }) => {
 const union = (arr1, arr2) => {
   const set1 = new Set(arr1);
   return arr1.concat(arr2.filter((o) => !set1.has(o)));
+};
+
+// Filter list of files like serverless.
+const filterFiles = ({ files, include, exclude }) => {
+  // Create a list of patterns with (a) negated excludes, (b) includes.
+  const patterns = []
+    // Add in starting patterns.
+    .concat(include || [])
+    .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
+    // Follow sls here: globby returns forward slash only, so mutate patterns
+    // always be forward.
+    // https://github.com/serverless/serverless/issues/5609#issuecomment-452219161
+    .map((p) => IS_WIN ? p.replace(/\\/g, "/") : p);
+
+  // Now, iterate all the patterns individually, tracking state like sls.
+  // The _last_ "exclude" vs. "include" wins.
+  const filesMap = files.reduce((memo, file) => ({ ...memo, [file]: true }), []);
+  patterns.forEach((pattern) => {
+    // Do a positive match, but track "keep" or "remove".
+    const includeFile = !pattern.startsWith("!");
+    const positivePattern = includeFile ? pattern : pattern.slice(1);
+    nanomatch(files, [positivePattern], { dot: true }).forEach((key) => {
+      filesMap[key] = includeFile;
+    });
+  });
+
+  // Convert the state map of `true` into our final list of files.
+  return Object.keys(filesMap).filter((f) => filesMap[f]);
 };
 
 /**
@@ -253,28 +283,21 @@ class Jetpack {
     ];
 
     // _Now_, start globbing like serverless does.
-    // 1. Everything
-    // 2. Excludes
-    // 3. Includes (to bring things back).
-    //
-    // TODO: **TEST** that the everything + exclude + include works like sls.
-    const patterns = ["**"]
-      // Negate the excludes...
-      .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
-      .concat(include || []);
-
-    const globbed = await globby(patterns, {
+    // 1. Glob everything on disk using only _includes_
+    const files = await globby(["**"].concat(include || []), {
       cwd: config.servicePath || ".",
       dot: true,
       filesOnly: true,
       ignore
     });
 
-    if (!globbed.length) {
+    // 2. Filter as Serverless does.
+    const filtered = filterFiles({ files, exclude, include });
+    if (!filtered.length) {
       throw new this.serverless.classes.Error("No file matches include / exclude patterns");
     }
 
-    return globbed;
+    return filtered;
   }
 
   async installDeps({ buildPath }) {
@@ -367,7 +390,7 @@ class Jetpack {
     // Get sources.
     const { include, exclude } = this.filePatterns({ functionObject });
     const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
-    // TODO HERE - IMPLEMENT COPYING
+    // TODO HERE - IMPLEMENT (1) COPYING, (2) RE-FILTER NODE_MODULES
     // eslint-disable-next-line no-console
     console.log("TODO HERE PKG FUNCTION", JSON.stringify({ include, exclude, files }));
 
@@ -391,9 +414,9 @@ class Jetpack {
     // Get sources.
     const { include, exclude } = this.filePatterns({});
     const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
-    // TODO HERE - IMPLEMENT COPYING
+    // TODO HERE - IMPLEMENT (1) COPYING, (2) RE-FILTER NODE_MODULES
     // eslint-disable-next-line no-console
-    console.log("TODO HERE PKG FUNCTION", JSON.stringify({ include, exclude, files }));
+    console.log("TODO HERE PKG SERVICE", JSON.stringify({ include, exclude, files }));
 
     // Build.
     this._log(`Packaging service: ${bundleName}`);
