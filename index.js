@@ -392,6 +392,7 @@ class Jetpack {
     });
   }
 
+
   async packageFunction({ functionName, functionObject }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
@@ -402,14 +403,12 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
     const bundlePath = path.resolve(servicePath || ".", bundleName);
 
-    // Get sources.
-    const { include, exclude } = this.filePatterns({ functionObject });
-
     // Build.
     this._log(`Packaging function: ${bundleName}`);
     const { buildSrcs, buildPath } = await this.buildDependencies();
 
     // Gather files, deps to zip.
+    const { include, exclude } = this.filePatterns({ functionObject });
     const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
     const deps = await this.resolveDependenciesFromPatterns(
       { include, exclude, buildPath, buildSrcs });
@@ -446,15 +445,32 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
     const bundlePath = path.resolve(servicePath || ".", bundleName);
 
-    // Get sources.
-    const { include, exclude } = this.filePatterns({});
-    const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
-
     // Build.
     this._log(`Packaging service: ${bundleName}`);
-    await this.buildDependencies();
+    const { buildSrcs, buildPath } = await this.buildDependencies();
 
-    throw new Error("TODO REFACTOR");
+    // Gather files, deps to zip.
+    const { include, exclude } = this.filePatterns({});
+    const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
+    const deps = await this.resolveDependenciesFromPatterns(
+      { include, exclude, buildPath, buildSrcs });
+
+    // TODO: Move this somewhere common. Maybe a joint files + deps function?
+    if (!(files.length || deps.length)) {
+      throw new this.serverless.classes.Error("No file matches include / exclude patterns");
+    }
+
+    // Create package zip.
+    await this.createZip({
+      files,
+      filesRoot: servicePath,
+      deps,
+      depsRoot: buildPath,
+      bundlePath
+    });
+
+    // Clean up
+    await remove(buildPath);
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
