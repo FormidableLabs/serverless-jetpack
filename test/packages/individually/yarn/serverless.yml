@@ -43,4 +43,5 @@ functions:
       include:
         - "src/another.js"
         - "node_modules/**"
+        - "!node_modules/.yarn-integrity"
         - "package.json"

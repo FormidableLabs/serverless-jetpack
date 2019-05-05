@@ -104,8 +104,8 @@ This is potentially slow if `node_modules` contains a lot of ultimately removed 
 Jetpack, by contrast does the following:
 
 1. Glob files from disk with a root `**` (all files) and the `include` pattern, **except** for `node_modules` (never read) and without following symlinks to create a list of files.
-2. Apply service + function `exclude`, then `include` patterns in order and move files to a zip build directory.
-3. Separately `npm|yarn install` production `node_modules` into a dedicated dependencies build directory. Run the same glob logic and `exclude` + `include` matching over just the new `node_modules` and move files over to the zip build directory.
+2. Apply service + function `exclude`, then `include` patterns in order.
+3. Separately `npm|yarn install` production `node_modules` into a dedicated dependencies build directory. Run the same glob logic and `exclude` + `include` matching over just the new `node_modules`.
 4. Then zip the files from the two separate matching operations.
 
 ### Complexities

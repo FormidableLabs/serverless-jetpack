@@ -37,7 +37,7 @@ const createBuildDir = async () => {
   return tmpPath;
 };
 
-const createZip = ({ buildPath, bundlePath }) => {
+const createZip = ({ files, filesRoot, deps, depsRoot, bundlePath }) => {
   // Use Serverless-analogous library + logic to create zipped artifact.
   const zip = archiver.create("zip");
   const output = createWriteStream(bundlePath);
@@ -54,7 +54,12 @@ const createZip = ({ buildPath, bundlePath }) => {
       // (setting file times to epoch, chmod-ing things, etc.) that we don't do
       // here. Instead we just zip up the whole build directory.
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
-      zip.directory(buildPath, false);
+      files.forEach((name) => {
+        zip.file(path.join(filesRoot, name), { name });
+      });
+      deps.forEach((name) => {
+        zip.file(path.join(depsRoot, name), { name });
+      });
 
       zip.finalize();
     });
@@ -275,28 +280,35 @@ class Jetpack {
   async resolveProjectFilePathsFromPatterns({ include, exclude }) {
     const { config } = this.serverless;
 
-    // The `ignore` is **never even read**, which is how we gain a speedup over
-    // serverless which does read everything, then limit later.
-    const ignore = [
-      "node_modules/**"
-    ];
-
     // _Now_, start globbing like serverless does.
-    // 1. Glob everything on disk using only _includes_
+    // 1. Glob everything on disk using only _includes_ (except `node_modules`).
     const files = await globby(["**"].concat(include || []), {
       cwd: config.servicePath || ".",
       dot: true,
       filesOnly: true,
-      ignore
+      // Important for speed: beyond "later excluding", this means we **never
+      // even read** node_modules.
+      ignore: ["node_modules/**"]
     });
 
     // 2. Filter as Serverless does.
-    const filtered = filterFiles({ files, exclude, include });
-    if (!filtered.length) {
-      throw new this.serverless.classes.Error("No file matches include / exclude patterns");
-    }
+    return filterFiles({ files, exclude, include });
+  }
 
-    return filtered;
+  async resolveDependenciesFromPatterns({ include, exclude, buildPath, buildSrcs }) {
+    // 1. Glob, and filter just the node_modules directory by excluding
+    // package.json + lockfile before includes
+    const files = await globby(["**"]
+      .concat(buildSrcs.map((s) => `!${s}`))
+      .concat(include || []
+      ), {
+      cwd: buildPath,
+      dot: true,
+      filesOnly: true
+    });
+
+    // 2. Filter as Serverless does.
+    return filterFiles({ files, exclude, include });
   }
 
   async installDeps({ buildPath }) {
@@ -338,26 +350,23 @@ class Jetpack {
     });
   }
 
-  async buildPackage({ bundleName }) {
+  async buildDependencies({ bundleName }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
-    const bundlePath = path.resolve(servicePath || ".", bundleName);
 
     const buildPath = await createBuildDir();
 
     // Gather options.
     this._logDebug(`Options: ${JSON.stringify(this._options)}`);
     const { mode, lockfile } = this._options;
-    const srcs = [
+    const buildSrcs = [
       "package.json",
       lockfile
-    ]
-      .concat(["src"]) // TODO(OPTIONS): use options
-      .filter(Boolean);
+    ].filter(Boolean);
 
     // Copy over npm/yarn files.
-    this._logDebug(`Copying sources ('${srcs.join("', '")}') to build directory`);
-    await Promise.all(srcs.map((f) => copy(
+    this._logDebug(`Copying sources ('${buildSrcs.join("', '")}') to build directory`);
+    await Promise.all(buildSrcs.map((f) => copy(
       path.resolve(servicePath, f),
       path.resolve(buildPath, f)
     )));
@@ -372,30 +381,51 @@ class Jetpack {
       );
     }
 
-    // Create package zip.
-    this._logDebug(`Zipping build directory ${buildPath} to artifact location: ${bundlePath}`);
-    await createZip({ buildPath, bundlePath });
-
-    // Clean up
-    await remove(buildPath);
+    return { buildSrcs, buildPath };
   }
 
   async packageFunction({ functionName, functionObject }) {
+    const { config } = this.serverless;
+    const servicePath = config.servicePath || ".";
+
     // Mimic built-in serverless naming.
     // **Note**: We _do_ append ".serverless" in path skipping serverless'
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
+    const bundlePath = path.resolve(servicePath || ".", bundleName);
 
     // Get sources.
     const { include, exclude } = this.filePatterns({ functionObject });
-    const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
-    // TODO HERE - IMPLEMENT (1) COPYING, (2) RE-FILTER NODE_MODULES
-    // eslint-disable-next-line no-console
-    console.log("TODO HERE PKG FUNCTION", JSON.stringify({ include, exclude, files }));
 
     // Build.
     this._log(`Packaging function: ${bundleName}`);
-    await this.buildPackage({ bundleName });
+    const { buildSrcs, buildPath } = await this.buildDependencies({ bundleName, include, exclude });
+
+    // Gather files, deps to zip.
+    const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
+    const deps = await this.resolveDependenciesFromPatterns(
+      { include, exclude, buildPath, buildSrcs });
+
+    // TODO: Move this somewhere common. Maybe a joint files + deps function?
+    if (!(files.length || deps.length)) {
+      throw new this.serverless.classes.Error("No file matches include / exclude patterns");
+    }
+
+    // Create package zip.
+    this._logDebug(
+      `Zipping ${files.length} sources from ${servicePath} and `
+      + `${deps.length} dependencies from ${buildPath} to artifact location: ${bundlePath}`
+    );
+    await createZip({
+      files,
+      filesRoot: servicePath,
+      deps,
+      depsRoot: buildPath,
+      bundlePath
+    });
+
+    // Clean up
+    await remove(buildPath);
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -403,23 +433,24 @@ class Jetpack {
   }
 
   async packageService() {
-    const { service } = this.serverless;
+    const { config, service } = this.serverless;
     const serviceName = service.service;
     const servicePackage = service.package;
+    const servicePath = config.servicePath || ".";
 
     // Mimic built-in serverless naming.
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
+    const bundlePath = path.resolve(servicePath || ".", bundleName);
 
     // Get sources.
     const { include, exclude } = this.filePatterns({});
     const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
-    // TODO HERE - IMPLEMENT (1) COPYING, (2) RE-FILTER NODE_MODULES
-    // eslint-disable-next-line no-console
-    console.log("TODO HERE PKG SERVICE", JSON.stringify({ include, exclude, files }));
 
     // Build.
     this._log(`Packaging service: ${bundleName}`);
-    await this.buildPackage({ bundleName });
+    await this.buildDependencies({ bundleName, files, include, exclude });
+
+    throw new Error("TODO REFACTOR");
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
