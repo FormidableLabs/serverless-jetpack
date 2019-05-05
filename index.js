@@ -392,19 +392,11 @@ class Jetpack {
     });
   }
 
-
-  async packageFunction({ functionName, functionObject }) {
+  async buildAndZip({ bundleName, functionObject }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
+    const bundlePath = path.resolve(servicePath, bundleName);
 
-    // Mimic built-in serverless naming.
-    // **Note**: We _do_ append ".serverless" in path skipping serverless'
-    // internal copying logic.
-    const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
-    const bundlePath = path.resolve(servicePath || ".", bundleName);
-
-    // Build.
-    this._log(`Packaging function: ${bundleName}`);
     const { buildSrcs, buildPath } = await this.buildDependencies();
 
     // Gather files, deps to zip.
@@ -429,6 +421,17 @@ class Jetpack {
 
     // Clean up
     await remove(buildPath);
+  }
+
+  async packageFunction({ functionName, functionObject }) {
+    // Mimic built-in serverless naming.
+    // **Note**: We _do_ append ".serverless" in path skipping serverless'
+    // internal copying logic.
+    const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
+
+    // Build.
+    this._log(`Packaging function: ${bundleName}`);
+    await this.buildAndZip({ bundleName, functionObject });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -436,41 +439,16 @@ class Jetpack {
   }
 
   async packageService() {
-    const { config, service } = this.serverless;
+    const { service } = this.serverless;
     const serviceName = service.service;
     const servicePackage = service.package;
-    const servicePath = config.servicePath || ".";
 
     // Mimic built-in serverless naming.
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
-    const bundlePath = path.resolve(servicePath || ".", bundleName);
 
     // Build.
     this._log(`Packaging service: ${bundleName}`);
-    const { buildSrcs, buildPath } = await this.buildDependencies();
-
-    // Gather files, deps to zip.
-    const { include, exclude } = this.filePatterns({});
-    const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
-    const deps = await this.resolveDependenciesFromPatterns(
-      { include, exclude, buildPath, buildSrcs });
-
-    // TODO: Move this somewhere common. Maybe a joint files + deps function?
-    if (!(files.length || deps.length)) {
-      throw new this.serverless.classes.Error("No file matches include / exclude patterns");
-    }
-
-    // Create package zip.
-    await this.createZip({
-      files,
-      filesRoot: servicePath,
-      deps,
-      depsRoot: buildPath,
-      bundlePath
-    });
-
-    // Clean up
-    await remove(buildPath);
+    await this.buildAndZip({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
