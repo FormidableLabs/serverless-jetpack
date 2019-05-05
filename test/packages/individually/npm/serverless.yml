@@ -40,8 +40,9 @@ functions:
       # Package zip should **not** have `src/base.js`.
       exclude:
         - "**/node_modules/aws-sdk/**" # included on Lambda.
+        - "src/**"
       include:
-        - "src/another.js"
+        - "src/another.js" # this should bring it back.
         - "!**/node_modules/.yarn-integrity"
         - "!**/node_modules/.cache/**"
         - "package.json"
