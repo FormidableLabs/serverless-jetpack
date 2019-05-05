@@ -132,20 +132,26 @@ describe("globbing (include/exclude) logic", () => {
       src: {
         "index.js": "module.exports = 'index';",
         "bar.js": "module.exports = 'bar';",
-        "baz.js": "module.exports = 'baz';"
+        "baz.js": "module.exports = 'baz';",
+        stuff: {
+          "what.css": "what",
+          "what.svg": "what"
+        }
       }
     });
 
     expect(await compare({
       pkgExclude: [
-        "**/b*.js"
+        "**/b*.js",
+        "**/*.svg"
       ],
       pkgInclude: [
         "src/bar.js"
       ]
     })).to.eql([
       "src/bar.js",
-      "src/index.js"
+      "src/index.js",
+      "src/stuff/what.css"
     ]);
   });
 
