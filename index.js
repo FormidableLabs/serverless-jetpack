@@ -37,35 +37,6 @@ const createBuildDir = async () => {
   return tmpPath;
 };
 
-const createZip = ({ files, filesRoot, deps, depsRoot, bundlePath }) => {
-  // Use Serverless-analogous library + logic to create zipped artifact.
-  const zip = archiver.create("zip");
-  const output = createWriteStream(bundlePath);
-
-  return new Promise((resolve, reject) => { // eslint-disable-line promise/avoid-new
-    output.on("close", () => resolve());
-    output.on("error", reject);
-    zip.on("error", reject);
-
-    output.on("open", () => {
-      zip.pipe(output);
-
-      // Serverless framework packages up files individually with various tweaks
-      // (setting file times to epoch, chmod-ing things, etc.) that we don't do
-      // here. Instead we just zip up the whole build directory.
-      // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
-      files.forEach((name) => {
-        zip.file(path.join(filesRoot, name), { name });
-      });
-      deps.forEach((name) => {
-        zip.file(path.join(depsRoot, name), { name });
-      });
-
-      zip.finalize();
-    });
-  });
-};
-
 // Simple, stable union.
 const union = (arr1, arr2) => {
   const set1 = new Set(arr1);
@@ -350,7 +321,7 @@ class Jetpack {
     });
   }
 
-  async buildDependencies({ bundleName }) {
+  async buildDependencies() {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
 
@@ -387,6 +358,40 @@ class Jetpack {
     return { buildSrcs, buildPath };
   }
 
+  createZip({ files, filesRoot, deps, depsRoot, bundlePath }) {
+    // Use Serverless-analogous library + logic to create zipped artifact.
+    const zip = archiver.create("zip");
+    const output = createWriteStream(bundlePath);
+
+    this._logDebug(
+      `Zipping ${files.length} sources from ${filesRoot} and `
+      + `${deps.length} dependencies from ${depsRoot} to artifact location: ${bundlePath}`
+    );
+
+    return new Promise((resolve, reject) => { // eslint-disable-line promise/avoid-new
+      output.on("close", () => resolve());
+      output.on("error", reject);
+      zip.on("error", reject);
+
+      output.on("open", () => {
+        zip.pipe(output);
+
+        // Serverless framework packages up files individually with various tweaks
+        // (setting file times to epoch, chmod-ing things, etc.) that we don't do
+        // here. Instead we just zip up the whole build directory.
+        // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
+        files.forEach((name) => {
+          zip.file(path.join(filesRoot, name), { name });
+        });
+        deps.forEach((name) => {
+          zip.file(path.join(depsRoot, name), { name });
+        });
+
+        zip.finalize();
+      });
+    });
+  }
+
   async packageFunction({ functionName, functionObject }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
@@ -402,7 +407,7 @@ class Jetpack {
 
     // Build.
     this._log(`Packaging function: ${bundleName}`);
-    const { buildSrcs, buildPath } = await this.buildDependencies({ bundleName, include, exclude });
+    const { buildSrcs, buildPath } = await this.buildDependencies();
 
     // Gather files, deps to zip.
     const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
@@ -415,11 +420,7 @@ class Jetpack {
     }
 
     // Create package zip.
-    this._logDebug(
-      `Zipping ${files.length} sources from ${servicePath} and `
-      + `${deps.length} dependencies from ${buildPath} to artifact location: ${bundlePath}`
-    );
-    await createZip({
+    await this.createZip({
       files,
       filesRoot: servicePath,
       deps,
@@ -451,7 +452,7 @@ class Jetpack {
 
     // Build.
     this._log(`Packaging service: ${bundleName}`);
-    await this.buildDependencies({ bundleName, files, include, exclude });
+    await this.buildDependencies();
 
     throw new Error("TODO REFACTOR");
 
