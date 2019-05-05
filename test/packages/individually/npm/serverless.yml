@@ -39,7 +39,6 @@ functions:
     package:
       # Package zip should **not** have `src/base.js`.
       exclude:
-        - "**"
         - "**/node_modules/aws-sdk/**" # included on Lambda.
       include:
         - "src/another.js"
