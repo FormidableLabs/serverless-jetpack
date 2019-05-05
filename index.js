@@ -359,16 +359,19 @@ class Jetpack {
     // Gather options.
     this._logDebug(`Options: ${JSON.stringify(this._options)}`);
     const { mode, lockfile } = this._options;
-    const buildSrcs = [
+    // Relative paths for copying.
+    const srcs = [
       "package.json",
       lockfile
     ].filter(Boolean);
+    // Basenames for destination name.
+    const buildSrcs = srcs.map((f) => path.basename(f));
 
     // Copy over npm/yarn files.
-    this._logDebug(`Copying sources ('${buildSrcs.join("', '")}') to build directory`);
-    await Promise.all(buildSrcs.map((f) => copy(
+    this._logDebug(`Copying sources ('${srcs.join("', '")}') to build directory`);
+    await Promise.all(srcs.map((f) => copy(
       path.resolve(servicePath, f),
-      path.resolve(buildPath, f)
+      path.resolve(buildPath, path.basename(f))
     )));
 
     // Install into build directory.
