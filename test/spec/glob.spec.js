@@ -127,7 +127,28 @@ describe("globbing (include/exclude) logic", () => {
     ]);
   });
 
-  it("should handle basic sources and dependencies"); // TODO
+  it("should handle basic sources and dependencies", async () => {
+    mock({
+      src: {
+        "index.js": "module.exports = 'index';",
+        "bar.js": "module.exports = 'bar';",
+        "baz.js": "module.exports = 'baz';"
+      }
+    });
+
+    expect(await compare({
+      pkgExclude: [
+        "**/b*.js"
+      ],
+      pkgInclude: [
+        "src/bar.js"
+      ]
+    })).to.eql([
+      "src/bar.js",
+      "src/index.js"
+    ]);
+  });
+
   it("should handle basic dependencies"); // TODO
 
   // TODO: MORE TESTS

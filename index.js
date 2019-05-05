@@ -69,11 +69,10 @@ const union = (arr1, arr2) => {
 
 // Filter list of files like serverless.
 const filterFiles = ({ files, include, exclude }) => {
-  // Create a list of patterns with (a) negated excludes, (b) includes.
   const patterns = []
-    // Add in starting patterns.
-    .concat(include || [])
+    // Create a list of patterns with (a) negated excludes, (b) includes.
     .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
+    .concat(include || [])
     // Follow sls here: globby returns forward slash only, so mutate patterns
     // always be forward.
     // https://github.com/serverless/serverless/issues/5609#issuecomment-452219161
@@ -86,8 +85,8 @@ const filterFiles = ({ files, include, exclude }) => {
     // Do a positive match, but track "keep" or "remove".
     const includeFile = !pattern.startsWith("!");
     const positivePattern = includeFile ? pattern : pattern.slice(1);
-    nanomatch(files, [positivePattern], { dot: true }).forEach((key) => {
-      filesMap[key] = includeFile;
+    nanomatch(files, [positivePattern], { dot: true }).forEach((file) => {
+      filesMap[file] = includeFile;
     });
   });
 
