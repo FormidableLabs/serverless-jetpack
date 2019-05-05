@@ -127,7 +127,7 @@ describe("globbing (include/exclude) logic", () => {
     ]);
   });
 
-  it("should handle basic sources and dependencies", async () => {
+  it("should handle broad exclude and include re-adding in", async () => {
     mock({
       src: {
         "index.js": "module.exports = 'index';",
@@ -149,7 +149,7 @@ describe("globbing (include/exclude) logic", () => {
     ]);
   });
 
-  it("should handle basic dependencies"); // TODO
-
+  it("should handle only node_modules"); // TODO
+  it("should handle only sources and node_modules"); // TODO
   // TODO: MORE TESTS
 });
