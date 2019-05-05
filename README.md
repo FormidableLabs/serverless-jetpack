@@ -92,6 +92,22 @@ The `serverless-jetpack` plugin leverages this use case and gains a potentially 
 
 Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serverless packaging to detect when Serverless would actually do it's own packaging. Then, it inserts its different packaging steps and copies over the analogous zip file to where Serverless would have put it, and sets internal Serverless `artifact` field that then causes Serverless to skip all its normal packaging steps.
 
+### The nitty gritty of why it's faster
+
+Jetpack does _most_ of what Serverless does globbing-wise with `include|exclude` at the service or function level. Serverless does the following (more or less):
+
+1. Glob files from disk with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files.
+2. Apply service + function `exclude`, then `include` patterns in order to move files into the build directory to be zipped.
+
+This is potentially slow if `node_modules` contains a lot of ultimately removed files, yielding a lot of completely wasted disk I/O time. Also, following symlinks is expensive, and for `node_modules` almost never useful.
+
+Jetpack, by contrast does the following:
+
+1. Glob files from disk with a root `**` (all files) and the `include` pattern, **except** for `node_modules` (never read) and without following symlinks to create a list of files.
+2. Apply service + function `exclude`, then `include` patterns in order and move files to a zip build directory.
+3. Separately `npm|yarn install` production `node_modules` into a dedicated dependencies build directory. Run the same glob logic and `exclude` + `include` matching over just the new `node_modules` and move files over to the zip build directory.
+4. Then zip the files from the two separate matching operations.
+
 ### Complexities
 
 #### Root `node_modules` directory
