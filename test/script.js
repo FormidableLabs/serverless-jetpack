@@ -159,6 +159,15 @@ const benchmark = async () => {
 
   h2(chalk `Benchmark: {gray package}`);
   log(table(pkgData, TABLE_OPTS));
+
+  // Generate file lists.
+  await execa("find", [
+    ".test-zips", "-name", "\"*.zip\"",
+    "-exec", "sh", "-c", "\"zipinfo -1 {} | sort > {}.files.txt\"", "\\;"
+  ], {
+    stdio: "inherit",
+    shell: true
+  });
 };
 
 const main = async () => {

@@ -108,6 +108,10 @@ Jetpack, by contrast does the following:
 3. Separately `npm|yarn install` production `node_modules` into a dedicated dependencies build directory. Run the same glob logic and `exclude` + `include` matching over just the new `node_modules`.
 4. Then zip the files from the two separate matching operations.
 
+This _does_ have some other implications like:
+
+* If your `include|exclude` logic intends to glob in `devDependencies`, this won't work anymore. But, you're not really planning on deploying non-production dependencies are you? 😉
+
 ### Complexities
 
 #### Root `node_modules` directory
@@ -131,6 +135,10 @@ In cases like these, simply set the `lockfile` option to relatively point to the
 #### `npm install` vs `npm ci`
 
 `npm ci` was introduced in version [`5.7.0`](https://blog.npmjs.org/post/171139955345/v570). Notwithstanding the general lockfile logic discussed above, if the plugin detects an `npm` version prior to `5.7.0`, the non-locking, slower `npm install --production` command will be used instead.
+
+#### Excluding `serverless.*` files
+
+The serverless framework only excludes the _first_ match of `serverless.{yml,yaml,json,js}` in order. By contrast, Jetpack just glob excludes them all. We recommend using a glob `include` if your deploy logic depends on having something like `serverless.js` around.
 
 ## Benchmarks
 
