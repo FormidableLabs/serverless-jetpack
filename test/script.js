@@ -186,6 +186,10 @@ const main = async () => {
   return action();
 };
 
+module.exports = {
+  MATRIX
+};
+
 if (require.main === module) {
   main().catch((err) => {
     log(err);
