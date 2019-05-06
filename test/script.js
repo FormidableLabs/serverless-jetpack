@@ -1,5 +1,6 @@
 "use strict";
 
+const os = require("os");
 const path = require("path");
 const { log } = console;
 const chalk = require("chalk");
@@ -95,6 +96,9 @@ const benchmark = async () => {
     ["Scenario", "Mode", "Lockfile", "Type", "Time", "vs Base"].map((t) => gray(t))
   ];
 
+  const archiveRoot = path.join(__dirname, "../.test-zips");
+  await execa("mkdir", ["-p", archiveRoot]);
+
   // Execute scenarios in serial.
   for (const { scenario, mode, lockfile } of MATRIX) {
     const exec = async (cmd, args, opts) => {
@@ -125,8 +129,7 @@ const benchmark = async () => {
     });
 
     // Copy zips.
-    const pluginArchive = path.join(__dirname,
-      "../.test-zips", scenario, mode, lockfile, "jetpack");
+    const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
     await exec("rm", ["-rf", pluginArchive]);
     await exec("mkdir", ["-p", pluginArchive]);
     await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
@@ -156,6 +159,12 @@ const benchmark = async () => {
     pkgData.push(pluginRow);
     pkgData.push([scenario, mode, lockfile, "baseline", baselineTime, ""]);
   }
+
+  h2(chalk `Benchmark: {gray system information}`);
+  log(chalk `* {gray os}:   ${os.platform()} ${os.release()} ${os.arch()}`);
+  log(chalk `* {gray node}: ${process.version}`);
+  log(chalk `* {gray yarn}: ${(await execa("yarn", ["--version"])).stdout}`);
+  log(chalk `* {gray npm}:  ${(await execa("npm", ["--version"])).stdout}`);
 
   h2(chalk `Benchmark: {gray package}`);
   log(table(pkgData, TABLE_OPTS));

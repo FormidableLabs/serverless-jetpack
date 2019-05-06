@@ -5,7 +5,13 @@ Thanks for contributing!
 
 ## Development
 
-Our development revolves around various fixture packages we have in `test`. First, get set up with:
+We primarily devlop in `yarn`, but use `npm` in our benchmarks. Please make sure to have something like:
+
+* node: `8+`
+* yarn: (anything modern)
+* npm:  `5.7.0+`
+
+Our development revolves around various fixture packages we have in `test`. Get set up with:
 
 ```sh
 $ yarn
