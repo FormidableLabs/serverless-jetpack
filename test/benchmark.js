@@ -10,6 +10,19 @@ const { MATRIX } = require("./script");
 const globby = require("globby");
 const { readFile } = require("fs-extra");
 
+// Filter known false positives.
+//
+// Serverless does a traversal and inference of prod vs. dev dependencies
+// throughout installed `node_modules`, but this is tricky to get right and
+// there are known cases of bad matches that we exclude from consideration.
+const BAD_MATCHES = new Set([
+  // All binaries.
+  "node_modules/.bin"
+]);
+
+// eslint-disable-next-line no-magic-numbers
+const notBadMatch = (f) => !BAD_MATCHES.has(f.split("/").slice(0, 2).join("/"));
+
 describe("benchmark", () => {
   let fixtures;
 
@@ -41,17 +54,18 @@ describe("benchmark", () => {
         const pluginLines = fixtures[`${combo}/jetpack`][fileName];
         const pluginSet = new Set(pluginLines);
 
-        // Figure out what is missing from each.
-        const missingInBaseline = pluginLines.filter((l) => !baselineSet.has(l));
-        const missingInPlugin = baselineLines.filter((l) => !pluginSet.has(l));
+        // TODO: FILTER
 
-        console.log("TODO HERE", {
-          fileName,
-          baselineLen: baselineLines.length,
-          missingInBaseline,
-          pluginLen: pluginLines.length,
-          missingInPlugin
-        });
+        // Figure out what is missing from each.
+        const missingInBaseline = pluginLines
+          .filter((l) => !baselineSet.has(l))
+          .filter(notBadMatch);
+        const missingInPlugin = baselineLines
+          .filter((l) => !pluginSet.has(l))
+          .filter(notBadMatch);
+
+        expect(missingInBaseline, "extra files in jetpack").to.eql([]);
+        expect(missingInPlugin, "missing files in jetpack").to.eql([]);
       });
     });
   });

@@ -162,7 +162,21 @@ describe("globbing (include/exclude) logic", () => {
     ]);
   });
 
-  it("should similarly exclude/include serverless.EXT"); // TODO
+  it("doesn't removes appropriate serverless.EXT config file", async () => {
+    mock({
+      "serverless.js": "",
+      "serverless.yml": "",
+      src: {
+        "index.js": "module.exports = 'index';"
+      }
+    });
+
+    expect(await compare({})).to.eql([
+      "serverless.js",
+      "src/index.js"
+    ]);
+  });
+
   it("should handle only node_modules"); // TODO: Needs split plugin dirs!!!
   it("should handle only sources and node_modules"); // TODO: Needs split plugin dirs!!!
   // TODO: MORE TESTS

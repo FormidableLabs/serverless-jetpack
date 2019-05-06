@@ -210,12 +210,6 @@ class Jetpack {
       ".serverless/**",
       ".serverless_plugins/**",
 
-      // The serverless configuration file. It _should_ be this function:
-      // https://github.com/serverless/serverless/blob/79eff80cab58c8494dbb02d65e20d1920f1bfd6e/lib/utils/getServerlessConfigFile.js#L9-L34
-      // but as it reduces to a glob and we don't have that function easily usable
-      // we take this shortcut.
-      "serverless.{json,yml,yaml,js}",
-
       // Additional things no-one wants.
       "npm-debug.log*",
       "yarn-error.log*"
@@ -250,11 +244,12 @@ class Jetpack {
   // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
   async resolveProjectFilePathsFromPatterns({ include, exclude }) {
     const { config } = this.serverless;
+    const servicePath = config.servicePath || ".";
 
     // _Now_, start globbing like serverless does.
     // 1. Glob everything on disk using only _includes_ (except `node_modules`).
     const files = await globby(["**"].concat(include || []), {
-      cwd: config.servicePath || ".",
+      cwd: servicePath,
       dot: true,
       filesOnly: true,
       // Important for speed: beyond "later excluding", this means we **never
@@ -262,7 +257,26 @@ class Jetpack {
       ignore: ["node_modules/**"]
     });
 
-    // 2. Filter as Serverless does.
+    // Find and exclude serverless config file. It _should_ be this function:
+    // https://github.com/serverless/serverless/blob/79eff80cab58c8494dbb02d65e20d1920f1bfd6e/lib/utils/getServerlessConfigFile.js#L9-L34
+    // but we instead just find and remove matched files from the glob results
+    // post-hoc to recreate the order of only removing **one** rather than
+    // something like the glob: `serverless.{json,yml,yaml,js}`.
+    const slsConfigMap = files
+      .filter((f) => (/serverless.(json|yml|yaml|js)$/i).test(f))
+      .reduce((m, f) => ({ ...m, [f]: true }), {});
+    // These extensions are specifically ordered. First wins.
+    const cfgToRemove = ["json", "yml", "yaml", "js"]
+      .map((ext) => path.relative(servicePath, `serverless.${ext}`))
+      .filter((f) => slsConfigMap[f])[0];
+    // Add to excludes like serverless does.
+    // _Note_: Mutates `exclude`, but this is really like a "late fixing" of
+    // what would happen anyways in serverless.
+    if (cfgToRemove) {
+      exclude.push(cfgToRemove);
+    }
+
+    // Filter as Serverless does.
     return filterFiles({ files, exclude, include });
   }
 
