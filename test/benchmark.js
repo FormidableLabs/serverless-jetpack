@@ -54,8 +54,6 @@ describe("benchmark", () => {
         const pluginLines = fixtures[`${combo}/jetpack`][fileName];
         const pluginSet = new Set(pluginLines);
 
-        // TODO: FILTER
-
         // Figure out what is missing from each.
         const missingInBaseline = pluginLines
           .filter((l) => !baselineSet.has(l))
