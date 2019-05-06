@@ -47,8 +47,8 @@ $ TEST_MODE=yarn,npm TEST_SCENARIO=simple yarn benchmark
 ### QA
 
 ```sh
-$ yarn run lint
-$ yarn run test
+$ yarn lint
+$ yarn test
 
 # ... or all together ...
 $ yarn run check
@@ -63,20 +63,20 @@ Before you go ahead and submit a PR, make sure that you have done the following:
 $ yarn run check
 
 # Make sure all fixtures are updated and valid
-$ yarn run benchmark:install
-$ yarn run benchmark:build
+$ yarn benchmark:install
+$ yarn benchmark:build
 
 # Run a benchmark.
 # First, check that `npm` versions is 5.7.0+ (which has `npm ci`).
 $ npm --version
 # Then, actually generate the benchmark.
 # _Note_: Unfortunately, this takes some **time**. Grab a ☕
-$ yarn run benchmark
+$ yarn benchmark
 # Now, test the benchmark for correctness.
-$ yarn run test:benchmark
+$ yarn benchmark:test
 
 # Generate the usage message.
-$ yarn run usage
+$ yarn usage
 
 # If the benchmark stats and/or the usage message are notably different than
 # what's in README.md, update relevant sections and commit your changes.
