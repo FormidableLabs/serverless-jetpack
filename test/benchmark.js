@@ -3,7 +3,7 @@
 /**
  * Tests validating jetpack vs. built-in serverless packaging.
  *
- * **Note**: requires a full `yarn test:benchmark` run first to generate file
+ * **Note**: requires a full `yarn benchmark` run first to generate file
  * lists.
  */
 const { MATRIX } = require("./script");

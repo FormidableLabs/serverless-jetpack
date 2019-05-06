@@ -142,7 +142,7 @@ The serverless framework only excludes the _first_ match of `serverless.{yml,yam
 
 ## Benchmarks
 
-The following is a simple, "on my machine" benchmark generated with `yarn test:benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
+The following is a simple, "on my machine" benchmark generated with `yarn benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
 
 When run with a lockfile (producing the fastest `yarn|npm` install), **all** of our scenarios have faster packaging with `serverless-jetpack`. In some cases, this means over a **6x** speedup. The results also indicate that if your project is **not** using a lockfile, then built-in Serverless packaging may be faster.
 
