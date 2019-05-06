@@ -162,30 +162,30 @@ The rows that are **bolded** are the preferred configurations for `serverless-je
 
 | Scenario         | Mode     | Lockfile | Type        |     Time |      vs Base |
 | :--------------- | :------- | :------- | :---------- | -------: | -----------: |
-| **simple**       | **yarn** | **true** | **jetpack** | **4375** | **-41.10 %** |
-| simple           | yarn     | true     | baseline    |     7428 |              |
-| **simple**       | **npm**  | **true** | **jetpack** | **5709** | **-37.22 %** |
-| simple           | npm      | true     | baseline    |     9093 |              |
-| simple           | yarn     | false    | jetpack     |     7167 |      -2.70 % |
-| simple           | yarn     | false    | baseline    |     7366 |              |
-| simple           | npm      | false    | jetpack     |    10262 |      25.27 % |
-| simple           | npm      | false    | baseline    |     8192 |              |
-| **individually** | **yarn** | **true** | **jetpack** | **5182** | **-60.39 %** |
-| individually     | yarn     | true     | baseline    |    13083 |              |
-| **individually** | **npm**  | **true** | **jetpack** | **6732** | **-47.44 %** |
-| individually     | npm      | true     | baseline    |    12809 |              |
-| individually     | yarn     | false    | jetpack     |    10747 |     -23.32 % |
-| individually     | yarn     | false    | baseline    |    14016 |              |
-| individually     | npm      | false    | jetpack     |    13072 |     -21.81 % |
-| individually     | npm      | false    | baseline    |    16719 |              |
-| **huge**         | **yarn** | **true** | **jetpack** | **6766** | **-80.36 %** |
-| huge             | yarn     | true     | baseline    |    34451 |              |
-| **huge**         | **npm**  | **true** | **jetpack** | **5998** | **-83.72 %** |
-| huge             | npm      | true     | baseline    |    36832 |              |
-| huge             | yarn     | false    | jetpack     |    20626 |     -40.46 % |
-| huge             | yarn     | false    | baseline    |    34640 |              |
-| huge             | npm      | false    | jetpack     |    22255 |     -45.49 % |
-| huge             | npm      | false    | baseline    |    40825 |              |
+| **simple**       | **yarn** | **true** | **jetpack** | **4811** | **-41.33 %** |
+| simple           | yarn     | true     | baseline    |     8200 |              |
+| **simple**       | **npm**  | **true** | **jetpack** | **8944** | **-49.97 %** |
+| simple           | npm      | true     | baseline    |    17878 |              |
+| simple           | yarn     | false    | jetpack     |     7190 |     -17.72 % |
+| simple           | yarn     | false    | baseline    |     8738 |              |
+| simple           | npm      | false    | jetpack     |    12552 |      14.37 % |
+| simple           | npm      | false    | baseline    |    10975 |              |
+| **individually** | **yarn** | **true** | **jetpack** | **5061** | **-56.12 %** |
+| individually     | yarn     | true     | baseline    |    11534 |              |
+| **individually** | **npm**  | **true** | **jetpack** | **6864** | **-43.79 %** |
+| individually     | npm      | true     | baseline    |    12212 |              |
+| individually     | yarn     | false    | jetpack     |     7661 |     -32.25 % |
+| individually     | yarn     | false    | baseline    |    11307 |              |
+| individually     | npm      | false    | jetpack     |    10986 |     -14.10 % |
+| individually     | npm      | false    | baseline    |    12789 |              |
+| **huge**         | **yarn** | **true** | **jetpack** | **6144** | **-74.87 %** |
+| huge             | yarn     | true     | baseline    |    24445 |              |
+| **huge**         | **npm**  | **true** | **jetpack** | **5892** | **-78.70 %** |
+| huge             | npm      | true     | baseline    |    27668 |              |
+| huge             | yarn     | false    | jetpack     |    12660 |     -49.27 % |
+| huge             | yarn     | false    | baseline    |    24954 |              |
+| huge             | npm      | false    | jetpack     |    18511 |     -35.03 % |
+| huge             | npm      | false    | baseline    |    28490 |              |
 
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/
