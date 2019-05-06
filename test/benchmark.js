@@ -35,13 +35,22 @@ describe("benchmark", () => {
 
     it(combo, async () => {
       Object.keys(fixtures[`${combo}/baseline`]).forEach((fileName) => {
+        // Get all of the lines from our file lists.
         const baselineLines = fixtures[`${combo}/baseline`][fileName];
+        const baselineSet = new Set(baselineLines);
         const pluginLines = fixtures[`${combo}/jetpack`][fileName];
+        const pluginSet = new Set(pluginLines);
+
+        // Figure out what is missing from each.
+        const missingInBaseline = pluginLines.filter((l) => !baselineSet.has(l));
+        const missingInPlugin = baselineLines.filter((l) => !pluginSet.has(l));
 
         console.log("TODO HERE", {
           fileName,
           baselineLen: baselineLines.length,
-          pluginLen: pluginLines.length
+          missingInBaseline,
+          pluginLen: pluginLines.length,
+          missingInPlugin
         });
       });
     });
