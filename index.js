@@ -302,7 +302,7 @@ class Jetpack {
       if (major > 5 || major === 5 && minor >= 7) { // eslint-disable-line no-magic-numbers
         install = "ci";
       } else {
-        this._logDebug(`Found old npm version ${stdout}. Unable to use 'npm ci'.`);
+        this._log(`WARN: Found old npm version ${stdout}. Unable to use 'npm ci'.`);
       }
     }
 
