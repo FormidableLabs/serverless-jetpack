@@ -5,11 +5,13 @@ Thanks for contributing!
 
 ## Development
 
-We primarily devlop in `yarn`, but use `npm` in our benchmarks. Please make sure to have something like:
+We primarily develop in `yarn`, but use `npm` in our benchmarks. Please make sure to have something like:
 
 * node: `8+`
 * yarn: (anything modern)
 * npm:  `5.7.0+`
+
+available. Also note that for the time being, our development tools assume a Unix-like environment, which means Mac, Linux, or something like the Windows Subsystem for Linux.
 
 Our development revolves around various fixture packages we have in `test`. Get set up with:
 
