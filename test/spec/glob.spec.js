@@ -18,6 +18,35 @@ class Sls {
   }
 }
 
+const pluginAdapter = async ({ plugin, pkgExclude, pkgInclude, fnExclude, fnInclude }) => {
+  plugin.serverless.service.package.exclude = pkgExclude;
+  plugin.serverless.service.package.include = pkgInclude;
+
+  return await plugin.resolveProjectFilePathsFromPatterns(
+    plugin.filePatterns({
+      functionObject: {
+        "package": {
+          include: fnInclude,
+          exclude: fnExclude
+        }
+      }
+    })
+  );
+};
+
+const slsAdapter = async ({ sls, pkgExclude, pkgInclude, fnExclude, fnInclude }) => {
+  sls.serverless.service.package.exclude = pkgExclude;
+  const slsPkgExcludes = await sls.getExcludes(fnExclude || []);
+
+  sls.serverless.service.package.include = pkgInclude;
+  const slsPkgIncludes = sls.getIncludes(fnInclude || []);
+
+  return await sls.resolveFilePathsFromPatterns({
+    exclude: slsPkgExcludes,
+    include: slsPkgIncludes
+  });
+};
+
 describe("globbing (include/exclude) logic", () => {
   let plugin;
   let sls;
@@ -28,47 +57,24 @@ describe("globbing (include/exclude) logic", () => {
     let pluginFiles;
     let pluginError;
 
-    plugin.serverless.service.package.exclude = pkgExclude;
-    plugin.serverless.service.package.include = pkgInclude;
-
     try {
-      pluginFiles = await plugin.resolveProjectFilePathsFromPatterns(
-        plugin.filePatterns({
-          functionObject: {
-            "package": {
-              include: fnInclude,
-              exclude: fnExclude
-            }
-          }
-        })
-      );
+      pluginFiles = await pluginAdapter({ plugin, pkgExclude, pkgInclude, fnExclude, fnInclude });
     } catch (pluginErr) {
       pluginError = pluginErr;
     }
 
-    // Patch serverless object to do "most" of what normal include/exclude
-    // logic is.
-    sls.serverless.service.package.exclude = pkgExclude;
-    const slsPkgExcludes = await sls.getExcludes(fnExclude || []);
-
-    sls.serverless.service.package.include = pkgInclude;
-    const slsPkgIncludes = sls.getIncludes(fnInclude || []);
-
     let slsFiles;
     let slsError;
     try {
-      slsFiles = await sls.resolveFilePathsFromPatterns({
-        exclude: slsPkgExcludes,
-        include: slsPkgIncludes
-      });
+      slsFiles = await slsAdapter({ sls, pkgExclude, pkgInclude, fnExclude, fnInclude });
     } catch (slsErr) {
       slsError = slsErr;
     }
 
     // Check errors.
     if (slsError) {
-      expect(slsError).to.have.property("message");
-      expect(pluginError).to.have.property("message", slsError.message);
+      expect(slsError).to.be.ok.and.to.have.property("message");
+      expect(pluginError).to.be.ok.and.to.have.property("message", slsError.message);
 
       return pluginError;
     }
@@ -109,7 +115,8 @@ describe("globbing (include/exclude) logic", () => {
     mock.restore();
   });
 
-  it("should error on no patterns, no matches", async () => {
+  // TODO: Need to handle split plugin directories.
+  it.skip("should error on no patterns, no matches", async () => {
     expect(await compare({}))
       .to.be.an("Error").and
       .to.have.property("message", "No file matches include / exclude patterns");
@@ -155,7 +162,8 @@ describe("globbing (include/exclude) logic", () => {
     ]);
   });
 
-  it("should handle only node_modules"); // TODO
-  it("should handle only sources and node_modules"); // TODO
+  it("should similarly exclude/include serverless.EXT"); // TODO
+  it("should handle only node_modules"); // TODO: Needs split plugin dirs!!!
+  it("should handle only sources and node_modules"); // TODO: Needs split plugin dirs!!!
   // TODO: MORE TESTS
 });
