@@ -18,7 +18,7 @@
     "yarn"
   ],
   "scripts": {
-    "preversion": "yarn check",
+    "preversion": "yarn run check",
     "usage": "cd test/packages/simple/yarn &&  MODE=yarn serverless jetpack -h",
     "clean": "rm -rf test/packages/*/*/.serverless",
     "benchmark:install": "node test/script.js install",
