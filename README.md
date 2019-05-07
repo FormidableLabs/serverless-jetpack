@@ -97,7 +97,7 @@ Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serve
 Jetpack does _most_ of what Serverless does globbing-wise with `include|exclude` at the service or function level. Serverless does the following (more or less):
 
 1. Glob files from disk with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files.
-2. Apply service + function `exclude`, then `include` patterns in order to move files into the build directory to be zipped.
+2. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
 This is potentially slow if `node_modules` contains a lot of ultimately removed files, yielding a lot of completely wasted disk I/O time. Also, following symlinks is expensive, and for `node_modules` almost never useful.
 
