@@ -161,10 +161,10 @@ const benchmark = async () => {
   }
 
   h2(chalk `Benchmark: {gray system information}`);
-  log(chalk `* {gray os}:   ${os.platform()} ${os.release()} ${os.arch()}`);
-  log(chalk `* {gray node}: ${process.version}`);
-  log(chalk `* {gray yarn}: ${(await execa("yarn", ["--version"])).stdout}`);
-  log(chalk `* {gray npm}:  ${(await execa("npm", ["--version"])).stdout}`);
+  log(chalk `* {gray os}:   \`${os.platform()} ${os.release()} ${os.arch()}\``);
+  log(chalk `* {gray node}: \`${process.version}\``);
+  log(chalk `* {gray yarn}: \`${(await execa("yarn", ["--version"])).stdout}\``);
+  log(chalk `* {gray npm}:  \`${(await execa("npm", ["--version"])).stdout}\``);
 
   h2(chalk `Benchmark: {gray package}`);
   log(table(pkgData, TABLE_OPTS));
