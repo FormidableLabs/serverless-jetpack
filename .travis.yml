@@ -21,5 +21,6 @@ script:
   - yarn run check
   - yarn benchmark:build
   - yarn benchmark:install
+  - yarn benchmark:lint
   - yarn benchmark
   - yarn benchmark:test

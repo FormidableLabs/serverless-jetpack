@@ -23,10 +23,11 @@
     "clean": "rm -rf test/packages/*/*/.serverless",
     "benchmark:install": "node test/script.js install",
     "benchmark:build": "node test/script.js build",
+    "benchmark:lint": "eslint 'test/packages/**/*.js'",
     "benchmark:test": "mocha test/benchmark.js",
     "benchmark": "node test/script.js benchmark",
     "test:spec": "mocha test/spec",
-    "lint": "eslint .",
+    "lint": "eslint *.js test/plugins test/spec 'test/*.js'",
     "test": "yarn test:spec",
     "check": "yarn lint && yarn test:spec"
   },
