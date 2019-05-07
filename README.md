@@ -1,5 +1,7 @@
 Serverless Jetpack 🚀
 ====================
+[![npm version][npm_img]][npm_site]
+[![Travis Status][trav_img]][trav_site]
 
 A faster JavaScript packager for [Serverless][] applications.
 
@@ -199,3 +201,8 @@ Results:
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/
 [yarn workspaces]: https://yarnpkg.com/lang/en/docs/workspaces/
+
+[npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
+[npm_site]: http://badge.fury.io/js/serverless-jetpack
+[trav_img]: https://api.travis-ci.com/FormidableLabs/serverless-jetpack.svg
+[trav_site]: https://travis-ci.com/FormidableLabs/serverless-jetpack
