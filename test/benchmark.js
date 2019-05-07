@@ -19,10 +19,12 @@ const PKG_IGNORE_ALL = new Set([
   // All binaries.
   "node_modules/.bin"
 ]);
-// False positives from serverless by scneario.
+
+// False positives from serverless by scenario.
 const SLS_FALSE_POSITIVES = {
   // For this scenario, it appears that `serverless` doesn't correctly detect
-  // a lot of `jest` dependencies are `devDependencies.
+  // a lot of `jest` dependencies are `devDependencies` when installing with
+  // `yarn` (although `npm` looks correct).
   "huge/yarn": new Set([
     // `$ yarn why abbrev`
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
