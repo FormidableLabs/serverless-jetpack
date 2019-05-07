@@ -1,15 +1,19 @@
-service: sls-packager-examples-simple
+service: serverless-jetpack-simple
 
 package:
-  # TODO: Test out `include`, `exclude` for matrix, timings.
-  excludeDevDependencies: true
+  individually: ${file(./serverless.js):pkg.individually}
+  excludeDevDependencies: ${file(./serverless.js):pkg.excludeDevDependencies}
 
 custom:
   region: ${opt:region, env:AWS_REGION}
   stage: ${opt:stage, env:STAGE}
+  serverless-jetpack: ${file(./serverless.js):jetpack}
 
 plugins:
-  - serverless-offline
+  localPath: ../../../plugins
+  modules:
+    - serverless-offline
+    - wrapper
 
 provider:
   name: aws

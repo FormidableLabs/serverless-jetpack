@@ -1,35 +1,59 @@
 {
-  "name": "sls-packager-examples",
+  "name": "serverless-jetpack",
   "version": "0.0.1",
-  "description": "Serverless framework packaging examples and benchmarks",
-  "repository": "https://github.com/FormidableLabs/sls-packager-examples",
+  "description": "A faster JavaScript packager for Serverless applications.",
+  "main": "index.js",
+  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
-  "private": true,
-  "workspaces": {
-    "packages": [
-      "packages/simple",
-      "packages/huge",
-      "packages/individually"
-    ],
-    "nohoist": ["**"]
-  },
+  "keywords": [
+    "serverless",
+    "serverless artifact",
+    "serverless package",
+    "serverless plugin",
+    "amazon web services",
+    "aws",
+    "lambda",
+    "npm",
+    "yarn"
+  ],
   "scripts": {
-    "postinstall": "yarn install:npm && yarn rm-bad-symlinks",
-    "rm-bad-symlinks": "find . -type l ! -exec test -e {} \\; -print | xargs rm",
-    "_env": "echo export STAGE=${STAGE:-localdev}; echo export AWS_REGION=${AWS_REGION:-us-east-1}; ",
-    "_pkgs": "find packages -maxdepth 1 -mindepth 1 -type d",
-    "install:npm": "yarn -s _pkgs -exec sh -c 'cd {} && npm install' \\;",
-    "sls:package": "eval $(yarn -s _env) && yarn -s _pkgs -exec sh -c 'echo Packaging: {} &&  cd {} && time sls package && du -sh .serverless/*.zip' \\;",
+    "preversion": "yarn check",
+    "usage": "cd test/packages/simple/yarn &&  MODE=yarn serverless jetpack -h",
+    "clean": "rm -rf test/packages/*/*/.serverless",
+    "benchmark:install": "node test/script.js install",
+    "benchmark:build": "node test/script.js build",
+    "benchmark:test": "mocha test/benchmark.js",
+    "benchmark": "node test/script.js benchmark",
+    "test:spec": "mocha test/spec",
     "lint": "eslint .",
-    "check": "yarn run lint"
+    "test": "yarn test:spec",
+    "check": "yarn lint && yarn test:spec"
+  },
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "dependencies": {
+    "archiver": "^3.0.0",
+    "execa": "^1.0.0",
+    "fs-extra": "^7.0.1",
+    "globby": "^9.2.0",
+    "nanomatch": "^1.2.13",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "babel-eslint": "^10.0.1",
+    "chai": "^4.2.0",
+    "chalk": "^2.4.2",
     "eslint": "^5.13.0",
     "eslint-config-formidable": "^4.0.0",
     "eslint-plugin-filenames": "^1.3.2",
     "eslint-plugin-import": "^2.16.0",
-    "eslint-plugin-promise": "^4.0.1"
+    "eslint-plugin-promise": "^4.0.1",
+    "markdown-table": "^1.1.2",
+    "mocha": "^6.1.4",
+    "mock-fs": "^4.9.0",
+    "serverless": "^1.41.1",
+    "strip-ansi": "^5.2.0"
   }
 }
