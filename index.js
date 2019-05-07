@@ -200,7 +200,6 @@ class Jetpack {
     // > add all the globs from include. This way you can always re-include
     // > previously excluded files and directories.
     //
-    //
     // Start with serverless excludes, plus a few refinements.
     const slsDefaultExcludePatterns = [
       ".git/**",
@@ -282,10 +281,11 @@ class Jetpack {
   async resolveDependenciesFromPatterns({ include, exclude, buildPath, buildSrcs }) {
     // 1. Glob, and filter just the node_modules directory by excluding
     // package.json + lockfile before includes
-    const files = await globby(["**"]
+    const patterns = ["**"]
       .concat(buildSrcs.map((s) => `!${s}`))
-      .concat(include || []
-      ), {
+      .concat(include || []);
+
+    const files = await globby(patterns, {
       cwd: buildPath,
       dot: true,
       filesOnly: true
