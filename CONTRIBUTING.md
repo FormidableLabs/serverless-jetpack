@@ -69,6 +69,7 @@ Before you go ahead and submit a PR, make sure that you have done the following:
 ```sh
 # Run lint and unit tests
 $ yarn run check
+$ yarn benchmark:lint
 
 # Make sure all fixtures are updated and valid
 $ yarn benchmark:install
