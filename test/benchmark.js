@@ -80,6 +80,10 @@ const SLS_FALSE_POSITIVES = {
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
     "node_modules/osenv",
 
+    // $ yarn why tar
+    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
+    "node_modules/tar",
+
     // $ yarn why wide-align
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npmlog#gauge"
     "node_modules/wide-align"
