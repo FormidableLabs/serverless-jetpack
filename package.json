@@ -29,6 +29,7 @@
     "test:spec": "mocha test/spec",
     "lint": "eslint *.js test/plugins test/spec 'test/*.js'",
     "test": "yarn test:spec",
+    "check:git-dirty": "test -z \"$(git status --porcelain)\" || (echo \"ERROR: Found git dirty files:\n$(git status --porcelain)\" && exit 1)",
     "check": "yarn lint && yarn test:spec"
   },
   "engines": {
