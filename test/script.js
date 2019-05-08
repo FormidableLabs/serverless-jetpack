@@ -55,7 +55,6 @@ const TABLE_OPTS = {
 };
 
 const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
-const h3 = (msg) => log(chalk `\n{green ### ${msg}}`);
 
 const build = async () => {
   const files = [
@@ -102,17 +101,21 @@ const benchmark = async () => {
   const archiveRoot = path.join(__dirname, "../.test-zips");
   await execa("mkdir", ["-p", archiveRoot]);
 
-  // Execute scenarios in parallel for scenario + mode (serial for lockfile).
+  // Execute scenarios in parallel for scenario + mode.
+  // We have to execute `lockfile: true|false` in serial because they both
+  // mutate the same directory.
   h2(chalk `Packaging scenarios`);
   const queues = {};
+  const results = {};
   await Promise.all(MATRIX
     .map(({ scenario, mode, lockfile }) => {
       const key = `${scenario}/${mode}`;
       queues[key] = queues[key] || new PQueue({ concurrency: 1 });
       const logTask = (msg) =>
-        log(chalk `${msg}: {gray ${JSON.stringify({ scenario, mode, lockfile })}}`);
+        log(chalk `{green ${msg}}: ${JSON.stringify({ scenario, mode, lockfile })}`);
 
       logTask("[task:queued]");
+      // eslint-disable-next-line max-statements
       return queues[key].add(async () => {
         logTask("[task:start]");
 
@@ -169,8 +172,11 @@ const benchmark = async () => {
           pluginRow = pluginRow.map((c) => chalk `**{bold ${c}}**`);
         }
 
-        pkgData.push(pluginRow);
-        pkgData.push([scenario, mode, lockfile, "baseline", baselineTime, ""]);
+        const resultsKey = `${scenario}/${mode}/${lockfile}`;
+        results[resultsKey] = (results[resultsKey] || []).concat([
+          pluginRow,
+          [scenario, mode, lockfile, "baseline", baselineTime, ""]
+        ]);
       });
     })
   );
@@ -182,9 +188,12 @@ const benchmark = async () => {
   log(chalk `* {gray yarn}: \`${(await execa("yarn", ["--version"])).stdout}\``);
   log(chalk `* {gray npm}:  \`${(await execa("npm", ["--version"])).stdout}\``);
 
-  // TODO: Re-sort results!
   h2(chalk `Benchmark: {gray package}`);
-  log(table(pkgData, TABLE_OPTS));
+  // Recreate results in starting order.
+  const datas = MATRIX
+    .map(({ scenario, mode, lockfile }) => results[`${scenario}/${mode}/${lockfile}`])
+    .reduce((m, a) => m.concat(a), []);
+  log(table(pkgData.concat(datas), TABLE_OPTS));
 
   // Generate file lists.
   await execa("find", [
