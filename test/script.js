@@ -103,16 +103,19 @@ const benchmark = async () => {
   await execa("mkdir", ["-p", archiveRoot]);
 
   // Execute scenarios in parallel for scenario + mode (serial for lockfile).
-  h2(chalk `Queuing scenarios`);
+  h2(chalk `Packaging scenarios`);
   const queues = {};
   await Promise.all(MATRIX
     .map(({ scenario, mode, lockfile }) => {
       const key = `${scenario}/${mode}`;
       queues[key] = queues[key] || new PQueue({ concurrency: 1 });
+      const logTask = (msg) =>
+        log(chalk `${msg}: {gray ${JSON.stringify({ scenario, mode, lockfile })}}`);
 
-      log(chalk `* {gray ${JSON.stringify({ scenario, mode, lockfile })}}`);
+      logTask("[task:queued]");
       return queues[key].add(async () => {
-        // TODO: Buffer results and dump at end.
+        logTask("[task:start]");
+
         const exec = async (cmd, args, opts) => {
           const start = Date.now();
 
@@ -126,9 +129,8 @@ const benchmark = async () => {
           return Date.now() - start;
         };
 
-        h2(chalk `Scenario: {gray ${JSON.stringify({ scenario, mode, lockfile })}}`);
 
-        h3("Jetpack");
+        logTask("[task:start:jetpack]");
         const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {
           env: {
             ...ENV,
@@ -136,8 +138,8 @@ const benchmark = async () => {
             LOCKFILE: lockfile
           }
         });
+        logTask("[task:end:jetpack]");
 
-        // Copy zips.
         const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
         await exec("rm", ["-rf", pluginArchive]);
         await exec("mkdir", ["-p", pluginArchive]);
@@ -145,8 +147,10 @@ const benchmark = async () => {
           shell: true
         });
 
-        h3("Baseline");
+        logTask("[task:start:baseline]");
         const baselineTime = await exec("serverless", ["package"]);
+        logTask("[task:end:baseline]");
+
         const baselineArchive = path.join(__dirname,
           "../.test-zips", scenario, mode, lockfile, "baseline");
         await exec("rm", ["-rf", baselineArchive]);
