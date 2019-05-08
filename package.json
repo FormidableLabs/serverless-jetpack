@@ -55,6 +55,7 @@
     "markdown-table": "^1.1.2",
     "mocha": "^6.1.4",
     "mock-fs": "^4.9.0",
+    "p-queue": "^5.0.0",
     "serverless": "^1.41.1",
     "strip-ansi": "^5.2.0"
   }

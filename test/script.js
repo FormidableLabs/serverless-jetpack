@@ -3,6 +3,7 @@
 const os = require("os");
 const path = require("path");
 const { log } = console;
+const PQueue = require("p-queue");
 const chalk = require("chalk");
 const { gray } = chalk;
 const execa = require("execa");
@@ -54,7 +55,6 @@ const TABLE_OPTS = {
 };
 
 const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
-const h3 = (msg) => log(chalk `\n{green ### ${msg}}`);
 
 const build = async () => {
   const files = [
@@ -101,63 +101,86 @@ const benchmark = async () => {
   const archiveRoot = path.join(__dirname, "../.test-zips");
   await execa("mkdir", ["-p", archiveRoot]);
 
-  // Execute scenarios in serial.
-  for (const { scenario, mode, lockfile } of MATRIX) {
-    const exec = async (cmd, args, opts) => {
-      const start = Date.now();
+  // Execute scenarios in parallel for scenario + mode.
+  // We have to execute `lockfile: true|false` in serial because they both
+  // mutate the same directory.
+  h2(chalk `Packaging scenarios`);
+  const queues = {};
+  const results = {};
+  await Promise.all(MATRIX
+    .map(({ scenario, mode, lockfile }) => {
+      const key = `${scenario}/${mode}`;
+      queues[key] = queues[key] || new PQueue({ concurrency: 1 });
+      const logTask = (msg) =>
+        log(chalk `{green ${msg}}: ${JSON.stringify({ scenario, mode, lockfile })}`);
 
-      await execa(cmd, args, {
-        cwd: path.resolve(`test/packages/${scenario}/${mode}`),
-        stdio: "inherit",
-        env: ENV,
-        ...opts
+      logTask("[task:queued]");
+      // eslint-disable-next-line max-statements
+      return queues[key].add(async () => {
+        logTask("[task:start]");
+
+        const exec = async (cmd, args, opts) => {
+          const start = Date.now();
+
+          await execa(cmd, args, {
+            cwd: path.resolve(`test/packages/${scenario}/${mode}`),
+            stdio: "inherit",
+            env: ENV,
+            ...opts
+          });
+
+          return Date.now() - start;
+        };
+
+
+        logTask("[task:start:jetpack]");
+        const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {
+          env: {
+            ...ENV,
+            MODE: mode,
+            LOCKFILE: lockfile
+          }
+        });
+        logTask("[task:end:jetpack]");
+
+        const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
+        await exec("rm", ["-rf", pluginArchive]);
+        await exec("mkdir", ["-p", pluginArchive]);
+        await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
+          shell: true
+        });
+
+        logTask("[task:start:baseline]");
+        const baselineTime = await exec("serverless", ["package"]);
+        logTask("[task:end:baseline]");
+
+        const baselineArchive = path.join(__dirname,
+          "../.test-zips", scenario, mode, lockfile, "baseline");
+        await exec("rm", ["-rf", baselineArchive]);
+        await exec("mkdir", ["-p", baselineArchive]);
+        await exec("cp", ["-rp", ".serverless/*.zip", baselineArchive], {
+          shell: true
+        });
+
+        // Data.
+        // eslint-disable-next-line no-magic-numbers
+        const pct = ((pluginTime - baselineTime) / baselineTime * 100).toFixed(2);
+        let pluginRow = [scenario, mode, lockfile, "jetpack", pluginTime, `${pct} %`];
+
+        // Bold out preferred configurations.
+        if (lockfile === "true") {
+          pluginRow = pluginRow.map((c) => chalk `**{bold ${c}}**`);
+        }
+
+        const resultsKey = `${scenario}/${mode}/${lockfile}`;
+        results[resultsKey] = (results[resultsKey] || []).concat([
+          pluginRow,
+          [scenario, mode, lockfile, "baseline", baselineTime, ""]
+        ]);
       });
+    })
+  );
 
-      return Date.now() - start;
-    };
-
-    h2(chalk `Scenario: {gray ${JSON.stringify({ scenario, mode, lockfile })}}`);
-
-    h3("Jetpack");
-    const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {
-      env: {
-        ...ENV,
-        MODE: mode,
-        LOCKFILE: lockfile
-      }
-    });
-
-    // Copy zips.
-    const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
-    await exec("rm", ["-rf", pluginArchive]);
-    await exec("mkdir", ["-p", pluginArchive]);
-    await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
-      shell: true
-    });
-
-    h3("Baseline");
-    const baselineTime = await exec("serverless", ["package"]);
-    const baselineArchive = path.join(__dirname,
-      "../.test-zips", scenario, mode, lockfile, "baseline");
-    await exec("rm", ["-rf", baselineArchive]);
-    await exec("mkdir", ["-p", baselineArchive]);
-    await exec("cp", ["-rp", ".serverless/*.zip", baselineArchive], {
-      shell: true
-    });
-
-    // Data.
-    // eslint-disable-next-line no-magic-numbers
-    const pct = ((pluginTime - baselineTime) / baselineTime * 100).toFixed(2);
-    let pluginRow = [scenario, mode, lockfile, "jetpack", pluginTime, `${pct} %`];
-
-    // Bold out preferred configurations.
-    if (lockfile === "true") {
-      pluginRow = pluginRow.map((c) => chalk `**{bold ${c}}**`);
-    }
-
-    pkgData.push(pluginRow);
-    pkgData.push([scenario, mode, lockfile, "baseline", baselineTime, ""]);
-  }
 
   h2(chalk `Benchmark: {gray system information}`);
   log(chalk `* {gray os}:   \`${os.platform()} ${os.release()} ${os.arch()}\``);
@@ -166,7 +189,11 @@ const benchmark = async () => {
   log(chalk `* {gray npm}:  \`${(await execa("npm", ["--version"])).stdout}\``);
 
   h2(chalk `Benchmark: {gray package}`);
-  log(table(pkgData, TABLE_OPTS));
+  // Recreate results in starting order.
+  const datas = MATRIX
+    .map(({ scenario, mode, lockfile }) => results[`${scenario}/${mode}/${lockfile}`])
+    .reduce((m, a) => m.concat(a), []);
+  log(table(pkgData.concat(datas), TABLE_OPTS));
 
   // Generate file lists.
   await execa("find", [
