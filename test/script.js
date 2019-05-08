@@ -86,7 +86,9 @@ const install = async () => {
     await execa(mode, ["install"], execOpts);
 
     log(chalk `{cyan ${scenario}/${mode}}: Removing bad symlinks`);
-    await execa("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"], execOpts);
+    await execa("sh", ["-c",
+      "find . -type l ! -exec sh -c \"test -e {} || (echo removing {}; rm -rf {})\" \\;"
+    ], execOpts);
   }
 };
 
@@ -115,9 +117,6 @@ const benchmark = async () => {
     };
 
     h2(chalk `Scenario: {gray ${JSON.stringify({ scenario, mode, lockfile })}}`);
-
-    // Remove bad symlinks.
-    await exec("sh", ["-c", "find . -type l ! -exec test -e {} \\; -print | xargs rm"]);
 
     h3("Jetpack");
     const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {

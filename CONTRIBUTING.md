@@ -52,6 +52,15 @@ $ TEST_MODE=yarn TEST_SCENARIO=simple,huge yarn benchmark
 $ TEST_MODE=yarn,npm TEST_SCENARIO=simple yarn benchmark
 ```
 
+After this, we can run benchmark specific QA stuff:
+
+```sh
+$ yarn benchmark:lint
+$ yarn benchmark:test
+```
+
+(The `lint` needs the individual installs and `test` needs file list output from a full benchmark).
+
 ### QA
 
 ```sh
@@ -69,6 +78,7 @@ Before you go ahead and submit a PR, make sure that you have done the following:
 ```sh
 # Run lint and unit tests
 $ yarn run check
+$ yarn benchmark:lint
 
 # Make sure all fixtures are updated and valid
 $ yarn benchmark:install
