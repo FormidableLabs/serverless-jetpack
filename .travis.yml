@@ -23,5 +23,5 @@ script:
   - yarn check:git-dirty
   - yarn benchmark:install
   - yarn benchmark:lint
-  - yarn benchmark
+  - TEST_PARALLEL=true yarn benchmark
   - yarn benchmark:test

@@ -50,6 +50,11 @@ From there you can run various packaging configurations and perform benchmarks.
 $ TEST_MODE=yarn TEST_SCENARIO=simple yarn benchmark
 $ TEST_MODE=yarn TEST_SCENARIO=simple,huge yarn benchmark
 $ TEST_MODE=yarn,npm TEST_SCENARIO=simple yarn benchmark
+
+# Faster, because scenarios run in parallel, but less reliable results because
+# of impact on your machine. Use this for faster development, but do a normal
+# serial benchmark for pasting results.
+$ TEST_PARALLEL=true yarn benchmark
 ```
 
 After this, we can run benchmark specific QA stuff:

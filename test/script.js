@@ -10,7 +10,8 @@ const execa = require("execa");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
 
-const { TEST_MODE, TEST_SCENARIO, TEST_LOCKFILE } = process.env;
+const { TEST_MODE, TEST_SCENARIO, TEST_LOCKFILE, TEST_PARALLEL } = process.env;
+const IS_PARALLEL = TEST_PARALLEL === "true";
 
 /**
  * Test script helper.
@@ -109,7 +110,8 @@ const benchmark = async () => {
   const results = {};
   await Promise.all(MATRIX
     .map(({ scenario, mode, lockfile }) => {
-      const key = `${scenario}/${mode}`;
+      // Use only _one_ concurrency = 1 queue if not parallel.
+      const key = IS_PARALLEL ? `${scenario}/${mode}` : "all";
       queues[key] = queues[key] || new PQueue({ concurrency: 1 });
       const logTask = (msg) =>
         log(chalk `{green ${msg}}: ${JSON.stringify({ scenario, mode, lockfile })}`);
@@ -180,7 +182,6 @@ const benchmark = async () => {
       });
     })
   );
-
 
   h2(chalk `Benchmark: {gray system information}`);
   log(chalk `* {gray os}:   \`${os.platform()} ${os.release()} ${os.arch()}\``);
