@@ -10,7 +10,12 @@ const jetpack = () => ({
   lockfile: process.env.LOCKFILE === "false" ? null : undefined // undefined === default
 });
 
+const webpack = () => ({
+  packager: process.env.MODE
+});
+
 module.exports = {
   jetpack,
-  pkg
+  pkg,
+  webpack
 };

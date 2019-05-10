@@ -1,4 +1,4 @@
-service: serverless-jetpack-simple
+service: serverless-jetpack-plugins
 
 package:
   individually: ${file(./serverless.js):pkg.individually}
@@ -8,11 +8,13 @@ custom:
   region: ${opt:region, env:AWS_REGION}
   stage: ${opt:stage, env:STAGE}
   serverless-jetpack: ${file(./serverless.js):jetpack}
+  webpack: ${file(./serverless.js):webpack}
 
 plugins:
   localPath: ../../../plugins
   modules:
     - serverless-offline
+    - serverless-webpack
     - wrapper
 
 provider:
