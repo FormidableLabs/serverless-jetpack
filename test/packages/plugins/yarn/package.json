@@ -1,0 +1,13 @@
+{
+  "name": "serverless-jetpack-plugins",
+  "version": "0.0.1",
+  "description": "An example sls application with plugins.",
+  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
+  "author": "Ryan Roemer <ryan.roemer@formidable.com>",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "serverless": "^1.41.1",
+    "serverless-offline": "^4.2.1"
+  }
+}

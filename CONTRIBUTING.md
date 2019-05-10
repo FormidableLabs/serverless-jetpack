@@ -33,6 +33,9 @@ test/packages/
 ├── individually
 │   ├── npm
 │   └── yarn
+├── plugins
+│   ├── npm
+│   └── yarn
 └── simple
     ├── npm
     └── yarn
