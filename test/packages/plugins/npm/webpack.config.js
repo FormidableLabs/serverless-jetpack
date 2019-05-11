@@ -1,9 +1,16 @@
+"use strict";
+
+const path = require("path");
+const slsw = require("serverless-webpack");
+
 module.exports = {
   mode: "development",
   target: "node",
-  entry: "./handler.js",
+  entry: "./src/base.js",
   output: {
-    filename: 'handler.js',
+    filename: "[name].js",
+    libraryTarget: "commonjs2",
+    path: path.join(__dirname, ".webpack")
   },
   devtool: false
 };
