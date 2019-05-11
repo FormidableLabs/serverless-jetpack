@@ -489,7 +489,7 @@ class Jetpack {
       }));
 
     // Now, iterate all functions and decide if this plugin should package them.
-    await Promise.all(fnsPkgs
+    const fnProms = await Promise.all(fnsPkgs
       .filter((obj) =>
         (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
       )
@@ -504,6 +504,9 @@ class Jetpack {
     // Package entire service if applicable.
     if (shouldPackageService && !servicePackage.artifact) {
       await this.packageService();
+    } else if (!fnProms.length) {
+      // Detect if we did nothing...
+      this._logDebug("No matching service or functions to package.");
     }
   }
 }

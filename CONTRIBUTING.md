@@ -33,10 +33,15 @@ test/packages/
 ├── individually
 │   ├── npm
 │   └── yarn
-└── simple
+├── simple
+│   ├── npm
+│   └── yarn
+└── webpack
     ├── npm
     └── yarn
 ```
+
+**Note**: Only **some** of the scenarios contribute to the timed benchmark results as some scenarios don't actually use either built-in Serverless or Jetpack packaging.
 
 For ease of development, we want to do `yarn benchmark:install` and install the respective yarn/npm packages **once**. However, this means we keep duplicates of source code / package.json files across the `npm`/`yarn` variant directories. To keep things in sync, we designate the `yarn` directory as "the source of truth" for everything except for `SCENARIO/npm/package-lock.json` and copy files across scenarios with:
 
@@ -101,8 +106,8 @@ $ yarn benchmark:test
 # Generate the usage message.
 $ yarn usage
 
-# If the benchmark stats and/or the usage message are notably different than
-# what's in README.md, update relevant sections and commit your changes.
+# If the timed benchmark stats and/or the usage message are notably different
+# than what's in README.md, update relevant sections and commit your changes.
 $ vim README.md
 
 # Run all final checks.

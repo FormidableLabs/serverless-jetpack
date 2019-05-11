@@ -27,12 +27,12 @@ provider:
 
 functions:
   base:
-    handler: src/server/base.handler
+    handler: src/base.handler
     events: # Use a generic proxy to allow Express app to route.
       - http: ANY /base
       - http: 'ANY /base/{proxy+}'
   another:
-    handler: src/server/another.handler
+    handler: src/another.handler
     events:
       - http: ANY /another
       - http: 'ANY /another/{proxy+}'

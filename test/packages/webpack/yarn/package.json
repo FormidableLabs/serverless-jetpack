@@ -1,0 +1,17 @@
+{
+  "name": "serverless-jetpack-webpack",
+  "version": "0.0.1",
+  "description": "An example sls application with webpack plugin.",
+  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
+  "author": "Ryan Roemer <ryan.roemer@formidable.com>",
+  "license": "MIT",
+  "dependencies": {
+    "camelcase": "^5.3.1",
+    "serverless-webpack": "^5.3.0"
+  },
+  "devDependencies": {
+    "serverless": "^1.41.1",
+    "serverless-offline": "^4.2.1",
+    "webpack": "^4.31.0"
+  }
+}

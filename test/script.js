@@ -7,6 +7,8 @@ const PQueue = require("p-queue");
 const chalk = require("chalk");
 const { gray } = chalk;
 const execa = require("execa");
+const globby = require("globby");
+const fs = require("fs-extra");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
 
@@ -36,9 +38,17 @@ const CONFIGS = [
 const SCENARIOS = [
   "simple",
   "individually",
+  "webpack",
   "huge"
 ]
   .filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));
+
+// Only some scenarios are part of our timing benchmark.
+const TIMING_SCENARIOS = new Set([
+  "simple",
+  "individually",
+  "huge"
+]);
 
 const MATRIX = SCENARIOS
   .map((scenario) => CONFIGS.map((c) => ({ ...c, scenario })))
@@ -58,21 +68,40 @@ const TABLE_OPTS = {
 const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
 
 const build = async () => {
-  const files = [
+  const clean = [
+    "**",
+    "!node_modules/**",
+    "!package-lock.json"
+  ];
+  const patterns = [
     "package.json",
-    "serverless.yml",
-    "serverless.js",
-    "src"
+    "serverless.*",
+    "src/**",
+    "*.js"
   ];
 
   for (const scenario of SCENARIOS) {
-    const execOpts = {
-      cwd: path.resolve(`test/packages/${scenario}/yarn`),
-      stdio: "inherit"
-    };
+    const srcDir = `test/packages/${scenario}/yarn`;
+    const destDir = `test/packages/${scenario}/npm`;
 
-    log(chalk `{cyan ${scenario}}: Copying files`);
-    await execa("cp", [].concat("-rp", files, "../npm"), execOpts);
+    const destFiles = await globby(clean, {
+      cwd: path.resolve(destDir),
+      dot: true
+    });
+    log(chalk `{cyan ${scenario}}: Cleaning files: {gray ${JSON.stringify(destFiles)}}`);
+    await Promise.all(destFiles.map((f) => fs.remove(path.resolve(`${destDir}/${f}`))));
+
+    const srcFiles = await globby(patterns, {
+      cwd: path.resolve(srcDir),
+      dot: true
+    });
+
+    log(chalk `{cyan ${scenario}}: Copying files {gray ${JSON.stringify(srcFiles)}}`);
+    await Promise.all(srcFiles.map(async (f) => {
+      const dest = path.resolve(`${destDir}/${f}`);
+      await fs.ensureDir(path.dirname(dest));
+      await fs.copy(path.resolve(`${srcDir}/${f}`), dest);
+    }));
   }
 };
 
@@ -95,9 +124,9 @@ const install = async () => {
 
 // eslint-disable-next-line max-statements
 const benchmark = async () => {
-  const pkgData = [
-    ["Scenario", "Mode", "Lockfile", "Type", "Time", "vs Base"].map((t) => gray(t))
-  ];
+  const HEADER = ["Scenario", "Mode", "Lockfile", "Type", "Time", "vs Base"].map((t) => gray(t));
+  const timedData = [HEADER];
+  const otherData = [HEADER];
 
   const archiveRoot = path.join(__dirname, "../.test-zips");
   await execa("mkdir", ["-p", archiveRoot]);
@@ -105,7 +134,7 @@ const benchmark = async () => {
   // Execute scenarios in parallel for scenario + mode.
   // We have to execute `lockfile: true|false` in serial because they both
   // mutate the same directory.
-  h2(chalk `Packaging scenarios`);
+  h2(chalk `Packaging Scenarios`);
   const queues = {};
   const results = {};
   await Promise.all(MATRIX
@@ -183,18 +212,26 @@ const benchmark = async () => {
     })
   );
 
-  h2(chalk `Benchmark: {gray system information}`);
+  h2(chalk `Benchmark: {gray System Information}`);
   log(chalk `* {gray os}:   \`${os.platform()} ${os.release()} ${os.arch()}\``);
   log(chalk `* {gray node}: \`${process.version}\``);
   log(chalk `* {gray yarn}: \`${(await execa("yarn", ["--version"])).stdout}\``);
   log(chalk `* {gray npm}:  \`${(await execa("npm", ["--version"])).stdout}\``);
 
-  h2(chalk `Benchmark: {gray package}`);
   // Recreate results in starting order.
-  const datas = MATRIX
+  const timedRows = MATRIX
+    .filter(({ scenario }) => TIMING_SCENARIOS.has(scenario))
     .map(({ scenario, mode, lockfile }) => results[`${scenario}/${mode}/${lockfile}`])
     .reduce((m, a) => m.concat(a), []);
-  log(table(pkgData.concat(datas), TABLE_OPTS));
+  h2(chalk `Benchmark: {gray Timed Packages}`);
+  log(table(timedData.concat(timedRows), TABLE_OPTS));
+
+  const otherRows = MATRIX
+    .filter(({ scenario }) => !TIMING_SCENARIOS.has(scenario))
+    .map(({ scenario, mode, lockfile }) => results[`${scenario}/${mode}/${lockfile}`])
+    .reduce((m, a) => m.concat(a), []);
+  h2(chalk `Benchmark: {gray Other Packages}`);
+  log(table(otherData.concat(otherRows), TABLE_OPTS));
 
   // Generate file lists.
   await execa("find", [
