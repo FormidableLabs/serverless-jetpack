@@ -504,11 +504,9 @@ class Jetpack {
     // Package entire service if applicable.
     if (shouldPackageService && !servicePackage.artifact) {
       await this.packageService();
-    } else {
+    } else if (!fnProms.length) {
       // Detect if we did nothing...
-      if (!fnProms.length) {
-        this._logDebug("No matching service or functions to package.")
-      }
+      this._logDebug("No matching service or functions to package.");
     }
   }
 }
