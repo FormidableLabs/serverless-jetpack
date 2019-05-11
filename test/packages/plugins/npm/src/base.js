@@ -1,6 +1,6 @@
 "use strict";
 
-const camelcase = (s) => s; // require("camelcase");
+const camelcase = require("camelcase");
 
 module.exports.handler = (event, context, callback) => {
   callback(null, {

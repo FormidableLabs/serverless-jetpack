@@ -6,7 +6,7 @@ const slsw = require("serverless-webpack");
 module.exports = {
   mode: "development",
   target: "node",
-  entry: "./src/base.js",
+  entry: slsw.lib.entries,
   output: {
     filename: "[name].js",
     libraryTarget: "commonjs2",
