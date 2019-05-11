@@ -7,6 +7,8 @@ const PQueue = require("p-queue");
 const chalk = require("chalk");
 const { gray } = chalk;
 const execa = require("execa");
+const globby = require("globby");
+const fs = require("fs-extra");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
 
@@ -59,21 +61,40 @@ const TABLE_OPTS = {
 const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
 
 const build = async () => {
-  const files = [
+  const clean = [
+    "**",
+    "!node_modules/**",
+    "!package-lock.json"
+  ];
+  const patterns = [
     "package.json",
-    "serverless.yml",
-    "serverless.js",
-    "src"
+    "serverless.*",
+    "src/**",
+    "*.js"
   ];
 
   for (const scenario of SCENARIOS) {
-    const execOpts = {
-      cwd: path.resolve(`test/packages/${scenario}/yarn`),
-      stdio: "inherit"
-    };
+    const srcDir = `test/packages/${scenario}/yarn`;
+    const destDir = `test/packages/${scenario}/npm`;
 
-    log(chalk `{cyan ${scenario}}: Copying files`);
-    await execa("cp", [].concat("-rp", files, "../npm"), execOpts);
+    const destFiles = await globby(clean, {
+      cwd: path.resolve(destDir),
+      dot: true
+    });
+    log(chalk `{cyan ${scenario}}: Cleaning files: {gray ${JSON.stringify(destFiles)}}`);
+    await Promise.all(destFiles.map((f) => fs.remove(path.resolve(`${destDir}/${f}`))));
+
+    const srcFiles = await globby(patterns, {
+      cwd: path.resolve(srcDir),
+      dot: true
+    });
+
+    log(chalk `{cyan ${scenario}}: Copying files {gray ${JSON.stringify(srcFiles)}}`);
+    await Promise.all(srcFiles.map(async (f) => {
+      const dest = path.resolve(`${destDir}/${f}`);
+      await fs.ensureDir(path.dirname(dest));
+      await fs.copy(path.resolve(`${srcDir}/${f}`), dest);
+    }));
   }
 };
 

@@ -13,8 +13,8 @@ custom:
 plugins:
   localPath: ../../../plugins
   modules:
-    - serverless-offline
     - serverless-webpack
+    - serverless-offline
     - wrapper
 
 provider:

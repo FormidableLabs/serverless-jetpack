@@ -6,6 +6,7 @@
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "dependencies": {
+    "camelcase": "^5.3.1",
     "serverless-webpack": "^5.3.0"
   },
   "devDependencies": {
