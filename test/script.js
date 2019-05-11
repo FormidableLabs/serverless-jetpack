@@ -38,7 +38,7 @@ const CONFIGS = [
 const SCENARIOS = [
   "simple",
   "individually",
-  "plugins",
+  "webpack",
   "huge"
 ]
   .filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));

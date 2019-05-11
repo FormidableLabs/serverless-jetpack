@@ -33,10 +33,10 @@ test/packages/
 ├── individually
 │   ├── npm
 │   └── yarn
-├── plugins
+├── simple
 │   ├── npm
 │   └── yarn
-└── simple
+└── webpack
     ├── npm
     └── yarn
 ```

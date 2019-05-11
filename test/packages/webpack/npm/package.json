@@ -1,7 +1,7 @@
 {
-  "name": "serverless-jetpack-plugins",
+  "name": "serverless-jetpack-webpack",
   "version": "0.0.1",
-  "description": "An example sls application with plugins.",
+  "description": "An example sls application with webpack plugin.",
   "repository": "https://github.com/FormidableLabs/serverless-jetpack",
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
