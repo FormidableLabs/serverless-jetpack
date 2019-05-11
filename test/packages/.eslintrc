@@ -1,0 +1,8 @@
+---
+extends:
+  - formidable/configurations/es6-node
+
+rules:
+  object-property-newline: ["error", { allowAllPropertiesOnSameLine: true }]
+  # Permit so no errors if haven't run `yarn benchmark:install`
+  import/no-unresolved: "off"
