@@ -97,15 +97,12 @@ const build = async () => {
       dot: true
     });
 
-    // Symlinks don't exist on Windows, so only on UNIX-ish.
-    if (!IS_WIN) {
-      log(chalk `{cyan ${scenario}}: Copying files {gray ${JSON.stringify(srcFiles)}}`);
-      await Promise.all(srcFiles.map(async (f) => {
-        const dest = path.resolve(`${destDir}/${f}`);
-        await fs.ensureDir(path.dirname(dest));
-        await fs.copy(path.resolve(`${srcDir}/${f}`), dest);
-      }));
-    }
+    log(chalk `{cyan ${scenario}}: Copying files {gray ${JSON.stringify(srcFiles)}}`);
+    await Promise.all(srcFiles.map(async (f) => {
+      const dest = path.resolve(`${destDir}/${f}`);
+      await fs.ensureDir(path.dirname(dest));
+      await fs.copy(path.resolve(`${srcDir}/${f}`), dest);
+    }));
   }
 };
 
@@ -119,10 +116,13 @@ const install = async () => {
     log(chalk `{cyan ${scenario}/${mode}}: Installing`);
     await execa(mode, ["install"], execOpts);
 
-    log(chalk `{cyan ${scenario}/${mode}}: Removing bad symlinks`);
-    await execa("sh", ["-c",
-      "find . -type l ! -exec sh -c \"test -e {} || (echo removing {}; rm -rf {})\" \\;"
-    ], execOpts);
+    // Symlinks don't exist on Windows, so only on UNIX-ish.
+    if (!IS_WIN) {
+      log(chalk `{cyan ${scenario}/${mode}}: Removing bad symlinks`);
+      await execa("sh", ["-c",
+        "find . -type l ! -exec sh -c \"test -e {} || (echo removing {}; rm -rf {})\" \\;"
+      ], execOpts);
+    }
   }
 };
 
