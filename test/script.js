@@ -14,6 +14,7 @@ const strip = require("strip-ansi");
 
 const { TEST_MODE, TEST_SCENARIO, TEST_LOCKFILE, TEST_PARALLEL } = process.env;
 const IS_PARALLEL = TEST_PARALLEL === "true";
+const IS_WIN = process.platform === "win32";
 
 /**
  * Test script helper.
@@ -96,12 +97,15 @@ const build = async () => {
       dot: true
     });
 
-    log(chalk `{cyan ${scenario}}: Copying files {gray ${JSON.stringify(srcFiles)}}`);
-    await Promise.all(srcFiles.map(async (f) => {
-      const dest = path.resolve(`${destDir}/${f}`);
-      await fs.ensureDir(path.dirname(dest));
-      await fs.copy(path.resolve(`${srcDir}/${f}`), dest);
-    }));
+    // Symlinks don't exist on Windows, so only on UNIX-ish.
+    if (!IS_WIN) {
+      log(chalk `{cyan ${scenario}}: Copying files {gray ${JSON.stringify(srcFiles)}}`);
+      await Promise.all(srcFiles.map(async (f) => {
+        const dest = path.resolve(`${destDir}/${f}`);
+        await fs.ensureDir(path.dirname(dest));
+        await fs.copy(path.resolve(`${srcDir}/${f}`), dest);
+      }));
+    }
   }
 };
 
