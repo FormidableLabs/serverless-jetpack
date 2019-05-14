@@ -44,6 +44,7 @@
     "uuid": "^3.3.2"
   },
   "devDependencies": {
+    "adm-zip": "^0.4.13",
     "babel-eslint": "^10.0.1",
     "chai": "^4.2.0",
     "chalk": "^2.4.2",

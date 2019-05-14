@@ -6,9 +6,10 @@
  * **Note**: requires a full `yarn benchmark` run first to generate file
  * lists.
  */
-const { MATRIX } = require("./script");
+const path = require("path");
 const globby = require("globby");
-const { readFile } = require("fs-extra");
+const AdmZip = require("adm-zip");
+const { MATRIX } = require("./script");
 
 // Filter known false positives.
 //
@@ -107,17 +108,22 @@ describe("benchmark", () => {
   let fixtures;
 
   before(async () => {
-    const lists = await globby([".test-zips/**/*.zip.files.txt"]);
-    const contents = await Promise.all(lists.map((file) => readFile(file)));
+    // Read lists of contents from zip files directly.
+    const projRoot = path.resolve(__dirname, "..");
+    const zipFiles = await globby([".test-zips/**/*.zip"], { cwd: projRoot });
+    const contents = zipFiles.map((zipFile) => {
+      const zip = new AdmZip(path.resolve(projRoot, zipFile));
+      return zip.getEntries().map((e) => e.entryName);
+    });
 
     // Create object of `"combo.file = data"
     fixtures = contents.reduce((memo, data, i) => {
-      const combo = lists[i].replace(".test-zips/", "").split("/");
+      const combo = zipFiles[i].replace(".test-zips/", "").split("/");
       const key = combo.slice(0, 4).join("/"); // eslint-disable-line no-magic-numbers
       const file = combo.slice(4); // eslint-disable-line no-magic-numbers
 
       memo[key] = memo[key] || {};
-      memo[key][file] = data.toString().split("\n");
+      memo[key][file] = data;
 
       return memo;
     }, {});

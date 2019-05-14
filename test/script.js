@@ -236,15 +236,6 @@ const benchmark = async () => {
     .reduce((m, a) => m.concat(a), []);
   h2(chalk `Benchmark: {gray Other Packages}`);
   log(table(otherData.concat(otherRows), TABLE_OPTS));
-
-  // Generate file lists.
-  await execa("find", [
-    ".test-zips", "-name", "\"*.zip\"",
-    "-exec", "sh", "-c", "\"zipinfo -1 {} | sort > {}.files.txt\"", "\\;"
-  ], {
-    stdio: "inherit",
-    shell: true
-  });
 };
 
 const main = async () => {
