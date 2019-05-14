@@ -16,6 +16,7 @@ const del = require("del");
 const { TEST_MODE, TEST_SCENARIO, TEST_LOCKFILE, TEST_PARALLEL } = process.env;
 const IS_PARALLEL = TEST_PARALLEL === "true";
 const IS_WIN = process.platform === "win32";
+const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 
 /**
  * Test script helper.
@@ -67,6 +68,8 @@ const TABLE_OPTS = {
   stringLength: (cell) => strip(cell).length // fix alignment with chalk.
 };
 
+const execMode = (mode, args, opts) => execa(`${mode}${IS_WIN ? ".cmd" : ""}`, args, opts);
+
 const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
 
 const build = async () => {
@@ -115,7 +118,7 @@ const install = async () => {
     };
 
     log(chalk `{cyan ${scenario}/${mode}}: Installing`);
-    await execa(mode, ["install"], execOpts);
+    await execMode(mode, ["install"], execOpts);
 
     // Symlinks don't exist on Windows, so only on UNIX-ish.
     if (!IS_WIN) {
@@ -158,11 +161,11 @@ const benchmark = async () => {
       return queues[key].add(async () => {
         logTask("[task:start]");
 
-        // TODO: See if we can remove this wrapper (if only used once anyways).
-        const exec = async (cmd, args, opts) => {
+        // Timing convenience wrapper.
+        const runPackage = async (opts) => {
           const start = Date.now();
 
-          await execa(cmd, args, {
+          await execa(SLS_CMD, ["package"], {
             cwd,
             stdio: "inherit",
             env: ENV,
@@ -172,10 +175,9 @@ const benchmark = async () => {
           return Date.now() - start;
         };
 
-
         logTask("[task:start:jetpack]");
         // TODO: Need serverless.cmd?
-        const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {
+        const pluginTime = await runPackage({
           env: {
             ...ENV,
             MODE: mode,
@@ -194,7 +196,7 @@ const benchmark = async () => {
         )));
 
         logTask("[task:start:baseline]");
-        const baselineTime = await exec("serverless", ["package"]);
+        const baselineTime = await runPackage();
         logTask("[task:end:baseline]");
 
         const baselineArchive = path.join(archiveRoot, scenario, mode, lockfile, "baseline");
@@ -228,8 +230,8 @@ const benchmark = async () => {
   h2(chalk `Benchmark: {gray System Information}`);
   log(chalk `* {gray os}:   \`${os.platform()} ${os.release()} ${os.arch()}\``);
   log(chalk `* {gray node}: \`${process.version}\``);
-  log(chalk `* {gray yarn}: \`${(await execa("yarn", ["--version"])).stdout}\``);
-  log(chalk `* {gray npm}:  \`${(await execa("npm", ["--version"])).stdout}\``);
+  log(chalk `* {gray yarn}: \`${(await execMode("yarn", ["--version"])).stdout}\``);
+  log(chalk `* {gray npm}:  \`${(await execMode("npm", ["--version"])).stdout}\``);
 
   // Recreate results in starting order.
   const timedRows = MATRIX
