@@ -7,10 +7,11 @@ environment:
 
 install:
   - ps: Install-Product node $env:nodejs_version
+  # Get a more modern yarn. And cross-env for windows exec ease.
+  - npm install --global cross-env yarn@latest
   # Fail if lockfile outdated.
   # https://yarnpkg.com/lang/en/docs/cli/install/#toc-yarn-install-frozen-lockfile
   - yarn install --frozen-lockfile
-  - npm install --global cross-env
 
 test_script:
   - yarn --version

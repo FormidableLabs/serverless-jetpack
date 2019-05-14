@@ -118,7 +118,7 @@ const install = async () => {
     };
 
     log(chalk `{cyan ${scenario}/${mode}}: Installing`);
-    await execMode(mode, ["install"], execOpts);
+    await execMode(mode, ["install", "--no-progress"], execOpts);
 
     // Symlinks don't exist on Windows, so only on UNIX-ish.
     if (!IS_WIN) {
