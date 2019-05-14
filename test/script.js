@@ -101,7 +101,7 @@ const build = async () => {
     log(chalk `{cyan ${scenario}}: Copying files {gray ${JSON.stringify(srcFiles)}}`);
     await Promise.all(srcFiles.map(async (f) => {
       const dest = path.resolve(`${destDir}/${f}`);
-      await fs.ensureDir(path.dirname(dest));
+      await fs.mkdirp(path.dirname(dest));
       await fs.copy(path.resolve(`${srcDir}/${f}`), dest);
     }));
   }
@@ -134,7 +134,7 @@ const benchmark = async () => {
   const otherData = [HEADER];
 
   const archiveRoot = path.join(__dirname, "../.test-zips");
-  await execa("mkdir", ["-p", archiveRoot]);
+  await fs.mkdirp(archiveRoot);
 
   // Execute scenarios in parallel for scenario + mode.
   // We have to execute `lockfile: true|false` in serial because they both
@@ -182,7 +182,7 @@ const benchmark = async () => {
 
         const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
         await del(pluginArchive);
-        await exec("mkdir", ["-p", pluginArchive]);
+        await fs.mkdirp(pluginArchive);
         await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
           shell: true
         });
@@ -193,7 +193,7 @@ const benchmark = async () => {
 
         const baselineArchive = path.join(archiveRoot, scenario, mode, lockfile, "baseline");
         await del(baselineArchive);
-        await exec("mkdir", ["-p", baselineArchive]);
+        await fs.mkdirp(baselineArchive);
         await exec("cp", ["-rp", ".serverless/*.zip", baselineArchive], {
           shell: true
         });
