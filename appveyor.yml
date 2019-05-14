@@ -1,0 +1,34 @@
+environment:
+  matrix:
+    - nodejs_version: "8.10.0"
+    - nodejs_version: "8"
+    - nodejs_version: "10"
+    - nodejs_version: "11"
+
+install:
+  - ps: Install-Product node $env:nodejs_version
+  # Fail if lockfile outdated.
+  # https://yarnpkg.com/lang/en/docs/cli/install/#toc-yarn-install-frozen-lockfile
+  - yarn install --frozen-lockfile
+  - npm install --global cross-env
+
+test_script:
+  - yarn --version
+  - yarn run check
+  - yarn benchmark:build
+  - "node -e \"process.exit(process.platform === 'win32' ? 0 : 1);\" || yarn check:git-dirty"
+  - yarn benchmark:install
+  - yarn benchmark:lint
+  - cross-env TEST_PARALLEL=true yarn benchmark
+  - yarn benchmark
+  - yarn benchmark:test
+
+# Don't actually build.
+build: off
+
+matrix:
+  fast_finish: true
+
+cache:
+ - node_modules
+ - "%LOCALAPPDATA%/Yarn"
