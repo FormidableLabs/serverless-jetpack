@@ -1,6 +1,6 @@
 environment:
   matrix:
-    # TODO(REENABLE): Disable all but one **slow** windows for now.
+    # Limit windows builds because they're 15 mins in serial.
     # - nodejs_version: "8.10.0"
     - nodejs_version: "8"
     # - nodejs_version: "10"
