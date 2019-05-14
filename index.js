@@ -34,10 +34,25 @@ const createBuildDir = async ({ servicePath, lockfile }) => {
   // TODO HERE
   // - [ ] Deal with situation of lockfile: null. (Use package.json? No caching allowed?)
   // - [ ] Definitely add a `this._logDebug(MSG)` about whether we hit cache or not.
-  const lockfileSrc = (await readFile(path.resolve(servicePath, lockfile))).toString();
-  const lockfileHash = createHash("sha256").update(lockfileSrc).digest("hex");
+
+  // Create hashes.
+  // The package hash is based on the lockfile if we have it, else the package.json if not.
+  const pkgFile = lockfile ? lockfile : "package.json";
+  const pkgSource = (await readFile(path.resolve(servicePath, pkgFile))).toString();
+  const pkgHash = createHash("sha256").update(pkgSource).digest("hex");
   const servicePathHash = createHash("sha256").update(path.resolve(servicePath)).digest("hex");
-  console.log("TODO HERE", { servicePath, lockfile, servicePathHash, lockfileHash });
+  const cacheProjectPath = path.join(pkg.name, servicePathHash);
+  const cacheBuildPath = path.join(cacheProjectPath, pkgHash);
+
+  // TODO: Create
+  console.log("TODO HERE", {
+    pkgFile,
+    pkgHash,
+    servicePathHash,
+    cacheProjectPath,
+    cacheBuildPath
+  });
+  throw new Error("HI")
 
   // Create and verify a unique temp directory path.
   let tmpPath;
