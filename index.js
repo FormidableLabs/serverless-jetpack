@@ -2,10 +2,12 @@
 
 const pkg = require("./package.json");
 const { tmpdir } = require("os");
+const { createHash } = require("crypto");
 const path = require("path");
-const { access, copy, constants, createWriteStream, mkdir, remove } = require("fs-extra");
+const { access, copy, constants, createWriteStream, mkdir, readFile, remove } = require("fs-extra");
 const archiver = require("archiver");
 const execa = require("execa");
+// TODO REMOVE
 const uuidv4 = require("uuid/v4");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
@@ -27,7 +29,15 @@ const dirExists = async (dirPath) => {
 const execMode = (mode, args, opts) => execa(`${mode}${IS_WIN ? ".cmd" : ""}`, args, opts);
 
 // Create new temp build directory, return path.
-const createBuildDir = async () => {
+const createBuildDir = async ({ servicePath, lockfile }) => {
+
+  // TODO HERE
+  // - [ ] Deal with situation of lockfile: null. (Use package.json? No caching allowed?)
+  const lockfileSrc = (await readFile(path.resolve(servicePath, lockfile))).toString();
+  const lockfileHash = createHash("sha256").update(lockfileSrc).digest("hex");
+  const servicePathHash = createHash("sha256").update(path.resolve(servicePath)).digest("hex");
+  console.log("TODO HERE", { servicePath, lockfile, servicePathHash, lockfileHash });
+
   // Create and verify a unique temp directory path.
   let tmpPath;
   do {
@@ -339,14 +349,14 @@ class Jetpack {
   }
 
   async buildDependencies() {
+    const { mode, lockfile } = this._options;
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
 
-    const buildPath = await createBuildDir();
+    const buildPath = await createBuildDir({ servicePath, lockfile });
 
     // Gather options.
     this._logDebug(`Options: ${JSON.stringify(this._options)}`);
-    const { mode, lockfile } = this._options;
     // Relative paths for copying.
     const srcs = [
       "package.json",
@@ -437,6 +447,8 @@ class Jetpack {
     });
 
     // Clean up
+    // TODO(CACHE): Don't remove if caching.
+    // (OR): Just delete upfront all "not us" and remove.
     await remove(buildPath);
   }
 
