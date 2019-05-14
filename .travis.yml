@@ -2,7 +2,8 @@ language: node_js
 
 os:
   - linux
-  - windows
+  # TODO(REENABLE): Disable **slow** windows for now.
+  # - windows
 
 node_js:
   # Include 8.10.0 for npm < 5.7.0 without `npm ci` command.
