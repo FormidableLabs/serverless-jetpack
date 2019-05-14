@@ -16,7 +16,6 @@ test_script:
   - yarn --version
   - yarn run check
   - yarn benchmark:build
-  - "node -e \"process.exit(process.platform === 'win32' ? 0 : 1);\" || yarn check:git-dirty"
   - yarn benchmark:install
   - yarn benchmark:lint
   - cross-env TEST_PARALLEL=true yarn benchmark
