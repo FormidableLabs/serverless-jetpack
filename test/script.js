@@ -144,6 +144,9 @@ const benchmark = async () => {
   const results = {};
   await Promise.all(MATRIX
     .map(({ scenario, mode, lockfile }) => {
+      // Environment for combination.
+      const cwd = path.resolve(`test/packages/${scenario}/${mode}`);
+
       // Use only _one_ concurrency = 1 queue if not parallel.
       const key = IS_PARALLEL ? `${scenario}/${mode}` : "all";
       queues[key] = queues[key] || new PQueue({ concurrency: 1 });
@@ -159,7 +162,7 @@ const benchmark = async () => {
           const start = Date.now();
 
           await execa(cmd, args, {
-            cwd: path.resolve(`test/packages/${scenario}/${mode}`),
+            cwd,
             stdio: "inherit",
             env: ENV,
             ...opts
@@ -183,9 +186,13 @@ const benchmark = async () => {
         const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
         await del(pluginArchive);
         await fs.mkdirp(pluginArchive);
-        await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
-          shell: true
+        const pluginZips = await globby(".serverless/*.zip", {
+          cwd
         });
+        await Promise.all(pluginZips.map((zipFile) => fs.copy(
+          path.join(cwd, zipFile),
+          path.join(pluginArchive, path.basename(zipFile))
+        )));
 
         logTask("[task:start:baseline]");
         const baselineTime = await exec("serverless", ["package"]);

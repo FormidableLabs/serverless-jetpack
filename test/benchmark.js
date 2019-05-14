@@ -135,17 +135,17 @@ describe("benchmark", () => {
     it(combo, async () => {
       Object.keys(fixtures[`${combo}/baseline`]).forEach((fileName) => {
         // Get all of the lines from our file lists.
-        const baselineLines = fixtures[`${combo}/baseline`][fileName];
+        const baselineLines = (fixtures[`${combo}/baseline`] || {})[fileName];
         const baselineSet = new Set(baselineLines);
-        const pluginLines = fixtures[`${combo}/jetpack`][fileName];
+        const pluginLines = (fixtures[`${combo}/jetpack`] || {})[fileName];
         const pluginSet = new Set(pluginLines);
 
         // Sanity check that we _generated_ lines for both jetpack + baseline.
         // These being empty means most likely our test harness messed up
         // and generated empty zips as **all** present scenarios should have
         // at least one file.
-        expect(baselineLines).to.not.eql([]);
-        expect(pluginLines).to.not.eql([]);
+        expect(baselineLines).to.be.ok.and.to.not.eql([]);
+        expect(pluginLines).to.be.ok.and.to.not.eql([]);
 
         // Figure out what is missing from each.
         const missingInBaseline = pluginLines
