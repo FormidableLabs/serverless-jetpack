@@ -133,9 +133,16 @@ describe("benchmark", () => {
     const combo = `${scenario}/${mode}/${lockfile}`;
 
     it(combo, async () => {
-      Object.keys(fixtures[`${combo}/baseline`]).forEach((fileName) => {
+      const baselineFixture = fixtures[`${combo}/baseline`];
+
+      // Sanity check baseline exists.
+      expect(baselineFixture).to.be.ok;
+      const baselineFileNames = Object.keys(baselineFixture);
+      expect(baselineFileNames).to.be.ok.and.to.not.eql([]);
+
+      baselineFileNames.forEach((fileName) => {
         // Get all of the lines from our file lists.
-        const baselineLines = (fixtures[`${combo}/baseline`] || {})[fileName];
+        const baselineLines = baselineFixture[fileName];
         const baselineSet = new Set(baselineLines);
         const pluginLines = (fixtures[`${combo}/jetpack`] || {})[fileName];
         const pluginSet = new Set(pluginLines);
@@ -144,7 +151,6 @@ describe("benchmark", () => {
         // These being empty means most likely our test harness messed up
         // and generated empty zips as **all** present scenarios should have
         // at least one file.
-        expect(baselineLines).to.be.ok.and.to.not.eql([]);
         expect(pluginLines).to.be.ok.and.to.not.eql([]);
 
         // Figure out what is missing from each.

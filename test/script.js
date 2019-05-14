@@ -158,6 +158,7 @@ const benchmark = async () => {
       return queues[key].add(async () => {
         logTask("[task:start]");
 
+        // TODO: See if we can remove this wrapper (if only used once anyways).
         const exec = async (cmd, args, opts) => {
           const start = Date.now();
 
@@ -186,9 +187,7 @@ const benchmark = async () => {
         const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
         await del(pluginArchive);
         await fs.mkdirp(pluginArchive);
-        const pluginZips = await globby(".serverless/*.zip", {
-          cwd
-        });
+        const pluginZips = await globby(".serverless/*.zip", { cwd });
         await Promise.all(pluginZips.map((zipFile) => fs.copy(
           path.join(cwd, zipFile),
           path.join(pluginArchive, path.basename(zipFile))
@@ -201,9 +200,11 @@ const benchmark = async () => {
         const baselineArchive = path.join(archiveRoot, scenario, mode, lockfile, "baseline");
         await del(baselineArchive);
         await fs.mkdirp(baselineArchive);
-        await exec("cp", ["-rp", ".serverless/*.zip", baselineArchive], {
-          shell: true
-        });
+        const baselineZips = await globby(".serverless/*.zip", { cwd });
+        await Promise.all(baselineZips.map((zipFile) => fs.copy(
+          path.join(cwd, zipFile),
+          path.join(baselineArchive, path.basename(zipFile))
+        )));
 
         // Data.
         // eslint-disable-next-line no-magic-numbers
