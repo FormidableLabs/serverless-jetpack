@@ -19,7 +19,6 @@ test_script:
   - yarn benchmark:install
   - yarn benchmark:lint
   - cross-env TEST_PARALLEL=true yarn benchmark
-  - yarn benchmark
   - yarn benchmark:test
 
 # Don't actually build.
