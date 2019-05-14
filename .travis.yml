@@ -19,7 +19,6 @@ install:
   # Fail if lockfile outdated.
   # https://yarnpkg.com/lang/en/docs/cli/install/#toc-yarn-install-frozen-lockfile
   - yarn install --frozen-lockfile
-  - npm install --global cross-env
 
 script:
   - yarn --version
@@ -28,7 +27,8 @@ script:
   - "node -e \"process.exit(process.platform === 'win32' ? 0 : 1);\" || yarn check:git-dirty"
   - yarn benchmark:install
   - yarn benchmark:lint
-  - cross-env TEST_PARALLEL=true yarn benchmark
+  # Get cache corruption on windows in parallel.
+  - yarn benchmark
   - yarn benchmark:test
 
 # Enable both yarn and npm caches.
