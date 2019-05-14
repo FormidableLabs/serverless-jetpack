@@ -11,6 +11,7 @@ const globby = require("globby");
 const fs = require("fs-extra");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
+const del = require("del");
 
 const { TEST_MODE, TEST_SCENARIO, TEST_LOCKFILE, TEST_PARALLEL } = process.env;
 const IS_PARALLEL = TEST_PARALLEL === "true";
@@ -169,6 +170,7 @@ const benchmark = async () => {
 
 
         logTask("[task:start:jetpack]");
+        // TODO: Need serverless.cmd?
         const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {
           env: {
             ...ENV,
@@ -179,7 +181,7 @@ const benchmark = async () => {
         logTask("[task:end:jetpack]");
 
         const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
-        await exec("rm", ["-rf", pluginArchive]);
+        await del(pluginArchive);
         await exec("mkdir", ["-p", pluginArchive]);
         await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
           shell: true
@@ -189,9 +191,8 @@ const benchmark = async () => {
         const baselineTime = await exec("serverless", ["package"]);
         logTask("[task:end:baseline]");
 
-        const baselineArchive = path.join(__dirname,
-          "../.test-zips", scenario, mode, lockfile, "baseline");
-        await exec("rm", ["-rf", baselineArchive]);
+        const baselineArchive = path.join(archiveRoot, scenario, mode, lockfile, "baseline");
+        await del(baselineArchive);
         await exec("mkdir", ["-p", baselineArchive]);
         await exec("cp", ["-rp", ".serverless/*.zip", baselineArchive], {
           shell: true
