@@ -1,9 +1,10 @@
 environment:
   matrix:
-    - nodejs_version: "8.10.0"
+    # Limit windows builds because they're 15 mins in serial.
+    # - nodejs_version: "8.10.0"
     - nodejs_version: "8"
-    - nodejs_version: "10"
-    - nodejs_version: "11"
+    # - nodejs_version: "10"
+    # - nodejs_version: "11"
 
 branches:
   only:

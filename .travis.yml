@@ -1,9 +1,5 @@
 language: node_js
 
-os:
-  - linux
-  - windows
-
 node_js:
   # Include 8.10.0 for npm < 5.7.0 without `npm ci` command.
   - "8.10.0"
@@ -24,14 +20,8 @@ script:
   - yarn --version
   - yarn run check
   - yarn benchmark:build
-  - "node -e \"process.exit(process.platform === 'win32' ? 0 : 1);\" || yarn check:git-dirty"
+  - yarn check:git-dirty"
   - yarn benchmark:install
   - yarn benchmark:lint
-  # Get cache corruption on windows in parallel.
-  - yarn benchmark
+  - TEST_PARALLEL=true yarn benchmark
   - yarn benchmark:test
-
-# Enable both yarn and npm caches.
-cache:
-  - yarn
-  - npm
