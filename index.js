@@ -33,6 +33,7 @@ const createBuildDir = async ({ servicePath, lockfile }) => {
 
   // TODO HERE
   // - [ ] Deal with situation of lockfile: null. (Use package.json? No caching allowed?)
+  // - [ ] Definitely add a `this._logDebug(MSG)` about whether we hit cache or not.
   const lockfileSrc = (await readFile(path.resolve(servicePath, lockfile))).toString();
   const lockfileHash = createHash("sha256").update(lockfileSrc).digest("hex");
   const servicePathHash = createHash("sha256").update(path.resolve(servicePath)).digest("hex");
