@@ -42,3 +42,4 @@ matrix:
 cache:
  - node_modules
  - "%LOCALAPPDATA%/Yarn"
+ - '%APPDATA%\npm-cache'

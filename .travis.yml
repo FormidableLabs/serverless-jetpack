@@ -30,3 +30,8 @@ script:
   - yarn benchmark:lint
   - cross-env TEST_PARALLEL=true yarn benchmark
   - yarn benchmark:test
+
+# Enable both yarn and npm caches.
+cache:
+  - yarn
+  - npm
