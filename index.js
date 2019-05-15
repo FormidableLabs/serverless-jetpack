@@ -59,6 +59,53 @@ const filterFiles = ({ files, include, exclude }) => {
   return Object.keys(filesMap).filter((f) => filesMap[f]);
 };
 
+// Convert a yarn tree to a map.
+const yarnTreeToMap = ({ children, map }) => {
+  map = map || {};
+
+  // Extract trees.
+  (children || []).forEach((child) => {
+    // Remove version. (Preserve `@scope/pkg`).
+    const name = child.name.replace(/\@[^\@]+$/, "");
+    if (!name) {
+      throw new Error(`No name found for: ${JSON.stringify(child)}`);
+    }
+
+    map[name] = {};
+    yarnTreeToMap({ children: child.children, map: map[name] });
+  });
+
+  return map;
+};
+
+// Find actual dependency directories on disk.
+const findDepsFromMap = async ({ map, rootPath, curPath }) => {
+  curPath = curPath || rootPath;
+
+  // Look on disk for actual matches.
+  const locs = await Promise.all(Object.keys(map).map(async (name) => {
+    let searchPath = curPath;
+    while (searchPath.length >= rootPath.length) {
+      const candidatePath = path.resolve(searchPath, `node_modules/${name}`);
+      const exists = await dirExists(candidatePath);
+      if (!exists) {
+        // Decrement path and search again up to root.
+        searchPath = path.dirname(searchPath);
+      }
+
+      // TODO(lists): Insert recursion to find children since it **has** to
+      // start from here.
+
+      return path.relative(rootPath, candidatePath)
+    }
+
+    // TODO(list): Consider a WARN instead and filter out / return null.
+    throw new Error(`Could not resolve location for: ${name}`)
+  }));
+
+  return locs;
+}
+
 /**
  * Package Serverless applications manually.
  *
@@ -236,11 +283,24 @@ class Jetpack {
         NODE_ENV: "production"
       }
     });
+
     const tree = JSON.parse(stdout);
+    let list = tree;
+    if (list.type === "tree") {
+      list = list.data;
+    }
+    if (list.type !== "list") {
+      throw new Error(`Unparseable yarn tree structure: ${JSON.stringify(tree)}`);
+    } else if (!list.trees) {
+      throw new Error(`Empty yarn tree structure: ${JSON.stringify(tree)}`);
+    }
 
-    console.log("TODO HERE", JSON.stringify(tree, null, 2));
+    const map = yarnTreeToMap({ children: list.trees });
+    const dirsOnDisk = await findDepsFromMap({ map, rootPath: servicePath });
 
-    return []; // TODO(list): real results
+    console.log("TODO HERE", JSON.stringify({ map, dirsOnDisk }, null, 2));
+
+    return []; // TODO: Get patterns.
   }
 
   // Analogous file resolver to built-in serverless.
