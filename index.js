@@ -34,13 +34,16 @@ const createBuildDir = async ({ servicePath, lockfile }) => {
   // TODO HERE
   // - [ ] Deal with situation of lockfile: null. (Use package.json? No caching allowed?)
   // - [ ] Definitely add a `this._logDebug(MSG)` about whether we hit cache or not.
+  // - [ ] Add `buildDir` option top-level, upon which to cache.
+  // - [ ] Use that buildDir to set benchmark option to _know_ what exists, etc. for different
+  //       runs. Nuke it before every run, then guaranteed second cached run is cached.
 
   // Create hashes.
   // The package hash is based on the lockfile if we have it, else the package.json if not.
   const pkgFile = lockfile ? lockfile : "package.json";
   const pkgSource = (await readFile(path.resolve(servicePath, pkgFile))).toString();
-  const pkgHash = createHash("sha256").update(pkgSource).digest("hex");
-  const servicePathHash = createHash("sha256").update(path.resolve(servicePath)).digest("hex");
+  const pkgHash = createHash("md5").update(pkgSource).digest("hex");
+  const servicePathHash = createHash("md5").update(path.resolve(servicePath)).digest("hex");
   const cacheProjectPath = path.join(pkg.name, servicePathHash);
   const cacheBuildPath = path.join(cacheProjectPath, pkgHash);
 
@@ -50,7 +53,8 @@ const createBuildDir = async ({ servicePath, lockfile }) => {
     pkgHash,
     servicePathHash,
     cacheProjectPath,
-    cacheBuildPath
+    cacheBuildPath,
+    tmpdir: tmpdir()
   });
   throw new Error("HI")
 
