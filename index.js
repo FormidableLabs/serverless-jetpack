@@ -30,12 +30,12 @@ const execMode = (mode, args, opts) => execa(`${mode}${IS_WIN ? ".cmd" : ""}`, a
 
 // Create new temp build directory, return path.
 const createBuildDir = async ({ servicePath, lockfile }) => {
-
   // TODO HERE
+  // - [ ] What about individually? Is there a collision path?
   // - [ ] Deal with situation of lockfile: null. (Use package.json? No caching allowed?)
   // - [ ] Definitely add a `this._logDebug(MSG)` about whether we hit cache or not.
   // - [ ] Add `buildDir` option top-level, upon which to cache.
-  // - [ ] Use that buildDir to set benchmark option to _know_ what exists, etc. for different
+  // - [ ] Use that builddir to set benchmark option to _know_ what exists, etc. for different
   //       runs. Nuke it before every run, then guaranteed second cached run is cached.
 
   // Create hashes.
@@ -56,7 +56,7 @@ const createBuildDir = async ({ servicePath, lockfile }) => {
     cacheBuildPath,
     tmpdir: tmpdir()
   });
-  throw new Error("HI")
+  throw new Error("HI");
 
   // Create and verify a unique temp directory path.
   let tmpPath;
@@ -152,6 +152,10 @@ class Jetpack {
               + "`package-lock.json` for `mode: npm`)",
             shortcut: "l"
           },
+          builddir: {
+            usage: "Path to writeable build directory (default: `os.tmpdir()`)",
+            shortcut: "l"
+          },
           stdio: {
             usage:
               "`child_process` stdio mode for our shell commands like "
@@ -195,6 +199,9 @@ class Jetpack {
     // Dynamic defaults
     if (typeof this.__options.lockfile === "undefined") {
       this.__options.lockfile = this.__options.mode === "yarn" ? "yarn.lock" : "package-lock.json";
+    }
+    if (typeof this.__options.builddir === "undefined") {
+      this.__options.builddir = tmpdir();
     }
 
     // Validation
