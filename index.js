@@ -31,7 +31,7 @@ const execMode = (mode, args, opts) => execa(`${mode}${IS_WIN ? ".cmd" : ""}`, a
 // Create new temp build directory, return path.
 const createBuildDir = async ({ servicePath, lockfile }) => {
   // TODO HERE
-  // - [ ] What about individually? Is there a collision path?
+  // - [ ] Individually packaging needs to handle concurrent things.
   // - [ ] Deal with situation of lockfile: null. (Use package.json? No caching allowed?)
   // - [ ] Definitely add a `this._logDebug(MSG)` about whether we hit cache or not.
   // - [ ] Add `buildDir` option top-level, upon which to cache.
@@ -56,7 +56,7 @@ const createBuildDir = async ({ servicePath, lockfile }) => {
     cacheBuildPath,
     tmpdir: tmpdir()
   });
-  throw new Error("HI");
+  //throw new Error("HI");
 
   // Create and verify a unique temp directory path.
   let tmpPath;
