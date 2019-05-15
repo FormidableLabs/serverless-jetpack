@@ -23,6 +23,9 @@ const dirExists = async (dirPath) => {
   }
 };
 
+// OS-agnostic wrapper for running npm|yarn commands.
+const execMode = (mode, args, opts) => execa(`${mode}${IS_WIN ? ".cmd" : ""}`, args, opts);
+
 // Create new temp build directory, return path.
 const createBuildDir = async () => {
   // Create and verify a unique temp directory path.
@@ -301,7 +304,7 @@ class Jetpack {
     // Determine if can use npm ci.
     let install = "install";
     if (mode === "npm" && lockfile) {
-      const { stdout } = await execa("npm", ["--version"]);
+      const { stdout } = await execMode(mode, ["--version"]);
 
       const version = stdout.split(".");
       if (version.length < 3) { // eslint-disable-line no-magic-numbers
@@ -323,12 +326,13 @@ class Jetpack {
     const installArgs = [
       install,
       "--production",
+      "--no-progress",
       mode === "yarn" && !!lockfile ? "--frozen-lockfile" : null,
       mode === "yarn" ? "--non-interactive" : null
     ].filter(Boolean);
 
     this._logDebug(`Performing production install: ${mode} ${installArgs.join(" ")}`);
-    await execa(mode, installArgs, {
+    await execMode(mode, installArgs, {
       stdio,
       cwd: buildPath
     });

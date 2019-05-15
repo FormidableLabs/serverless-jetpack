@@ -19,15 +19,15 @@
   ],
   "scripts": {
     "preversion": "yarn run check",
-    "usage": "cd test/packages/simple/yarn &&  MODE=yarn serverless jetpack -h",
-    "clean": "rm -rf test/packages/*/*/.serverless",
+    "usage": "cd test/packages/simple/yarn && MODE=yarn serverless jetpack -h",
+    "clean": "del-cli \"test/packages/*/*/.serverless\"",
     "benchmark:install": "node test/script.js install",
     "benchmark:build": "node test/script.js build",
-    "benchmark:lint": "eslint 'test/packages/**/*.js'",
+    "benchmark:lint": "eslint \"test/packages/**/*.js\"",
     "benchmark:test": "mocha test/benchmark.js",
     "benchmark": "node test/script.js benchmark",
     "test:spec": "mocha test/spec",
-    "lint": "eslint '*.js' test/plugins test/spec 'test/*.js' 'test/packages/*/*/src/**'  'test/packages/*/*/*.js'",
+    "lint": "eslint \"*.js\" test/plugins test/spec \"test/*.js\" \"test/packages/*/*/src/**\"  \"test/packages/*/*/*.js\"",
     "test": "yarn test:spec",
     "check:git-dirty": "test -z \"$(git status --porcelain)\" || (echo \"ERROR: Found git dirty files:\n$(git status --porcelain)\" && exit 1)",
     "check": "yarn lint && yarn test:spec"
@@ -44,9 +44,12 @@
     "uuid": "^3.3.2"
   },
   "devDependencies": {
+    "adm-zip": "^0.4.13",
     "babel-eslint": "^10.0.1",
     "chai": "^4.2.0",
     "chalk": "^2.4.2",
+    "del": "^4.1.1",
+    "del-cli": "^1.1.0",
     "eslint": "^5.13.0",
     "eslint-config-formidable": "^4.0.0",
     "eslint-plugin-filenames": "^1.3.2",

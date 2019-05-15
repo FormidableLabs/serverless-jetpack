@@ -1,0 +1,46 @@
+environment:
+  matrix:
+    # Limit windows builds because they're 15 mins in serial.
+    # - nodejs_version: "8.10.0"
+    - nodejs_version: "8"
+    # - nodejs_version: "10"
+    # - nodejs_version: "11"
+
+branches:
+  only:
+    - master
+
+install:
+  - ps: Install-Product node $env:nodejs_version
+  # Get a more modern yarn.
+  - npm install --global yarn@latest
+  # Fail if lockfile outdated.
+  # https://yarnpkg.com/lang/en/docs/cli/install/#toc-yarn-install-frozen-lockfile
+  - yarn install --frozen-lockfile
+
+test_script:
+  - yarn --version
+  - yarn run check
+  - yarn benchmark:build
+  - yarn benchmark:install
+  - yarn benchmark:lint
+  # Run in serial so we don't get cache corruption. E.g.:
+  # ```
+  # error https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.455.0.tgz:
+  # Extracting tar content of undefined failed, the file appears to be corrupt:
+  # "ENOENT: no such file or directory, stat
+  # 'C:\\Users\\appveyor\\AppData\\Local\\Yarn\\Cache\\v2\\npm-aws-sdk-2.455.0-67caab4324e3482b3facd17e522a1fea2ded07e1\\clients\\backup.d.ts'"
+  # ```
+  - yarn benchmark
+  - yarn benchmark:test
+
+# Don't actually build.
+build: off
+
+matrix:
+  fast_finish: true
+
+cache:
+ - node_modules
+ - "%LOCALAPPDATA%/Yarn"
+ - '%APPDATA%\npm-cache'

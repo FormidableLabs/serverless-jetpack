@@ -11,9 +11,12 @@ const globby = require("globby");
 const fs = require("fs-extra");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
+const del = require("del");
 
 const { TEST_MODE, TEST_SCENARIO, TEST_LOCKFILE, TEST_PARALLEL } = process.env;
 const IS_PARALLEL = TEST_PARALLEL === "true";
+const IS_WIN = process.platform === "win32";
+const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 
 /**
  * Test script helper.
@@ -65,6 +68,8 @@ const TABLE_OPTS = {
   stringLength: (cell) => strip(cell).length // fix alignment with chalk.
 };
 
+const execMode = (mode, args, opts) => execa(`${mode}${IS_WIN ? ".cmd" : ""}`, args, opts);
+
 const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
 
 const build = async () => {
@@ -99,7 +104,7 @@ const build = async () => {
     log(chalk `{cyan ${scenario}}: Copying files {gray ${JSON.stringify(srcFiles)}}`);
     await Promise.all(srcFiles.map(async (f) => {
       const dest = path.resolve(`${destDir}/${f}`);
-      await fs.ensureDir(path.dirname(dest));
+      await fs.mkdirp(path.dirname(dest));
       await fs.copy(path.resolve(`${srcDir}/${f}`), dest);
     }));
   }
@@ -113,12 +118,15 @@ const install = async () => {
     };
 
     log(chalk `{cyan ${scenario}/${mode}}: Installing`);
-    await execa(mode, ["install"], execOpts);
+    await execMode(mode, ["install", "--no-progress"], execOpts);
 
-    log(chalk `{cyan ${scenario}/${mode}}: Removing bad symlinks`);
-    await execa("sh", ["-c",
-      "find . -type l ! -exec sh -c \"test -e {} || (echo removing {}; rm -rf {})\" \\;"
-    ], execOpts);
+    // Symlinks don't exist on Windows, so only on UNIX-ish.
+    if (!IS_WIN) {
+      log(chalk `{cyan ${scenario}/${mode}}: Removing bad symlinks`);
+      await execa("sh", ["-c",
+        "find . -type l ! -exec sh -c \"test -e {} || (echo removing {}; rm -rf {})\" \\;"
+      ], execOpts);
+    }
   }
 };
 
@@ -129,7 +137,7 @@ const benchmark = async () => {
   const otherData = [HEADER];
 
   const archiveRoot = path.join(__dirname, "../.test-zips");
-  await execa("mkdir", ["-p", archiveRoot]);
+  await fs.mkdirp(archiveRoot);
 
   // Execute scenarios in parallel for scenario + mode.
   // We have to execute `lockfile: true|false` in serial because they both
@@ -139,6 +147,9 @@ const benchmark = async () => {
   const results = {};
   await Promise.all(MATRIX
     .map(({ scenario, mode, lockfile }) => {
+      // Environment for combination.
+      const cwd = path.resolve(`test/packages/${scenario}/${mode}`);
+
       // Use only _one_ concurrency = 1 queue if not parallel.
       const key = IS_PARALLEL ? `${scenario}/${mode}` : "all";
       queues[key] = queues[key] || new PQueue({ concurrency: 1 });
@@ -150,11 +161,12 @@ const benchmark = async () => {
       return queues[key].add(async () => {
         logTask("[task:start]");
 
-        const exec = async (cmd, args, opts) => {
+        // Timing convenience wrapper.
+        const runPackage = async (opts) => {
           const start = Date.now();
 
-          await execa(cmd, args, {
-            cwd: path.resolve(`test/packages/${scenario}/${mode}`),
+          await execa(SLS_CMD, ["package"], {
+            cwd,
             stdio: "inherit",
             env: ENV,
             ...opts
@@ -163,9 +175,9 @@ const benchmark = async () => {
           return Date.now() - start;
         };
 
-
         logTask("[task:start:jetpack]");
-        const pluginTime = await exec("node_modules/.bin/serverless", ["package"], {
+        // TODO: Need serverless.cmd?
+        const pluginTime = await runPackage({
           env: {
             ...ENV,
             MODE: mode,
@@ -175,23 +187,26 @@ const benchmark = async () => {
         logTask("[task:end:jetpack]");
 
         const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
-        await exec("rm", ["-rf", pluginArchive]);
-        await exec("mkdir", ["-p", pluginArchive]);
-        await exec("cp", ["-rp", ".serverless/*.zip", pluginArchive], {
-          shell: true
-        });
+        await del(pluginArchive);
+        await fs.mkdirp(pluginArchive);
+        const pluginZips = await globby(".serverless/*.zip", { cwd });
+        await Promise.all(pluginZips.map((zipFile) => fs.copy(
+          path.join(cwd, zipFile),
+          path.join(pluginArchive, path.basename(zipFile))
+        )));
 
         logTask("[task:start:baseline]");
-        const baselineTime = await exec("serverless", ["package"]);
+        const baselineTime = await runPackage();
         logTask("[task:end:baseline]");
 
-        const baselineArchive = path.join(__dirname,
-          "../.test-zips", scenario, mode, lockfile, "baseline");
-        await exec("rm", ["-rf", baselineArchive]);
-        await exec("mkdir", ["-p", baselineArchive]);
-        await exec("cp", ["-rp", ".serverless/*.zip", baselineArchive], {
-          shell: true
-        });
+        const baselineArchive = path.join(archiveRoot, scenario, mode, lockfile, "baseline");
+        await del(baselineArchive);
+        await fs.mkdirp(baselineArchive);
+        const baselineZips = await globby(".serverless/*.zip", { cwd });
+        await Promise.all(baselineZips.map((zipFile) => fs.copy(
+          path.join(cwd, zipFile),
+          path.join(baselineArchive, path.basename(zipFile))
+        )));
 
         // Data.
         // eslint-disable-next-line no-magic-numbers
@@ -215,8 +230,8 @@ const benchmark = async () => {
   h2(chalk `Benchmark: {gray System Information}`);
   log(chalk `* {gray os}:   \`${os.platform()} ${os.release()} ${os.arch()}\``);
   log(chalk `* {gray node}: \`${process.version}\``);
-  log(chalk `* {gray yarn}: \`${(await execa("yarn", ["--version"])).stdout}\``);
-  log(chalk `* {gray npm}:  \`${(await execa("npm", ["--version"])).stdout}\``);
+  log(chalk `* {gray yarn}: \`${(await execMode("yarn", ["--version"])).stdout}\``);
+  log(chalk `* {gray npm}:  \`${(await execMode("npm", ["--version"])).stdout}\``);
 
   // Recreate results in starting order.
   const timedRows = MATRIX
@@ -232,15 +247,6 @@ const benchmark = async () => {
     .reduce((m, a) => m.concat(a), []);
   h2(chalk `Benchmark: {gray Other Packages}`);
   log(table(otherData.concat(otherRows), TABLE_OPTS));
-
-  // Generate file lists.
-  await execa("find", [
-    ".test-zips", "-name", "\"*.zip\"",
-    "-exec", "sh", "-c", "\"zipinfo -1 {} | sort > {}.files.txt\"", "\\;"
-  ], {
-    stdio: "inherit",
-    shell: true
-  });
 };
 
 const main = async () => {

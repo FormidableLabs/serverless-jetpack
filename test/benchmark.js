@@ -6,9 +6,10 @@
  * **Note**: requires a full `yarn benchmark` run first to generate file
  * lists.
  */
-const { MATRIX } = require("./script");
+const path = require("path");
 const globby = require("globby");
-const { readFile } = require("fs-extra");
+const AdmZip = require("adm-zip");
+const { MATRIX } = require("./script");
 
 // Filter known false positives.
 //
@@ -107,17 +108,22 @@ describe("benchmark", () => {
   let fixtures;
 
   before(async () => {
-    const lists = await globby([".test-zips/**/*.zip.files.txt"]);
-    const contents = await Promise.all(lists.map((file) => readFile(file)));
+    // Read lists of contents from zip files directly.
+    const projRoot = path.resolve(__dirname, "..");
+    const zipFiles = await globby([".test-zips/**/*.zip"], { cwd: projRoot });
+    const contents = zipFiles.map((zipFile) => {
+      const zip = new AdmZip(path.resolve(projRoot, zipFile));
+      return zip.getEntries().map((e) => e.entryName);
+    });
 
     // Create object of `"combo.file = data"
     fixtures = contents.reduce((memo, data, i) => {
-      const combo = lists[i].replace(".test-zips/", "").split("/");
+      const combo = zipFiles[i].replace(".test-zips/", "").split("/");
       const key = combo.slice(0, 4).join("/"); // eslint-disable-line no-magic-numbers
       const file = combo.slice(4); // eslint-disable-line no-magic-numbers
 
       memo[key] = memo[key] || {};
-      memo[key][file] = data.toString().split("\n");
+      memo[key][file] = data;
 
       return memo;
     }, {});
@@ -127,12 +133,25 @@ describe("benchmark", () => {
     const combo = `${scenario}/${mode}/${lockfile}`;
 
     it(combo, async () => {
-      Object.keys(fixtures[`${combo}/baseline`]).forEach((fileName) => {
+      const baselineFixture = fixtures[`${combo}/baseline`];
+
+      // Sanity check baseline exists.
+      expect(baselineFixture).to.be.ok;
+      const baselineFileNames = Object.keys(baselineFixture);
+      expect(baselineFileNames).to.be.ok.and.to.not.eql([]);
+
+      baselineFileNames.forEach((fileName) => {
         // Get all of the lines from our file lists.
-        const baselineLines = fixtures[`${combo}/baseline`][fileName];
+        const baselineLines = baselineFixture[fileName];
         const baselineSet = new Set(baselineLines);
-        const pluginLines = fixtures[`${combo}/jetpack`][fileName];
+        const pluginLines = (fixtures[`${combo}/jetpack`] || {})[fileName];
         const pluginSet = new Set(pluginLines);
+
+        // Sanity check that we _generated_ lines for both jetpack + baseline.
+        // These being empty means most likely our test harness messed up
+        // and generated empty zips as **all** present scenarios should have
+        // at least one file.
+        expect(pluginLines).to.be.ok.and.to.not.eql([]);
 
         // Figure out what is missing from each.
         const missingInBaseline = pluginLines
