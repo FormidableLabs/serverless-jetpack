@@ -338,32 +338,31 @@ class Jetpack {
     const depsMap = yarnTreeToMap({ children: list.trees });
     const patterns = depsToPatterns({ depsMap, rootPath: servicePath });
 
-    console.log("TODO HERE", JSON.stringify({ depsMap, patterns }, null, 2));
-
-    return []; // TODO: Get patterns.
+    return patterns;
   }
 
   // Analogous file resolver to built-in serverless.
   //
   // The main difference is that we exclude the root project `node_modules`
-  // entirely and then add it to the `build` directory and re-pattern-match
-  // files there.
+  // except for production dependencies.
   //
   // See: `resolveFilePathsFromPatterns` in
   // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
-  async resolveFilesFromPatterns({ include, exclude }) {
+  async resolveFilesFromPatterns({ depInclude, include, exclude }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
 
     // _Now_, start globbing like serverless does.
     // 1. Glob everything on disk using only _includes_ (except `node_modules`).
-    const files = await globby(["**"]
-      // TODO TEMP STUFF.
-      .concat([
-        "!node_modules",
-        "node_modules/@types/aws-lambda"
-      ])
-      .concat(include || []), {
+    const globInclude = ["**"]
+      // Remove all node_modules.
+      .concat(["!node_modules"])
+      // ... except for the production node_modules
+      .concat(depInclude)
+      // ... then normal include like serverless does.
+      .concat(include || []);
+
+    const files = await globby(globInclude, {
       cwd: servicePath,
       dot: true,
       filesOnly: true,
@@ -437,9 +436,8 @@ class Jetpack {
 
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
-    const prodIncludes = await this.getProdDependencyPatterns();
-    // console.log("TODO prodIncludes", { prodIncludes });
-    const files = await this.resolveFilesFromPatterns({ include, exclude });
+    const depInclude = await this.getProdDependencyPatterns();
+    const files = await this.resolveFilesFromPatterns({ depInclude, include, exclude });
 
     // Create package zip.
     await this.createZip({
