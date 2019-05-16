@@ -95,16 +95,23 @@ const findDepsFromMap = async ({ map, rootPath, curPath }) => {
 
       // TODO(lists): Insert recursion to find children since it **has** to
       // start from here.
+      //
+      // TODO(lists): The tree looks **wrong**. In that it doesn't represent the entire structure.
+      // Ugh.
+      console.log("TODO HERE", {
+        name,
+        subMap: map[name]
+      });
 
-      return path.relative(rootPath, candidatePath)
+      return path.relative(rootPath, candidatePath);
     }
 
     // TODO(list): Consider a WARN instead and filter out / return null.
-    throw new Error(`Could not resolve location for: ${name}`)
+    throw new Error(`Could not resolve location for: ${name}`);
   }));
 
   return locs;
-}
+};
 
 /**
  * Package Serverless applications manually.
@@ -298,7 +305,7 @@ class Jetpack {
     const map = yarnTreeToMap({ children: list.trees });
     const dirsOnDisk = await findDepsFromMap({ map, rootPath: servicePath });
 
-    console.log("TODO HERE", JSON.stringify({ map, dirsOnDisk }, null, 2));
+    console.log("TODO HERE", JSON.stringify({ map }, null, 2));
 
     return []; // TODO: Get patterns.
   }
@@ -398,7 +405,7 @@ class Jetpack {
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
     const prodIncludes = await this.getProdDependencyPatterns();
-    console.log("TODO prodIncludes", { prodIncludes });
+    // console.log("TODO prodIncludes", { prodIncludes });
     const files = await this.resolveFilesFromPatterns({ include, exclude });
 
     // Create package zip.
