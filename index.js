@@ -59,7 +59,25 @@ const filterFiles = ({ files, include, exclude }) => {
   return Object.keys(filesMap).filter((f) => filesMap[f]);
 };
 
-// Convert a yarn tree to a map.
+// Convert a yarn tree to a map of on-disk directories.
+//
+// Entries are of the form:
+// ```js
+// // Abstract: not really on disk
+// {
+//     "name": "statuses@>= 1.4.0 < 2",
+//     "color": "dim",
+//     "shadow": true
+// },
+// // Concrete: on disk
+// {
+//     "name": "statuses@1.5.0",
+//     "children": [],
+//     "hint": null,
+//     "color": "bold",
+//     "depth": 0
+// }
+// ```
 const yarnTreeToMap = ({ children, map }) => {
   map = map || {};
 
@@ -71,46 +89,61 @@ const yarnTreeToMap = ({ children, map }) => {
       throw new Error(`No name found for: ${JSON.stringify(child)}`);
     }
 
-    map[name] = {};
-    yarnTreeToMap({ children: child.children, map: map[name] });
+    // Shadowed deps are not really on disk.
+    if (!child.shadow) {
+      map[name] = {};
+      yarnTreeToMap({ children: child.children, map: map[name] });
+    }
   });
 
   return map;
 };
 
-// Find actual dependency directories on disk.
-const findDepsFromMap = async ({ map, rootPath, curPath }) => {
+// TODO: Needed for npm?
+// // Find actual dependency directories on disk.
+// const findDepsFromMap = async ({ map, rootPath, curPath }) => {
+//   curPath = curPath || rootPath;
+
+//   // Look on disk for actual matches.
+//   const locs = await Promise.all(Object.keys(map).map(async (name) => {
+//     let searchPath = curPath;
+//     while (searchPath.length >= rootPath.length) {
+//       const candidatePath = path.resolve(searchPath, `node_modules/${name}`);
+//       const exists = await dirExists(candidatePath);
+//       if (!exists) {
+//         // Decrement path and search again up to root.
+//         searchPath = path.dirname(searchPath);
+//       }
+
+//       // TODO(lists): Insert recursion to find children since it **has** to
+//       // start from here.
+//       //
+//       // TODO(lists): The tree looks **wrong**. In that it doesn't represent the entire structure.
+//       // Ugh.
+//       console.log("TODO HERE", {
+//         name,
+//         subMap: map[name]
+//       });
+
+//       return path.relative(rootPath, candidatePath);
+//     }
+
+//     // TODO(list): Consider a WARN instead and filter out / return null.
+//     throw new Error(`Could not resolve location for: ${name}`);
+//   }));
+
+//   return locs;
+// };
+
+// Traverse a map of dependencies and translate it to glob include patterns.
+const depsToPatterns = ({ depsMap, rootPath, curPath }) => {
   curPath = curPath || rootPath;
-
-  // Look on disk for actual matches.
-  const locs = await Promise.all(Object.keys(map).map(async (name) => {
-    let searchPath = curPath;
-    while (searchPath.length >= rootPath.length) {
-      const candidatePath = path.resolve(searchPath, `node_modules/${name}`);
-      const exists = await dirExists(candidatePath);
-      if (!exists) {
-        // Decrement path and search again up to root.
-        searchPath = path.dirname(searchPath);
-      }
-
-      // TODO(lists): Insert recursion to find children since it **has** to
-      // start from here.
-      //
-      // TODO(lists): The tree looks **wrong**. In that it doesn't represent the entire structure.
-      // Ugh.
-      console.log("TODO HERE", {
-        name,
-        subMap: map[name]
-      });
-
-      return path.relative(rootPath, candidatePath);
-    }
-
-    // TODO(list): Consider a WARN instead and filter out / return null.
-    throw new Error(`Could not resolve location for: ${name}`);
-  }));
-
-  return locs;
+  return Object.keys(depsMap).reduce((memo, name) => {
+    const depPath = path.join(curPath, "node_modules", name);
+    return memo
+      .concat(path.relative(rootPath, depPath))
+      .concat(depsToPatterns({ depsMap: depsMap[name], rootPath, curPath: depPath }));
+  }, []);
 };
 
 /**
@@ -302,10 +335,10 @@ class Jetpack {
       throw new Error(`Empty yarn tree structure: ${JSON.stringify(tree)}`);
     }
 
-    const map = yarnTreeToMap({ children: list.trees });
-    const dirsOnDisk = await findDepsFromMap({ map, rootPath: servicePath });
+    const depsMap = yarnTreeToMap({ children: list.trees });
+    const patterns = depsToPatterns({ depsMap, rootPath: servicePath });
 
-    console.log("TODO HERE", JSON.stringify({ map }, null, 2));
+    console.log("TODO HERE", JSON.stringify({ depsMap, patterns }, null, 2));
 
     return []; // TODO: Get patterns.
   }
