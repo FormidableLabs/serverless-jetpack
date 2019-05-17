@@ -108,7 +108,7 @@ As a quick guide to the results table:
     - `simple`: Very small production and development dependencies.
     - `individually`: Same dependencies as `simple`, but with `individually` packaging.
     - `huge`: Lots and lots of development dependencies.
-- `Mode`: Project installed via `yarn` or `npm`?
+- `Mode`: Project installed via `yarn` or `npm`? This really only matters in that `npm` and `yarn` may flatten dependencies differently, so we want to make sure Jetpack is correct in both cases.
 - `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
 - `Time`: Elapsed build time in milliseconds.
 - `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
@@ -117,39 +117,23 @@ Machine information:
 
 * os:   `darwin 18.5.0 x64`
 * node: `v8.16.0`
-* yarn: `1.15.2`
-* npm:  `6.4.1`
-
-- TODO: New benchmark file
 
 Results:
 
-| Scenario         | Mode     | Lockfile | Type        |     Time |      vs Base |
-| :--------------- | :------- | :------- | :---------- | -------: | -----------: |
-| **simple**       | **yarn** | **true** | **jetpack** | **4637** | **-32.86 %** |
-| simple           | yarn     | true     | baseline    |     6906 |              |
-| **simple**       | **npm**  | **true** | **jetpack** | **3913** | **-45.20 %** |
-| simple           | npm      | true     | baseline    |     7140 |              |
-| simple           | yarn     | false    | jetpack     |     3512 |     -59.24 % |
-| simple           | yarn     | false    | baseline    |     8616 |              |
-| simple           | npm      | false    | jetpack     |     4188 |     -54.47 % |
-| simple           | npm      | false    | baseline    |     9199 |              |
-| **individually** | **yarn** | **true** | **jetpack** | **3821** | **-79.35 %** |
-| individually     | yarn     | true     | baseline    |    18500 |              |
-| **individually** | **npm**  | **true** | **jetpack** | **5013** | **-71.47 %** |
-| individually     | npm      | true     | baseline    |    17570 |              |
-| individually     | yarn     | false    | jetpack     |     3429 |     -73.50 % |
-| individually     | yarn     | false    | baseline    |    12941 |              |
-| individually     | npm      | false    | jetpack     |     3804 |     -75.35 % |
-| individually     | npm      | false    | baseline    |    15430 |              |
-| **huge**         | **yarn** | **true** | **jetpack** | **6588** | **-79.77 %** |
-| huge             | yarn     | true     | baseline    |    32561 |              |
-| **huge**         | **npm**  | **true** | **jetpack** | **5116** | **-84.71 %** |
-| huge             | npm      | true     | baseline    |    33469 |              |
-| huge             | yarn     | false    | jetpack     |     2242 |     -92.48 % |
-| huge             | yarn     | false    | baseline    |    29829 |              |
-| huge             | npm      | false    | jetpack     |     2431 |     -92.85 % |
-| huge             | npm      | false    | baseline    |    33999 |              |
+| Scenario     | Mode | Type     | Time  |      vs Base |
+| :----------- | :--- | :------- | :---- | -----------: |
+| simple       | yarn | jetpack  | 4338  | **-46.37 %** |
+| simple       | yarn | baseline | 8089  |              |
+| simple       | npm  | jetpack  | 4055  | **-53.78 %** |
+| simple       | npm  | baseline | 8773  |              |
+| individually | yarn | jetpack  | 2964  | **-76.77 %** |
+| individually | yarn | baseline | 12760 |              |
+| individually | npm  | jetpack  | 4183  | **-69.67 %** |
+| individually | npm  | baseline | 13790 |              |
+| huge         | yarn | jetpack  | 4524  | **-84.03 %** |
+| huge         | yarn | baseline | 28321 |              |
+| huge         | npm  | jetpack  | 5680  | **-83.07 %** |
+| huge         | npm  | baseline | 33551 |              |
 
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/

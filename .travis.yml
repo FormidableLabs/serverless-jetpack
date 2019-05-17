@@ -1,8 +1,6 @@
 language: node_js
 
 node_js:
-  # Include 8.10.0 for npm < 5.7.0 without `npm ci` command.
-  - "8.10.0"
   - "8"
   - "10"
   - "11"
