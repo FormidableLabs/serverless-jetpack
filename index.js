@@ -83,25 +83,7 @@ class Jetpack {
 
     this.commands = {
       jetpack: {
-        usage: pkg.description,
-        options: {
-          mode: {
-            usage: "Installation mode (default: `yarn`)",
-            shortcut: "m"
-          },
-          lockfile: {
-            usage:
-              "Path to lockfile (default: `yarn.lock` for `mode: yarn`, "
-              + "`package-lock.json` for `mode: npm`)",
-            shortcut: "l"
-          },
-          stdio: {
-            usage:
-              "`child_process` stdio mode for our shell commands like "
-              + "yarn|npm installs (default: `null`)",
-            shortcut: "s"
-          }
-        }
+        usage: pkg.description
       }
     };
 
@@ -119,33 +101,6 @@ class Jetpack {
     if (process.env.SLS_DEBUG) {
       this._log(msg);
     }
-  }
-
-  get _options() {
-    if (this.__options) { return this.__options; }
-
-    const { service } = this.serverless;
-
-    // Static defaults.
-    const defaults = {
-      mode: "yarn",
-      stdio: null
-    };
-
-    const custom = (service.custom || {})[pkg.name];
-    this.__options = Object.assign({}, defaults, custom, this.options);
-
-    // Dynamic defaults
-    if (typeof this.__options.lockfile === "undefined") {
-      this.__options.lockfile = this.__options.mode === "yarn" ? "yarn.lock" : "package-lock.json";
-    }
-
-    // Validation
-    if (!["yarn", "npm"].includes(this.__options.mode)) {
-      throw new Error(`[${pkg.name}] Invalid 'mode' option: ${this.__options.mode}`);
-    }
-
-    return this.__options;
   }
 
   filePatterns({ functionObject }) {

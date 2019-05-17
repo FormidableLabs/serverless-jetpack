@@ -120,8 +120,8 @@ describe("benchmark", () => {
     // Create object of `"combo.file = data"
     fixtures = contents.reduce((memo, data, i) => {
       const combo = zipFiles[i].replace(".test-zips/", "").split("/");
-      const key = combo.slice(0, 4).join("/"); // eslint-disable-line no-magic-numbers
-      const file = combo.slice(4); // eslint-disable-line no-magic-numbers
+      const key = combo.slice(0, 3).join("/"); // eslint-disable-line no-magic-numbers
+      const file = combo.slice(3); // eslint-disable-line no-magic-numbers
 
       memo[key] = memo[key] || {};
       memo[key][file] = data;
@@ -130,8 +130,8 @@ describe("benchmark", () => {
     }, {});
   });
 
-  MATRIX.forEach(({ scenario, mode, lockfile }) => {
-    const combo = `${scenario}/${mode}/${lockfile}`;
+  MATRIX.forEach(({ scenario, mode }) => {
+    const combo = `${scenario}/${mode}`;
 
     it(combo, async () => {
       const baselineFixture = fixtures[`${combo}/baseline`];

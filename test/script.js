@@ -13,7 +13,7 @@ const table = require("markdown-table");
 const strip = require("strip-ansi");
 const del = require("del");
 
-const { TEST_MODE, TEST_SCENARIO, TEST_LOCKFILE, TEST_PARALLEL } = process.env;
+const { TEST_MODE, TEST_SCENARIO, TEST_PARALLEL } = process.env;
 const IS_PARALLEL = TEST_PARALLEL === "true";
 const IS_WIN = process.platform === "win32";
 const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
@@ -30,13 +30,10 @@ const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
  * ```
  */
 const CONFIGS = [
-  { mode: "yarn", lockfile: "true" },
-  { mode: "npm", lockfile: "true" },
-  { mode: "yarn", lockfile: "false" },
-  { mode: "npm", lockfile: "false" }
+  { mode: "yarn" },
+  { mode: "npm" }
 ]
-  .filter(({ mode }) => !TEST_MODE || TEST_MODE.split(",").includes(mode))
-  .filter(({ lockfile }) => !TEST_LOCKFILE || TEST_LOCKFILE === lockfile);
+  .filter(({ mode }) => !TEST_MODE || TEST_MODE.split(",").includes(mode));
 
 const SCENARIOS = [
   "simple",
@@ -132,7 +129,7 @@ const install = async () => {
 
 // eslint-disable-next-line max-statements
 const benchmark = async () => {
-  const HEADER = ["Scenario", "Mode", "Lockfile", "Type", "Time", "vs Base"].map((t) => gray(t));
+  const HEADER = ["Scenario", "Mode", "Type", "Time", "vs Base"].map((t) => gray(t));
   const timedData = [HEADER];
   const otherData = [HEADER];
 
@@ -140,13 +137,11 @@ const benchmark = async () => {
   await fs.mkdirp(archiveRoot);
 
   // Execute scenarios in parallel for scenario + mode.
-  // We have to execute `lockfile: true|false` in serial because they both
-  // mutate the same directory.
   h2(chalk `Packaging Scenarios`);
   const queues = {};
   const results = {};
   await Promise.all(MATRIX
-    .map(({ scenario, mode, lockfile }) => {
+    .map(({ scenario, mode }) => {
       // Environment for combination.
       const cwd = path.resolve(`test/packages/${scenario}/${mode}`);
 
@@ -154,7 +149,7 @@ const benchmark = async () => {
       const key = IS_PARALLEL ? `${scenario}/${mode}` : "all";
       queues[key] = queues[key] || new PQueue({ concurrency: 1 });
       const logTask = (msg) =>
-        log(chalk `{green ${msg}}: ${JSON.stringify({ scenario, mode, lockfile })}`);
+        log(chalk `{green ${msg}}: ${JSON.stringify({ scenario, mode })}`);
 
       logTask("[task:queued]");
       // eslint-disable-next-line max-statements
@@ -176,17 +171,15 @@ const benchmark = async () => {
         };
 
         logTask("[task:start:jetpack]");
-        // TODO: Need serverless.cmd?
         const pluginTime = await runPackage({
           env: {
             ...ENV,
-            MODE: mode,
-            LOCKFILE: lockfile
+            MODE: mode
           }
         });
         logTask("[task:end:jetpack]");
 
-        const pluginArchive = path.join(archiveRoot, scenario, mode, lockfile, "jetpack");
+        const pluginArchive = path.join(archiveRoot, scenario, mode, "jetpack");
         await del(pluginArchive);
         await fs.mkdirp(pluginArchive);
         const pluginZips = await globby(".serverless/*.zip", { cwd });
@@ -199,7 +192,7 @@ const benchmark = async () => {
         const baselineTime = await runPackage();
         logTask("[task:end:baseline]");
 
-        const baselineArchive = path.join(archiveRoot, scenario, mode, lockfile, "baseline");
+        const baselineArchive = path.join(archiveRoot, scenario, mode, "baseline");
         await del(baselineArchive);
         await fs.mkdirp(baselineArchive);
         const baselineZips = await globby(".serverless/*.zip", { cwd });
@@ -211,17 +204,12 @@ const benchmark = async () => {
         // Data.
         // eslint-disable-next-line no-magic-numbers
         const pct = ((pluginTime - baselineTime) / baselineTime * 100).toFixed(2);
-        let pluginRow = [scenario, mode, lockfile, "jetpack", pluginTime, `${pct} %`];
+        const pluginRow = [scenario, mode, "jetpack", pluginTime, `**${pct} %**`];
 
-        // Bold out preferred configurations.
-        if (lockfile === "true") {
-          pluginRow = pluginRow.map((c) => chalk `**{bold ${c}}**`);
-        }
-
-        const resultsKey = `${scenario}/${mode}/${lockfile}`;
+        const resultsKey = `${scenario}/${mode}`;
         results[resultsKey] = (results[resultsKey] || []).concat([
           pluginRow,
-          [scenario, mode, lockfile, "baseline", baselineTime, ""]
+          [scenario, mode, "baseline", baselineTime, ""]
         ]);
       });
     })
@@ -236,14 +224,14 @@ const benchmark = async () => {
   // Recreate results in starting order.
   const timedRows = MATRIX
     .filter(({ scenario }) => TIMING_SCENARIOS.has(scenario))
-    .map(({ scenario, mode, lockfile }) => results[`${scenario}/${mode}/${lockfile}`])
+    .map(({ scenario, mode }) => results[`${scenario}/${mode}`])
     .reduce((m, a) => m.concat(a), []);
   h2(chalk `Benchmark: {gray Timed Packages}`);
   log(table(timedData.concat(timedRows), TABLE_OPTS));
 
   const otherRows = MATRIX
     .filter(({ scenario }) => !TIMING_SCENARIOS.has(scenario))
-    .map(({ scenario, mode, lockfile }) => results[`${scenario}/${mode}/${lockfile}`])
+    .map(({ scenario, mode }) => results[`${scenario}/${mode}`])
     .reduce((m, a) => m.concat(a), []);
   h2(chalk `Benchmark: {gray Other Packages}`);
   log(table(otherData.concat(otherRows), TABLE_OPTS));

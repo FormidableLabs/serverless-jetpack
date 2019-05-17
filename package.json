@@ -38,6 +38,7 @@
   "dependencies": {
     "archiver": "^3.0.0",
     "globby": "^9.2.0",
+    "inspectdep": "^0.1.0",
     "nanomatch": "^1.2.13"
   },
   "devDependencies": {
@@ -47,12 +48,12 @@
     "chalk": "^2.4.2",
     "del": "^4.1.1",
     "del-cli": "^1.1.0",
-    "execa": "^1.0.0",
     "eslint": "^5.13.0",
     "eslint-config-formidable": "^4.0.0",
     "eslint-plugin-filenames": "^1.3.2",
     "eslint-plugin-import": "^2.16.0",
     "eslint-plugin-promise": "^4.0.1",
+    "execa": "^1.0.0",
     "fs-extra": "^7.0.1",
     "markdown-table": "^1.1.2",
     "mocha": "^6.1.4",

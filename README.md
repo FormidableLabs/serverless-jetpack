@@ -33,15 +33,7 @@ plugins:
 
 ### A little more detail...
 
-The plugin has the following options:
-
-- `mode`: Either `yarn` (default) or `npm`. The installation tool to use which must be already installed on your system. _Note_: If you are using `npm`, `npm@5.7.0+` is **strongly** recommended so that the plugin can use `npm ci` for much faster installations.
-- `lockfile`: Defaults to `yarn.lock` for `mode: yarn` and `package-lock.json` for `mode: npm`.
-    - You can set it to a different relative location like: `lockfile: ../../yarn.lock` for monorepo projects wherein the lockfile exists outside of the package directory.
-    - Setting `lockfile: null` will skip using lockfiles entirely. This will be slower and more dangerous (since you can wind up with different dependencies than your root project). But it is available if your project does not use lockfiles.
-- `stdio`: Enable/disable shell output for `yarn|npm install` commands. Defaults to `false`.
-
-Which can be integrated into a more complex `serverless.yml` configuration like:
+The plugin supports all normal built-in Serverless framework packaging configurations. E.g., more complex `serverless.yml` configurations like:
 
 ```yml
 package:
@@ -56,13 +48,6 @@ package:
 plugins:
   # Add the plugin here.
   - serverless-jetpack
-
-custom:
-  # Optional configuration options go here:
-  serverless-jetpack:
-    mode: npm                           # Default `yarn`
-    lockfile: ../../package-lock.json   # Different location
-    stdio: true                         # Default `false`
 
 functions:
   base:
@@ -90,7 +75,7 @@ Observing that a very common use case for a Serverless framework is:
 - A `yarn.lock` file if using `yarn` or a `package-lock.json` file if using `npm` to lock down and speed up installations.
 - One or more JavaScript source file directories, typically something like `src`.
 
-The `serverless-jetpack` plugin leverages this use case and gains a potentially significant speedup by observing that manually pruning development dependencies (as Serverless does) can be much, much slower in practice than using honed, battle-tested tools like `yarn` and `npm` to install just the production dependencies from scratch -- by doing a fresh `yarn|npm install` in a temporary directory, copying over source files and zipping that all up!
+The `serverless-jetpack` plugin leverages this use case and gains a potentially significant speedup performing a fast production dependency on-disk discovery via the [inspectdep][] library that is turned into an efficient up-front globbing limitation to scan way, way less files in `node_modules` during packaging.
 
 Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serverless packaging to detect when Serverless would actually do it's own packaging. Then, it inserts its different packaging steps and copies over the analogous zip file to where Serverless would have put it, and sets internal Serverless `artifact` field that then causes Serverless to skip all its normal packaging steps.
 
@@ -113,39 +98,9 @@ This _does_ have some other implications like:
 
 * If your `include|exclude` logic intends to glob in `devDependencies`, this won't work anymore. But, you're not really planning on deploying non-production dependencies are you? 😉
 
-### Complexities
-
-#### Root `node_modules` directory
-
-This plugin assumes that the directory from which you run `serverless` commands is where `node_modules` is installed and the only one in play. It's fine if you have things like a monorepo with nested packages that each have a `serverless.yml` and `package.json` as long as each one is an independent "root" of `serverless` commands.
-
-Having additional `node_modules` installs in nested directory from a root is unlikely to work properly with this plugin.
-
-#### Lockfiles
-
-It is a best practice to use lockfiles (`yarn.lock` or `package-lock.json`) generally, and specifically important for the approach this plugin takes because it does **new** `yarn|npm` installs into a temporary directory. Without lockfiles you may be packaging/deploying something _different_ from what is in the root project. And, production installs with this plugin are much, much _faster_ with a lockfile than without.
-
-To this end, the plugin assumes that a lockfile is provided by default and you must explicitly set the option to `lockfile: null` to avoid having a lockfile copied over. When a lockfile is present then the strict (and fast!) `yarn install --frozen-lockfile  --production` and `npm ci --production` commands are used to guarantee the packaged `node_modules` matches the relevant project modules. And, the installs will **fail** (by design) if the lockfile is out of date.
-
-#### Monorepos and lockfiles
-
-Many projects use features like [yarn workspaces][] and/or [lerna][] to have a large root project that then has many separate serverless functions/packages in separate directories. In cases like these, the relevant lock file may not be in something like `packages/NAME/yarn.lock`, but instead at the project root like `yarn.lock`.
-
-In cases like these, simply set the `lockfile` option to relatively point to the appropriate lockfile (e.g., `lockfile: ../../yarn.lock`).
-
-#### `npm install` vs `npm ci`
-
-`npm ci` was introduced in version [`5.7.0`](https://blog.npmjs.org/post/171139955345/v570). Notwithstanding the general lockfile logic discussed above, if the plugin detects an `npm` version prior to `5.7.0`, the non-locking, slower `npm install --production` command will be used instead.
-
-#### Excluding `serverless.*` files
-
-The serverless framework only excludes the _first_ match of `serverless.{yml,yaml,json,js}` in order. By contrast, Jetpack just glob excludes them all. We recommend using a glob `include` if your deploy logic depends on having something like `serverless.js` around.
-
 ## Benchmarks
 
 The following is a simple, "on my machine" benchmark generated with `yarn benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
-
-When run with a lockfile (producing the fastest `yarn|npm` install), **all** of our scenarios have faster packaging with `serverless-jetpack`. In some cases, this means over a **6x** speedup. The results also indicate that if your project is **not** using a lockfile, then built-in Serverless packaging may be faster.
 
 As a quick guide to the results table:
 
@@ -153,13 +108,10 @@ As a quick guide to the results table:
     - `simple`: Very small production and development dependencies.
     - `individually`: Same dependencies as `simple`, but with `individually` packaging.
     - `huge`: Lots and lots of development dependencies.
-- `Mode`: Use `yarn` or `npm`?
-- `Lockfile`: Use a lockfile (fastest) or omit?
+- `Mode`: Project installed via `yarn` or `npm`?
 - `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
 - `Time`: Elapsed build time in milliseconds.
 - `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
-
-The rows that are **bolded** are the preferred configurations for `serverless-jetpack`, which is to say, configured with a lockfile and `npm@5.7.0+` if using `npm`.
 
 Machine information:
 
@@ -167,6 +119,8 @@ Machine information:
 * node: `v8.16.0`
 * yarn: `1.15.2`
 * npm:  `6.4.1`
+
+- TODO: New benchmark file
 
 Results:
 
@@ -200,6 +154,7 @@ Results:
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/
 [yarn workspaces]: https://yarnpkg.com/lang/en/docs/workspaces/
+[inspectdep]: https://github.com/FormidableLabs/inspectdep/
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
