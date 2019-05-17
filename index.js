@@ -7,7 +7,7 @@ const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
 // TODO(inspect): need real package.
-const { production } = require("../inspectdep");
+const { findProdInstalls } = require("../inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
@@ -302,7 +302,7 @@ class Jetpack {
 
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
-    const depInclude = await production({ rootPath: servicePath });
+    const depInclude = await findProdInstalls({ rootPath: servicePath });
     const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
 
     // Create package zip.
