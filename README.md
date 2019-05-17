@@ -101,14 +101,13 @@ Jetpack does _most_ of what Serverless does globbing-wise with `include|exclude`
 1. Glob files from disk with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files.
 2. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
-This is potentially slow if `node_modules` contains a lot of ultimately removed files, yielding a lot of completely wasted disk I/O time. Also, following symlinks is expensive, and for `node_modules` almost never useful.
+This is potentially slow if `node_modules` contains a lot of ultimately removed files, yielding a lot of completely wasted disk I/O time.
 
 Jetpack, by contrast does the following:
 
-1. Glob files from disk with a root `**` (all files) and the `include` pattern, **except** for `node_modules` (never read) and without following symlinks to create a list of files.
-2. Apply service + function `exclude`, then `include` patterns in order.
-3. Separately `npm|yarn install` production `node_modules` into a dedicated dependencies build directory. Run the same glob logic and `exclude` + `include` matching over just the new `node_modules`.
-4. Then zip the files from the two separate matching operations.
+1. Efficiently infer production dependencies from disk.
+2. Glob files from disk with a root `**` (all files) that excludes `node_modules` generally from being read except for production dependencies. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
+3. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
 This _does_ have some other implications like:
 

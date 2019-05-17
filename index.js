@@ -1,30 +1,17 @@
 "use strict";
 
 const pkg = require("./package.json");
-const { tmpdir } = require("os");
 const path = require("path");
-const { access, copy, constants, createWriteStream, mkdir, remove } = require("fs-extra");
+const { createWriteStream } = require("fs");
 const archiver = require("archiver");
-const execa = require("execa");
-const uuidv4 = require("uuid/v4");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
+// TODO(inspect): need real package.
+const { production } = require("../inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
 const IS_WIN = process.platform === "win32";
-
-const dirExists = async (dirPath) => {
-  try {
-    await access(dirPath, constants.W_OK);
-    return true;
-  } catch (_) {
-    return false;
-  }
-};
-
-// OS-agnostic wrapper for running npm|yarn commands.
-const execMode = (mode, args, opts) => execa(`${mode}${IS_WIN ? ".cmd" : ""}`, args, opts);
 
 // Simple, stable union.
 const union = (arr1, arr2) => {
@@ -57,93 +44,6 @@ const filterFiles = ({ files, include, exclude }) => {
 
   // Convert the state map of `true` into our final list of files.
   return Object.keys(filesMap).filter((f) => filesMap[f]);
-};
-
-// Convert a yarn tree to a map of on-disk directories.
-//
-// Entries are of the form:
-// ```js
-// // Abstract: not really on disk
-// {
-//     "name": "statuses@>= 1.4.0 < 2",
-//     "color": "dim",
-//     "shadow": true
-// },
-// // Concrete: on disk
-// {
-//     "name": "statuses@1.5.0",
-//     "children": [],
-//     "hint": null,
-//     "color": "bold",
-//     "depth": 0
-// }
-// ```
-const yarnTreeToMap = ({ children, map }) => {
-  map = map || {};
-
-  // Extract trees.
-  (children || []).forEach((child) => {
-    // Remove version. (Preserve `@scope/pkg`).
-    const name = child.name.replace(/\@[^\@]+$/, "");
-    if (!name) {
-      throw new Error(`No name found for: ${JSON.stringify(child)}`);
-    }
-
-    // Shadowed deps are not really on disk.
-    if (!child.shadow) {
-      map[name] = {};
-      yarnTreeToMap({ children: child.children, map: map[name] });
-    }
-  });
-
-  return map;
-};
-
-// TODO: Needed for npm?
-// // Find actual dependency directories on disk.
-// const findDepsFromMap = async ({ map, rootPath, curPath }) => {
-//   curPath = curPath || rootPath;
-
-//   // Look on disk for actual matches.
-//   const locs = await Promise.all(Object.keys(map).map(async (name) => {
-//     let searchPath = curPath;
-//     while (searchPath.length >= rootPath.length) {
-//       const candidatePath = path.resolve(searchPath, `node_modules/${name}`);
-//       const exists = await dirExists(candidatePath);
-//       if (!exists) {
-//         // Decrement path and search again up to root.
-//         searchPath = path.dirname(searchPath);
-//       }
-
-//       // TODO(lists): Insert recursion to find children since it **has** to
-//       // start from here.
-//       //
-//       // TODO(lists): The tree looks **wrong**. In that it doesn't represent the entire structure.
-//       // Ugh.
-//       console.log("TODO HERE", {
-//         name,
-//         subMap: map[name]
-//       });
-
-//       return path.relative(rootPath, candidatePath);
-//     }
-
-//     // TODO(list): Consider a WARN instead and filter out / return null.
-//     throw new Error(`Could not resolve location for: ${name}`);
-//   }));
-
-//   return locs;
-// };
-
-// Traverse a map of dependencies and translate it to glob include patterns.
-const depsToPatterns = ({ depsMap, rootPath, curPath }) => {
-  curPath = curPath || rootPath;
-  return Object.keys(depsMap).reduce((memo, name) => {
-    const depPath = path.join(curPath, "node_modules", name);
-    return memo
-      .concat(path.relative(rootPath, depPath))
-      .concat(depsToPatterns({ depsMap: depsMap[name], rootPath, curPath: depPath }));
-  }, []);
 };
 
 /**
@@ -308,39 +208,6 @@ class Jetpack {
     };
   }
 
-  // Infer all production dependencies from file lists and use them to create
-  // a list of patterns suitable for globbing.
-  async getProdDependencyPatterns() {
-    const { config } = this.serverless;
-    const servicePath = config.servicePath || ".";
-    const { mode, lockfile } = this._options;
-
-    // TODO(list): Expand to npm.
-    const { stdout } = await execMode(mode, ["list", "--json"], {
-      cwd: servicePath,
-      env: {
-        ...process.env,
-        NODE_ENV: "production"
-      }
-    });
-
-    const tree = JSON.parse(stdout);
-    let list = tree;
-    if (list.type === "tree") {
-      list = list.data;
-    }
-    if (list.type !== "list") {
-      throw new Error(`Unparseable yarn tree structure: ${JSON.stringify(tree)}`);
-    } else if (!list.trees) {
-      throw new Error(`Empty yarn tree structure: ${JSON.stringify(tree)}`);
-    }
-
-    const depsMap = yarnTreeToMap({ children: list.trees });
-    const patterns = depsToPatterns({ depsMap, rootPath: servicePath });
-
-    return patterns;
-  }
-
   // Analogous file resolver to built-in serverless.
   //
   // The main difference is that we exclude the root project `node_modules`
@@ -348,7 +215,7 @@ class Jetpack {
   //
   // See: `resolveFilePathsFromPatterns` in
   // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
-  async resolveFilesFromPatterns({ depInclude, include, exclude }) {
+  async resolveFilePathsFromPatterns({ depInclude, include, exclude }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
 
@@ -358,17 +225,16 @@ class Jetpack {
       // Remove all node_modules.
       .concat(["!node_modules"])
       // ... except for the production node_modules
-      .concat(depInclude)
+      .concat(depInclude || [])
       // ... then normal include like serverless does.
       .concat(include || []);
 
     const files = await globby(globInclude, {
       cwd: servicePath,
       dot: true,
-      filesOnly: true,
-      // Important for speed: beyond "later excluding", this means we **never
-      // even read** node_modules.
-      ignore: []
+      silent: true,
+      follow: true,
+      nodir: true
     });
 
     // Find and exclude serverless config file. It _should_ be this function:
@@ -436,8 +302,8 @@ class Jetpack {
 
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
-    const depInclude = await this.getProdDependencyPatterns();
-    const files = await this.resolveFilesFromPatterns({ depInclude, include, exclude });
+    const depInclude = await production({ rootPath: servicePath });
+    const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
 
     // Create package zip.
     await this.createZip({

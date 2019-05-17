@@ -17,8 +17,9 @@ const { MATRIX } = require("./script");
 // throughout installed `node_modules`, but this is tricky to get right and
 // there are known cases of bad matches that we exclude from consideration.
 const PKG_IGNORE_ALL = new Set([
-  // All binaries.
-  "node_modules/.bin"
+  // All binaries and metafiles.
+  "node_modules/.bin",
+  "node_modules/.yarn-integrity"
 ]);
 
 // False positives from serverless by scenario.

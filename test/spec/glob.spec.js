@@ -22,7 +22,7 @@ const pluginAdapter = async ({ plugin, pkgExclude, pkgInclude, fnExclude, fnIncl
   plugin.serverless.service.package.exclude = pkgExclude;
   plugin.serverless.service.package.include = pkgInclude;
 
-  return await plugin.resolveProjectFilePathsFromPatterns(
+  return await plugin.resolveFilePathsFromPatterns(
     plugin.filePatterns({
       functionObject: {
         "package": {
@@ -77,6 +77,9 @@ describe("globbing (include/exclude) logic", () => {
       expect(pluginError).to.be.ok.and.to.have.property("message", slsError.message);
 
       return pluginError;
+    } else if (pluginError) {
+      // Should **not** have a plugin error alone.
+      throw pluginError;
     }
 
     // Check files.
