@@ -249,7 +249,7 @@ class Jetpack {
     });
   }
 
-  async buildAndZip({ bundleName, functionObject }) {
+  async globAndZip({ bundleName, functionObject }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const bundlePath = path.resolve(servicePath, bundleName);
@@ -273,9 +273,9 @@ class Jetpack {
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
-    // Build.
+    // Package.
     this._log(`Packaging function: ${bundleName}`);
-    await this.buildAndZip({ bundleName, functionObject });
+    await this.globAndZip({ bundleName, functionObject });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -290,9 +290,9 @@ class Jetpack {
     // Mimic built-in serverless naming.
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
-    // Build.
+    // Package.
     this._log(`Packaging service: ${bundleName}`);
-    await this.buildAndZip({ bundleName });
+    await this.globAndZip({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;

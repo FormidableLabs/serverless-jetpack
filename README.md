@@ -2,6 +2,7 @@ Serverless Jetpack 🚀
 ====================
 [![npm version][npm_img]][npm_site]
 [![Travis Status][trav_img]][trav_site]
+[![AppVeyor Status][appveyor_img]][appveyor_site]
 
 A faster JavaScript packager for [Serverless][] applications.
 
@@ -57,11 +58,9 @@ functions:
     package:
       # These work just like built-in serverless packaging - added to the
       # service-level exclude/include fields.
-      exclude:
-        - "**"
       include:
         - "src/**"
-        - "node_modules/**"
+        - "!**/node_modules/aws-sdk" # Faster way to exclude
         - "package.json"
 ```
 
@@ -97,6 +96,43 @@ Jetpack, by contrast does the following:
 This _does_ have some other implications like:
 
 * If your `include|exclude` logic intends to glob in `devDependencies`, this won't work anymore. But, you're not really planning on deploying non-production dependencies are you? 😉
+
+### Complexities
+
+#### Be careful with `include` and `node_modules`
+
+Jetpack's approach to processing `node_modules` faster than built-in `serverless` packaging hinges on not reading anything in `node_modules` that is not already a production dependencies. It does this by inserting globs like:
+
+```
+!node_modules
+node_modules/PROD_DEP_01
+node_modules/PROD_DEP_02
+node_modules/PROD_DEP_03
+node_modules/...
+```
+
+to initially exclude all of `node_modules` then carefully add back in the production dependencies so the development dependencies are never read during the actual broad call to glob over the file system within a packaging unit. If you were to add something like:
+
+```yml
+include:
+  - "node_modules/**"
+exclude:
+  - # ... a whole bunch of stuff ...
+```
+
+This would likely be just as slow as built-in Serverless packaging because all of `node_modules` gets read from disk.
+
+Thus, the **best practice** here when crafting service or function `include` configurations is: **don't `include` anything extra in `node_modules`**. It's fine to do extra exclusions like:
+
+```yml
+# Good. Remove dependency provided by lambda from zip
+exclude:
+  - "**/node_modules/aws-sdk"
+
+# Better! Never even read the files from disk during globbing in the first place!
+include:
+  - "!**/node_modules/aws-sdk"
+```
 
 ## Benchmarks
 
@@ -144,3 +180,5 @@ Results:
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
 [trav_img]: https://api.travis-ci.com/FormidableLabs/serverless-jetpack.svg
 [trav_site]: https://travis-ci.com/FormidableLabs/serverless-jetpack
+[appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
+[appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
