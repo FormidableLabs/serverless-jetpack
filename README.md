@@ -157,18 +157,18 @@ Machine information:
 Results:
 
 | Scenario     | Mode | Type     | Time  |      vs Base |
-| :----------- | :--- | :------- | :---- | -----------: |
-| simple       | yarn | jetpack  | 4338  | **-46.37 %** |
-| simple       | yarn | baseline | 8089  |              |
-| simple       | npm  | jetpack  | 4055  | **-53.78 %** |
-| simple       | npm  | baseline | 8773  |              |
-| individually | yarn | jetpack  | 2964  | **-76.77 %** |
+| :----------- | :--- | :------- | ----: | -----------: |
+| simple       | yarn | jetpack  |  4338 | **-46.37 %** |
+| simple       | yarn | baseline |  8089 |              |
+| simple       | npm  | jetpack  |  4055 | **-53.78 %** |
+| simple       | npm  | baseline |  8773 |              |
+| individually | yarn | jetpack  |  2964 | **-76.77 %** |
 | individually | yarn | baseline | 12760 |              |
-| individually | npm  | jetpack  | 4183  | **-69.67 %** |
+| individually | npm  | jetpack  |  4183 | **-69.67 %** |
 | individually | npm  | baseline | 13790 |              |
-| huge         | yarn | jetpack  | 4524  | **-84.03 %** |
+| huge         | yarn | jetpack  |  4524 | **-84.03 %** |
 | huge         | yarn | baseline | 28321 |              |
-| huge         | npm  | jetpack  | 5680  | **-83.07 %** |
+| huge         | npm  | jetpack  |  5680 | **-83.07 %** |
 | huge         | npm  | baseline | 33551 |              |
 
 [Serverless]: https://serverless.com/
