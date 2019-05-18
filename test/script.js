@@ -61,7 +61,7 @@ const ENV = {
 };
 
 const TABLE_OPTS = {
-  align: ["l", "l", "l", "l", "r", "r"],
+  align: ["l", "l", "l", "r", "r"],
   stringLength: (cell) => strip(cell).length // fix alignment with chalk.
 };
 
