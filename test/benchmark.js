@@ -21,12 +21,56 @@ const PKG_IGNORE_ALL = new Set([
   "node_modules/.yarn-integrity"
 ]);
 
+// Windows does poorly with false positives for the basic `serverless` +
+// `serverless-offline` dependencies.
+const SLS_FALSE_POSITIVES_WIN_BASE = [
+  "node_modules/.bin/atob",
+  // yarn why esparse -> esprima serverless#js-yaml
+  "node_modules/.bin/esparse",
+  // yarn why esvalidate -> esprima serverless#js-yaml
+  "node_modules/.bin/esvalidate",
+  // yarn why is-ci -> serverless#update-notifier
+  "node_modules/.bin/is-ci",
+  // yarn why js-yaml -> serverless
+  "node_modules/.bin/js-yaml",
+  // yarn why json-refs -> serverless
+  "node_modules/.bin/json-refs",
+  // yarn why mkdirp -> serverless
+  "node_modules/.bin/mkdirp",
+  // yarn why raven -> serverless
+  "node_modules/.bin/raven",
+  // yarn why rc -> serverless
+  "node_modules/.bin/rc",
+  // yarn why rimraf -> serverless#fs-extra
+  "node_modules/.bin/rimraf",
+  // yarn why seek-bunzip -> seek-bzip serverless#download#decompress#decompress-tarbz2
+  "node_modules/.bin/seek-bunzip",
+  // yarn why seek-table -> seek-bzip serverless#download#decompress#decompress-tarbz2
+  "node_modules/.bin/seek-table",
+  // yarn why semver -> serverless
+  "node_modules/.bin/semver",
+  // yarn why serverless -> devDependencies
+  "node_modules/.bin/serverless",
+  // yarn why sls -> serverless
+  "node_modules/.bin/atslsob",
+  // yarn why slss -> serverless
+  "node_modules/.bin/slss",
+  // yarn why tabtab -> serverless
+  "node_modules/.bin/tabtab",
+  // yarn why velocity -> velocityjs serverless-offline
+  "node_modules/.bin/velocity",
+  // yarn why which -> serverless#update-notifier#boxen#term-size#execa#cross-spawn
+  "node_modules/.bin/which"
+];
+
 // False positives from serverless by scenario.
 // In general, it appears that `serverless` doesn't correctly detect
 // a lot of `jest` dependencies are `devDependencies` when installing with
 // `yarn` (although `npm` looks correct).
 const SLS_FALSE_POSITIVES = {
   "simple/yarn": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid",
 
@@ -35,12 +79,24 @@ const SLS_FALSE_POSITIVES = {
     "node_modules/abbrev"
   ]),
 
+  "simple/npm": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE
+  ]),
+
   "individually/yarn": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid"
   ]),
 
+  "individually/npm": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE
+  ]),
+
   "huge/npm": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
     // $ yarn why raven -> serverless
     "node_modules/.bin/parser",
     // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
@@ -48,6 +104,8 @@ const SLS_FALSE_POSITIVES = {
   ]),
 
   "huge/yarn": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
     // $ yarn why detect-libc -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
     "node_modules/.bin/detect-libc",
     // $ yarn why needle -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
