@@ -143,7 +143,7 @@ const keepBaselineMatch = ({ scenario, mode }) => (f) => {
 
   // Exact match for .bin, top-level for everything else.
   return f.startsWith("node_modules/.bin")
-    ? !matches.has(f)
+    ? !matches.has(f.replace(/\.cmd$/, "")) // match unix or windows script
     : !matches.has(topLevel(f));
 };
 
