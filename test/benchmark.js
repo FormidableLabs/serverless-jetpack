@@ -160,7 +160,11 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why raven -> serverless
     "node_modules/.bin/parser",
     // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
-    "node_modules/.bin/watch"
+    "node_modules/.bin/watch",
+    // $ yarn why sshpk -> cypress#request#http-signature
+    "node_modules/.bin/sshpk-conv",
+    "node_modules/.bin/sshpk-sign",
+    "node_modules/.bin/sshpk-verify"
   ]),
 
   "huge/yarn": new Set([
