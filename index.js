@@ -6,7 +6,7 @@ const { createWriteStream } = require("fs");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
-const { findProdInstalls } = require("inspectdep");
+const { findProdInstalls } = require("../inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;

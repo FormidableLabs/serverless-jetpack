@@ -17,18 +17,55 @@ const { MATRIX } = require("./script");
 // throughout installed `node_modules`, but this is tricky to get right and
 // there are known cases of bad matches that we exclude from consideration.
 const PKG_IGNORE_ALL = new Set([
-  // All binaries and metafiles.
-  "node_modules/.bin",
+  // All metafiles.
   "node_modules/.yarn-integrity"
 ]);
 
 // False positives from serverless by scenario.
+// In general, it appears that `serverless` doesn't correctly detect
+// a lot of `jest` dependencies are `devDependencies` when installing with
+// `yarn` (although `npm` looks correct).
 const SLS_FALSE_POSITIVES = {
-  // For this scenario, it appears that `serverless` doesn't correctly detect
-  // a lot of `jest` dependencies are `devDependencies` when installing with
-  // `yarn` (although `npm` looks correct).
+  "simple/yarn": new Set([
+    // $ yarn why uuid -> serverless
+    "node_modules/.bin/uuid",
+
+    // $ yarn why abbrev
+    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
+    "node_modules/abbrev"
+  ]),
+
+  "individually/yarn": new Set([
+    // $ yarn why uuid -> serverless
+    "node_modules/.bin/uuid"
+  ]),
+
+  "huge/npm": new Set([
+    // $ yarn why raven -> serverless
+    "node_modules/.bin/parser",
+    // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
+    "node_modules/.bin/watch"
+  ]),
+
   "huge/yarn": new Set([
-    // `$ yarn why abbrev`
+    // $ yarn why detect-libc -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
+    "node_modules/.bin/detect-libc",
+    // $ yarn why needle -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
+    "node_modules/.bin/needle",
+    // $ yarn why node-pre-gyp -> jest#jest-cli#@jest/core#jest-haste-map#fsevents
+    "node_modules/.bin/node-pre-gyp",
+    // $ yarn why nopt -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
+    "node_modules/.bin/nopt",
+    // $ yarn why raven -> serverless
+    "node_modules/.bin/parser",
+    // $ yarn why sshpk -> cypress#request#http-signature
+    "node_modules/.bin/sshpk-conv",
+    "node_modules/.bin/sshpk-sign",
+    "node_modules/.bin/sshpk-verify",
+    // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
+    "node_modules/.bin/watch",
+
+    // $ yarn why abbrev
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
     "node_modules/abbrev",
 
@@ -102,7 +139,12 @@ const keepMatchesAll = (f) => !PKG_IGNORE_ALL.has(topLevel(f));
 // Applies only to baselines (false positives).
 const keepBaselineMatch = ({ scenario, mode }) => (f) => {
   const matches = SLS_FALSE_POSITIVES[`${scenario}/${mode}`];
-  return !matches || !matches.has(topLevel(f));
+  if (!matches) { return true; }
+
+  // Exact match for .bin, top-level for everything else.
+  return f.startsWith("node_modules/.bin")
+    ? !matches.has(f)
+    : !matches.has(topLevel(f));
 };
 
 describe("benchmark", () => {
