@@ -24,6 +24,7 @@ const PKG_IGNORE_ALL = new Set([
 // Windows does poorly with false positives for the basic `serverless` +
 // `serverless-offline` dependencies.
 const SLS_FALSE_POSITIVES_WIN_BASE = [
+  // yarn why atob -> jest#jest-cli#@jest/core#micromatch#snapdragon#source-map-resolve
   "node_modules/.bin/atob",
   // yarn why esparse -> esprima serverless#js-yaml
   "node_modules/.bin/esparse",
