@@ -52,7 +52,7 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   // yarn why serverless -> devDependencies
   "node_modules/.bin/serverless",
   // yarn why sls -> serverless
-  "node_modules/.bin/atslsob",
+  "node_modules/.bin/sls",
   // yarn why slss -> serverless
   "node_modules/.bin/slss",
   // yarn why tabtab -> serverless
@@ -61,6 +61,64 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/velocity",
   // yarn why which -> serverless#update-notifier#boxen#term-size#execa#cross-spawn
   "node_modules/.bin/which"
+];
+
+// ... and the huge scenario has even more false positives
+const SLS_FALSE_POSITIVES_WIN_HUGE = [
+  // yarn why acorn -> next#webpack
+  "node_modules/.bin/acorn",
+  // yarn why amphtml-validator -> next
+  "node_modules/.bin/amphtml-validator",
+  // yarn why ansi-html -> next#webpack-hot-middleware
+  "node_modules/.bin/ansi-html",
+  // yarn why browserslist -> @babel/preset-env
+  "node_modules/.bin/browserslist",
+  // yarn why cypress -> devDependencies
+  "node_modules/.bin/cypress",
+  // yarn why errno -> next#recursive-copy
+  "node_modules/.bin/errno",
+  // yarn why escodegen -> jest#jest-cli#jest-config#jest-environment-jsdom#jsdom
+  "node_modules/.bin/escodegen",
+  // yarn why esgenerate -> escodegen jest#jest-cli#jest-config#jest-environment-jsdom#jsdom
+  "node_modules/.bin/esgenerate",
+  // yarn why extract-zip -> cypress
+  "node_modules/.bin/extract-zip",
+  // yarn why handlebars -> jest#jest-cli#@jest/core#@jest/reporters#istanbul-api#istanbul-reports
+  "node_modules/.bin/handlebars",
+  // yarn why import-local-fixture -> import-local jest
+  "node_modules/.bin/import-local-fixture",
+  // yarn why jest-runtime -> jest#jest-cli#@jest/core
+  "node_modules/.bin/jest-runtime",
+  // yarn why jest -> devDependencies
+  "node_modules/.bin/jest",
+  // yarn why jsesc -> @babel/preset-env...
+  "node_modules/.bin/jsesc",
+  // yarn why json5 -> next#@babel/core
+  "node_modules/.bin/json5",
+  // yarn why miller-rabin -> next#webpack#node-libs-browser#crypto-browserify#diffie-hellman
+  "node_modules/.bin/miller-rabin",
+  // yarn why next -> devDependencies
+  "node_modules/.bin/next",
+  // yarn why regexp-tree -> @babel/preset-env#@babel/plugin-transform-named-capturing-groups-regex
+  "node_modules/.bin/regexp-tree",
+  // yarn why regjsparser -> @babel/preset-env#...
+  "node_modules/.bin/regjsparser",
+  // yarn why sane -> jest#jest-cli#@jest/core#jest-haste-map
+  "node_modules/.bin/sane",
+  // yarn why sha.js -> next#webpack#node-libs-browser#crypto-browserify#create-hash
+  "node_modules/.bin/sha.js",
+  // yarn why terser -> next
+  "node_modules/.bin/terser",
+  // yarn why tsc -> devDependencies
+  "node_modules/.bin/tsc",
+  // yarn why tsserver -> devDependencies
+  "node_modules/.bin/tsserver",
+  // yarn why uglifyjs -> uglify-js jest#jest-cli#@jest/core...
+  "node_modules/.bin/uglifyjs",
+  // yarn why uuid -> cypress#request
+  "node_modules/.bin/uuid",
+  // yarn why webpack -> next
+  "node_modules/.bin/webpack"
 ];
 
 // False positives from serverless by scenario.
@@ -96,6 +154,7 @@ const SLS_FALSE_POSITIVES = {
 
   "huge/npm": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
+    ...SLS_FALSE_POSITIVES_WIN_HUGE,
 
     // $ yarn why raven -> serverless
     "node_modules/.bin/parser",
@@ -105,6 +164,7 @@ const SLS_FALSE_POSITIVES = {
 
   "huge/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
+    ...SLS_FALSE_POSITIVES_WIN_HUGE,
 
     // $ yarn why detect-libc -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
     "node_modules/.bin/detect-libc",
