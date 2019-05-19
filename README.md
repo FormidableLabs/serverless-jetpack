@@ -99,7 +99,11 @@ This _does_ have some other implications like:
 
 ### Complexities
 
-#### Be careful with `include` and `node_modules`
+#### Minor differences vs. Serverless globbing
+
+Our [benchmark correctness tests](./test/benchmark.js) highlight a number of various files not included by Jetpack that are included by `serverless` in packaging our benchmark scenarios. Some of these are things like `node_modules/.yarn-integrity` which Jetpack knowingly ignores because you shouldn't need it. All of the others we've discovered to date are instances in which `serverless` incorrectly includes `devDependencies`...
+
+#### Be careful with `include` configurations and `node_modules`
 
 Jetpack's approach to processing `node_modules` faster than built-in `serverless` packaging hinges on not reading anything in `node_modules` that is not already a production dependencies. It does this by inserting globs like:
 

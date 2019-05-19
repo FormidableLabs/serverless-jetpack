@@ -38,7 +38,7 @@
   "dependencies": {
     "archiver": "^3.0.0",
     "globby": "^9.2.0",
-    "inspectdep": "^0.1.0",
+    "inspectdep": "^0.1.1",
     "nanomatch": "^1.2.13"
   },
   "devDependencies": {
