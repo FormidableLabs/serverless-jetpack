@@ -175,6 +175,10 @@ class Jetpack {
 
     // _Now_, start globbing like serverless does.
     // 1. Glob everything on disk using only _includes_ (except `node_modules`).
+    //    This is loosely, what serverless would do with the difference that
+    //    **everything** in `node_modules` is globbed first and then files
+    //    excluded manually by `nanomatch` after. We get the same result here
+    //    without reading from disk.
     const globInclude = ["**"]
       // Remove all node_modules.
       .concat(["!node_modules"])

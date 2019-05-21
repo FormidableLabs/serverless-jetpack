@@ -82,15 +82,15 @@ Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serve
 
 Jetpack does _most_ of what Serverless does globbing-wise with `include|exclude` at the service or function level. Serverless does the following (more or less):
 
-1. Glob files from disk with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files.
-2. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
+1. Glob files from disk using [globby][] with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files (no directories). This is the only actual **on disk** I/O.
+2. Filter the in-memory list of files using [nanomatch][] via service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file. Notably, this is also where `excludeDevDependencies` excludes take place.
 
 This is potentially slow if `node_modules` contains a lot of ultimately removed files, yielding a lot of completely wasted disk I/O time.
 
 Jetpack, by contrast does the following:
 
 1. Efficiently infer production dependencies from disk.
-2. Glob files from disk with a root `**` (all files) that excludes `node_modules` generally from being read except for production dependencies. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
+2. Glob files from disk with a root `**` (all files), `!node_modules` (exclude all by default), `!node_modules/PROD_DEP_01, !node_modules/PROD_DEP_02, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
 3. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
 This _does_ have some other implications like:
@@ -138,6 +138,16 @@ include:
   - "!**/node_modules/aws-sdk"
 ```
 
+As a final aside, it's worth a note that both Serverless and Jetpack work the same with regard to `include|exclude` configurations that might not be completely intuitive to end users:
+
+- `include`: Used in `globby()` disk reads files into a list and `nanomatch()` pattern matching to decide what to keep.
+    - `!**/node_modules/aws-sdk`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will **never** even be read from disk. This is faster. During later `nanomatch()` this has no effect, because it won't match an actual file.
+    - `!**/node_modules/aws-sdk/**`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will read from disk, but then individual files excluded from the list. This is slower. During later `nanomatch()` this will potentially re-exclude.
+
+- `exclude`: Only used in `nanomatch()` pattern matching to decide which files in a list to keep.
+    - `**/node_modules/aws-sdk`: No effect, because directory-only application.
+    - `**/node_modules/aws-sdk/**`: During `nanomatch()` this will exclude.
+
 ## Benchmarks
 
 The following is a simple, "on my machine" benchmark generated with `yarn benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
@@ -179,6 +189,8 @@ Results:
 [lerna]: https://lerna.js.org/
 [yarn workspaces]: https://yarnpkg.com/lang/en/docs/workspaces/
 [inspectdep]: https://github.com/FormidableLabs/inspectdep/
+[globby]: https://github.com/sindresorhus/globby
+[nanomatch]: https://github.com/micromatch/nanomatch
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
