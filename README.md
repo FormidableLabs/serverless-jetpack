@@ -34,7 +34,7 @@ plugins:
 
 ### A little more detail...
 
-The plugin supports all normal built-in Serverless framework packaging configurations. E.g., more complex `serverless.yml` configurations like:
+The plugin supports all normal built-in Serverless framework packaging configurations in `serverless.yml` like:
 
 ```yml
 package:
@@ -66,11 +66,11 @@ functions:
 
 ## How it works
 
-The Serverless framework can be amazingly slow during packaging applications that have lots of files from `devDependencies`. Although the `excludeDevDependencies` option will remove these from the target zip bundle, it does so only **after** the files are read from disk, wasting a lot of disk I/O and time.
+Serverless built-in packaging slows to a crawl in applications that have lots of files from `devDependencies`. Although the `excludeDevDependencies` option will ultimately remove these from the target zip bundle, it does so only **after** the files are read from disk, wasting a lot of disk I/O and time.
 
-The `serverless-jetpack` plugin removes this bottleneck by performing a fast production dependency on-disk discovery via the [inspectdep][] library before any globbing is ddone. The discovered production dependencies are then converted into very efficient patterns that are injected into the otherwise normal Serverless framework packaging heuristics to efficiently avoid all unnecesssary disk I/O due to `devDependencies` in `node_modules`.
+The `serverless-jetpack` plugin removes this bottleneck by performing a fast production dependency on-disk discovery via the [inspectdep][] library before any globbing is done. The discovered production dependencies are then converted into patterns and injected into the otherwise normal Serverless framework packaging heuristics to efficiently avoid all unnecessary disk I/O due to `devDependencies` in `node_modules`.
 
-Process-wise, the `serverless-jetpack` plugin detects when built-in packaging applies and then takes over with a packaging process that mostly mimics what Serverless would do, just faster. The plugin then sets appropriate internal Serverless `artifact` fields to cause Serverless to skip the (slower) built-in packaging.
+Process-wise, the `serverless-jetpack` plugin detects when built-in packaging applies and then takes over the packaging process. The plugin then sets appropriate internal Serverless `artifact` fields to cause Serverless to skip the (slower) built-in packaging.
 
 ### The nitty gritty of why it's faster
 
