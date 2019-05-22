@@ -66,34 +66,29 @@ functions:
 
 ## How it works
 
-The Serverless framework can sometimes massively slow down when packaging applications with large amounts / disk ussage for `devDependencies`. Although the framework enables `excludeDevDependencies` during packaging by default, just ingesting all the files that are later excluded (via that setting and normal `include|exclude` globs) causes apparently enough disk I/O to make things potentially slow.
+The Serverless framework can be amazingly slow during packaging applications that have lots of files from `devDependencies`. Although the `excludeDevDependencies` option will remove these from the target zip bundle, it does so only **after** the files are read from disk, wasting a lot of disk I/O and time.
 
-Observing that a very common use case for a Serverless framework is:
+The `serverless-jetpack` plugin removes this bottleneck by performing a fast production dependency on-disk discovery via the [inspectdep][] library before any globbing is ddone. The discovered production dependencies are then converted into very efficient patterns that are injected into the otherwise normal Serverless framework packaging heuristics to efficiently avoid all unnecesssary disk I/O due to `devDependencies` in `node_modules`.
 
-- A `package.json` file defining production and development dependencies.
-- A `yarn.lock` file if using `yarn` or a `package-lock.json` file if using `npm` to lock down and speed up installations.
-- One or more JavaScript source file directories, typically something like `src`.
-
-The `serverless-jetpack` plugin leverages this use case and gains a potentially significant speedup performing a fast production dependency on-disk discovery via the [inspectdep][] library that is turned into an efficient up-front globbing limitation to scan way, way less files in `node_modules` during packaging.
-
-Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serverless packaging to detect when Serverless would actually do it's own packaging. Then, it inserts its different packaging steps and copies over the analogous zip file to where Serverless would have put it, and sets internal Serverless `artifact` field that then causes Serverless to skip all its normal packaging steps.
+Process-wise, the `serverless-jetpack` plugin detects when built-in packaging applies and then takes over with a packaging process that mostly mimics what Serverless would do, just faster. The plugin then sets appropriate internal Serverless `artifact` fields to cause Serverless to skip the (slower) built-in packaging.
 
 ### The nitty gritty of why it's faster
 
-Jetpack does _most_ of what Serverless does globbing-wise with `include|exclude` at the service or function level. Serverless does the following (more or less):
+Let's start by looking at how Serverless packages (more or less):
 
-1. Glob files from disk using [globby][] with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files (no directories). This is the only actual **on disk** I/O.
-2. Filter the in-memory list of files using [nanomatch][] via service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file. Notably, this is also where `excludeDevDependencies` excludes take place.
+1. If the `excludeDevDependencies` option is set, use synchronous `globby()` for on disk I/O calls to find all the `package.json` files in `node_modules`, then infer which are `devDependencies`. Use this information to enhance the `include|exclude` configured options.
+2. Glob files from disk using [globby][] with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files (no directories). This is again disk I/O.
+3. Filter the in-memory list of files using [nanomatch][] via service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
 This is potentially slow if `node_modules` contains a lot of ultimately removed files, yielding a lot of completely wasted disk I/O time.
 
 Jetpack, by contrast does the following:
 
-1. Efficiently infer production dependencies from disk.
+1. Efficiently infer production dependencies from disk without globbing, and without reading any `devDependencies`.
 2. Glob files from disk with a root `**` (all files), `!node_modules` (exclude all by default), `!node_modules/PROD_DEP_01, !node_modules/PROD_DEP_02, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
 3. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
-This _does_ have some other implications like:
+This ends up being way faster in most cases, and particularly when you have very large `devDependencies`. It is worth pointing out the minor implication that:
 
 * If your `include|exclude` logic intends to glob in `devDependencies`, this won't work anymore. But, you're not really planning on deploying non-production dependencies are you? 😉
 
@@ -105,17 +100,17 @@ Our [benchmark correctness tests](./test/benchmark.js) highlight a number of var
 
 #### Be careful with `include` configurations and `node_modules`
 
-Jetpack's approach to processing `node_modules` faster than built-in `serverless` packaging hinges on not reading anything in `node_modules` that is not already a production dependencies. It does this by inserting globs like:
+Let's start with how `include|exclude` work for both Serverless built-in packaging and Jetpack:
 
-```
-!node_modules
-node_modules/PROD_DEP_01
-node_modules/PROD_DEP_02
-node_modules/PROD_DEP_03
-node_modules/...
-```
+- `include`: Used in `globby()` disk reads files into a list and `nanomatch()` pattern matching to decide what to keep.
+    - `!**/node_modules/aws-sdk`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will **never** even be read from disk. This is faster. During later `nanomatch()` this has no effect, because it won't match an actual file.
+    - `!**/node_modules/aws-sdk/**`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will read from disk, but then individual files excluded from the list. This is slower. During later `nanomatch()` this will potentially re-exclude.
 
-to initially exclude all of `node_modules` then carefully add back in the production dependencies so the development dependencies are never read during the actual broad call to glob over the file system within a packaging unit. If you were to add something like:
+- `exclude`: Only used in `nanomatch()` pattern matching to decide which files in a list to keep.
+    - `**/node_modules/aws-sdk`: No effect, because directory-only application.
+    - `**/node_modules/aws-sdk/**`: During `nanomatch()` this will exclude.
+
+So, in either case if you were to add something like:
 
 ```yml
 include:
@@ -137,16 +132,6 @@ exclude:
 include:
   - "!**/node_modules/aws-sdk"
 ```
-
-As a final aside, it's worth a note that both Serverless and Jetpack work the same with regard to `include|exclude` configurations that might not be completely intuitive to end users:
-
-- `include`: Used in `globby()` disk reads files into a list and `nanomatch()` pattern matching to decide what to keep.
-    - `!**/node_modules/aws-sdk`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will **never** even be read from disk. This is faster. During later `nanomatch()` this has no effect, because it won't match an actual file.
-    - `!**/node_modules/aws-sdk/**`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will read from disk, but then individual files excluded from the list. This is slower. During later `nanomatch()` this will potentially re-exclude.
-
-- `exclude`: Only used in `nanomatch()` pattern matching to decide which files in a list to keep.
-    - `**/node_modules/aws-sdk`: No effect, because directory-only application.
-    - `**/node_modules/aws-sdk/**`: During `nanomatch()` this will exclude.
 
 ## Benchmarks
 
