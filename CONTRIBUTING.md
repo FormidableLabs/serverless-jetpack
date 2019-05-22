@@ -9,7 +9,7 @@ We primarily develop in `yarn`, but use `npm` in our benchmarks. Please make sur
 
 * node: `8+`
 * yarn: (anything modern)
-* npm:  `5.7.0+`
+* npm:  (anything modern)
 
 available. Also note that for the time being, our development tools assume a Unix-like environment, which means Mac, Linux, or something like the Windows Subsystem for Linux.
 
@@ -95,8 +95,6 @@ $ yarn benchmark:install
 $ yarn benchmark:build
 
 # Run a benchmark.
-# First, check that `npm` versions is 5.7.0+ (which has `npm ci`).
-$ npm --version
 # Then, actually generate the benchmark.
 # _Note_: Unfortunately, this takes some **time**. Grab a ☕
 $ yarn benchmark

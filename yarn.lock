@@ -1981,6 +1981,11 @@ inquirer@^6.2.2:
     strip-ansi "^5.1.0"
     through "^2.3.6"
 
+inspectdep@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/inspectdep/-/inspectdep-0.1.2.tgz#c1de47a0c481aebf91d19e033db10626bf6a7c46"
+  integrity sha512-3frWE9LPlWpRtlu2i1fXEmDC0wfEBCRcA4jqzcwb1i9AgwkCzmHEemFuoSEdTo6B9PM3fCxjgWn9NuEIaat3Wg==
+
 invert-kv@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/invert-kv/-/invert-kv-2.0.0.tgz#7393f5afa59ec9ff5f67a27620d11c226e3eec02"
@@ -4159,7 +4164,7 @@ uuid@3.0.0:
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.0.0.tgz#6728fc0459c450d796a99c31837569bdf672d728"
   integrity sha1-Zyj8BFnEUNeWqZwxg3VpvfZy1yg=
 
-uuid@3.3.2, uuid@^3.3.2:
+uuid@3.3.2:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-3.3.2.tgz#1b4af4955eb3077c501c23872fc6513811587131"
   integrity sha512-yXJmeNaw3DnnKAOKJE51sL/ZaYfWJRl1pK9dr19YFCu0ObS231AB1/LbqTKRAQ5kw8A90rA6fr4riOUpTZvQZA==

@@ -1,44 +1,16 @@
 "use strict";
 
 const pkg = require("./package.json");
-const { tmpdir } = require("os");
 const path = require("path");
-const { access, copy, constants, createWriteStream, mkdir, remove } = require("fs-extra");
+const { createWriteStream } = require("fs");
 const archiver = require("archiver");
-const execa = require("execa");
-const uuidv4 = require("uuid/v4");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
+const { findProdInstalls } = require("inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
 const IS_WIN = process.platform === "win32";
-
-const dirExists = async (dirPath) => {
-  try {
-    await access(dirPath, constants.W_OK);
-    return true;
-  } catch (_) {
-    return false;
-  }
-};
-
-// OS-agnostic wrapper for running npm|yarn commands.
-const execMode = (mode, args, opts) => execa(`${mode}${IS_WIN ? ".cmd" : ""}`, args, opts);
-
-// Create new temp build directory, return path.
-const createBuildDir = async () => {
-  // Create and verify a unique temp directory path.
-  let tmpPath;
-  do {
-    tmpPath = path.join(tmpdir(), uuidv4());
-  } while (await !dirExists(tmpPath));
-
-  // Create directory.
-  await mkdir(tmpPath);
-
-  return tmpPath;
-};
 
 // Simple, stable union.
 const union = (arr1, arr2) => {
@@ -110,25 +82,7 @@ class Jetpack {
 
     this.commands = {
       jetpack: {
-        usage: pkg.description,
-        options: {
-          mode: {
-            usage: "Installation mode (default: `yarn`)",
-            shortcut: "m"
-          },
-          lockfile: {
-            usage:
-              "Path to lockfile (default: `yarn.lock` for `mode: yarn`, "
-              + "`package-lock.json` for `mode: npm`)",
-            shortcut: "l"
-          },
-          stdio: {
-            usage:
-              "`child_process` stdio mode for our shell commands like "
-              + "yarn|npm installs (default: `null`)",
-            shortcut: "s"
-          }
-        }
+        usage: pkg.description
       }
     };
 
@@ -146,33 +100,6 @@ class Jetpack {
     if (process.env.SLS_DEBUG) {
       this._log(msg);
     }
-  }
-
-  get _options() {
-    if (this.__options) { return this.__options; }
-
-    const { service } = this.serverless;
-
-    // Static defaults.
-    const defaults = {
-      mode: "yarn",
-      stdio: null
-    };
-
-    const custom = (service.custom || {})[pkg.name];
-    this.__options = Object.assign({}, defaults, custom, this.options);
-
-    // Dynamic defaults
-    if (typeof this.__options.lockfile === "undefined") {
-      this.__options.lockfile = this.__options.mode === "yarn" ? "yarn.lock" : "package-lock.json";
-    }
-
-    // Validation
-    if (!["yarn", "npm"].includes(this.__options.mode)) {
-      throw new Error(`[${pkg.name}] Invalid 'mode' option: ${this.__options.mode}`);
-    }
-
-    return this.__options;
   }
 
   filePatterns({ functionObject }) {
@@ -238,24 +165,34 @@ class Jetpack {
   // Analogous file resolver to built-in serverless.
   //
   // The main difference is that we exclude the root project `node_modules`
-  // entirely and then add it to the `build` directory and re-pattern-match
-  // files there.
+  // except for production dependencies.
   //
   // See: `resolveFilePathsFromPatterns` in
   // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
-  async resolveProjectFilePathsFromPatterns({ include, exclude }) {
+  async resolveFilePathsFromPatterns({ depInclude, include, exclude }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
 
     // _Now_, start globbing like serverless does.
     // 1. Glob everything on disk using only _includes_ (except `node_modules`).
-    const files = await globby(["**"].concat(include || []), {
+    //    This is loosely, what serverless would do with the difference that
+    //    **everything** in `node_modules` is globbed first and then files
+    //    excluded manually by `nanomatch` after. We get the same result here
+    //    without reading from disk.
+    const globInclude = ["**"]
+      // Remove all node_modules.
+      .concat(["!node_modules"])
+      // ... except for the production node_modules
+      .concat(depInclude || [])
+      // ... then normal include like serverless does.
+      .concat(include || []);
+
+    const files = await globby(globInclude, {
       cwd: servicePath,
       dot: true,
-      filesOnly: true,
-      // Important for speed: beyond "later excluding", this means we **never
-      // even read** node_modules.
-      ignore: ["node_modules/**"]
+      silent: true,
+      follow: true,
+      nodir: true
     });
 
     // Find and exclude serverless config file. It _should_ be this function:
@@ -278,111 +215,21 @@ class Jetpack {
     }
 
     // Filter as Serverless does.
-    return filterFiles({ files, exclude, include });
-  }
-
-  async resolveDependenciesFromPatterns({ include, exclude, buildPath, buildSrcs }) {
-    // 1. Glob, and filter just the node_modules directory by excluding
-    // package.json + lockfile before includes
-    const patterns = ["**"]
-      .concat(buildSrcs.map((s) => `!${s}`))
-      .concat(include || []);
-
-    const files = await globby(patterns, {
-      cwd: buildPath,
-      dot: true,
-      filesOnly: true
-    });
-
-    // 2. Filter as Serverless does.
-    return filterFiles({ files, exclude, include });
-  }
-
-  async installDeps({ buildPath }) {
-    const { mode, lockfile, stdio } = this._options;
-
-    // Determine if can use npm ci.
-    let install = "install";
-    if (mode === "npm" && lockfile) {
-      const { stdout } = await execMode(mode, ["--version"]);
-
-      const version = stdout.split(".");
-      if (version.length < 3) { // eslint-disable-line no-magic-numbers
-        throw new Error(`Found unparsable npm versions: ${stdout}`);
-      }
-
-      const major = parseInt(version[0], 10);
-      const minor = parseInt(version[1], 10);
-
-      // `npm ci` is not available prior to 5.7.0
-      if (major > 5 || major === 5 && minor >= 7) { // eslint-disable-line no-magic-numbers
-        install = "ci";
-      } else {
-        this._log(`WARN: Found old npm version ${stdout}. Unable to use 'npm ci'.`);
-      }
+    const filtered = filterFiles({ files, exclude, include });
+    if (!filtered.length) {
+      throw new this.serverless.classes.Error("No file matches include / exclude patterns");
     }
 
-    // npm/yarn install.
-    const installArgs = [
-      install,
-      "--production",
-      "--no-progress",
-      mode === "yarn" && !!lockfile ? "--frozen-lockfile" : null,
-      mode === "yarn" ? "--non-interactive" : null
-    ].filter(Boolean);
-
-    this._logDebug(`Performing production install: ${mode} ${installArgs.join(" ")}`);
-    await execMode(mode, installArgs, {
-      stdio,
-      cwd: buildPath
-    });
+    return filtered;
   }
 
-  async buildDependencies() {
-    const { config } = this.serverless;
-    const servicePath = config.servicePath || ".";
-
-    const buildPath = await createBuildDir();
-
-    // Gather options.
-    this._logDebug(`Options: ${JSON.stringify(this._options)}`);
-    const { mode, lockfile } = this._options;
-    // Relative paths for copying.
-    const srcs = [
-      "package.json",
-      lockfile
-    ].filter(Boolean);
-    // Basenames for destination name.
-    const buildSrcs = srcs.map((f) => path.basename(f));
-
-    // Copy over npm/yarn files.
-    this._logDebug(`Copying sources ('${srcs.join("', '")}') to build directory`);
-    await Promise.all(srcs.map((f) => copy(
-      path.resolve(servicePath, f),
-      path.resolve(buildPath, path.basename(f))
-    )));
-
-    // Install into build directory.
-    try {
-      await this.installDeps({ buildPath });
-    } catch (err) {
-      throw new this.serverless.classes.Error(
-        `[${pkg.name}] ${mode} installation failed with message: `
-        + `'${(err.message || err.toString()).trim()}'`
-      );
-    }
-
-    return { buildSrcs, buildPath };
-  }
-
-  createZip({ files, filesRoot, deps, depsRoot, bundlePath }) {
+  createZip({ files, filesRoot, bundlePath }) {
     // Use Serverless-analogous library + logic to create zipped artifact.
     const zip = archiver.create("zip");
     const output = createWriteStream(bundlePath);
 
     this._logDebug(
-      `Zipping ${files.length} sources from ${filesRoot} and `
-      + `${deps.length} dependencies from ${depsRoot} to artifact location: ${bundlePath}`
+      `Zipping ${files.length} sources from ${filesRoot} to artifact location: ${bundlePath}`
     );
 
     return new Promise((resolve, reject) => { // eslint-disable-line promise/avoid-new
@@ -400,44 +247,28 @@ class Jetpack {
         files.forEach((name) => {
           zip.file(path.join(filesRoot, name), { name });
         });
-        deps.forEach((name) => {
-          zip.file(path.join(depsRoot, name), { name });
-        });
 
         zip.finalize();
       });
     });
   }
 
-  async buildAndZip({ bundleName, functionObject }) {
+  async globAndZip({ bundleName, functionObject }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const bundlePath = path.resolve(servicePath, bundleName);
 
-    const { buildSrcs, buildPath } = await this.buildDependencies();
-
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
-    const files = await this.resolveProjectFilePathsFromPatterns({ include, exclude });
-    const deps = await this.resolveDependenciesFromPatterns(
-      { include, exclude, buildPath, buildSrcs });
-
-    // TODO: Move this somewhere common. Maybe a joint files + deps function?
-    if (!(files.length || deps.length)) {
-      throw new this.serverless.classes.Error("No file matches include / exclude patterns");
-    }
+    const depInclude = await findProdInstalls({ rootPath: servicePath });
+    const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
 
     // Create package zip.
     await this.createZip({
       files,
       filesRoot: servicePath,
-      deps,
-      depsRoot: buildPath,
       bundlePath
     });
-
-    // Clean up
-    await remove(buildPath);
   }
 
   async packageFunction({ functionName, functionObject }) {
@@ -446,9 +277,9 @@ class Jetpack {
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
-    // Build.
+    // Package.
     this._log(`Packaging function: ${bundleName}`);
-    await this.buildAndZip({ bundleName, functionObject });
+    await this.globAndZip({ bundleName, functionObject });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -463,9 +294,9 @@ class Jetpack {
     // Mimic built-in serverless naming.
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
-    // Build.
+    // Package.
     this._log(`Packaging service: ${bundleName}`);
-    await this.buildAndZip({ bundleName });
+    await this.globAndZip({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;

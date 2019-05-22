@@ -2,6 +2,7 @@ Serverless Jetpack 🚀
 ====================
 [![npm version][npm_img]][npm_site]
 [![Travis Status][trav_img]][trav_site]
+[![AppVeyor Status][appveyor_img]][appveyor_site]
 
 A faster JavaScript packager for [Serverless][] applications.
 
@@ -33,15 +34,7 @@ plugins:
 
 ### A little more detail...
 
-The plugin has the following options:
-
-- `mode`: Either `yarn` (default) or `npm`. The installation tool to use which must be already installed on your system. _Note_: If you are using `npm`, `npm@5.7.0+` is **strongly** recommended so that the plugin can use `npm ci` for much faster installations.
-- `lockfile`: Defaults to `yarn.lock` for `mode: yarn` and `package-lock.json` for `mode: npm`.
-    - You can set it to a different relative location like: `lockfile: ../../yarn.lock` for monorepo projects wherein the lockfile exists outside of the package directory.
-    - Setting `lockfile: null` will skip using lockfiles entirely. This will be slower and more dangerous (since you can wind up with different dependencies than your root project). But it is available if your project does not use lockfiles.
-- `stdio`: Enable/disable shell output for `yarn|npm install` commands. Defaults to `false`.
-
-Which can be integrated into a more complex `serverless.yml` configuration like:
+The plugin supports all normal built-in Serverless framework packaging configurations in `serverless.yml` like:
 
 ```yml
 package:
@@ -57,13 +50,6 @@ plugins:
   # Add the plugin here.
   - serverless-jetpack
 
-custom:
-  # Optional configuration options go here:
-  serverless-jetpack:
-    mode: npm                           # Default `yarn`
-    lockfile: ../../package-lock.json   # Different location
-    stdio: true                         # Default `false`
-
 functions:
   base:
     # ...
@@ -72,81 +58,84 @@ functions:
     package:
       # These work just like built-in serverless packaging - added to the
       # service-level exclude/include fields.
-      exclude:
-        - "**"
       include:
         - "src/**"
-        - "node_modules/**"
+        - "!**/node_modules/aws-sdk" # Faster way to exclude
         - "package.json"
 ```
 
 ## How it works
 
-The Serverless framework can sometimes massively slow down when packaging applications with large amounts / disk ussage for `devDependencies`. Although the framework enables `excludeDevDependencies` during packaging by default, just ingesting all the files that are later excluded (via that setting and normal `include|exclude` globs) causes apparently enough disk I/O to make things potentially slow.
+Serverless built-in packaging slows to a crawl in applications that have lots of files from `devDependencies`. Although the `excludeDevDependencies` option will ultimately remove these from the target zip bundle, it does so only **after** the files are read from disk, wasting a lot of disk I/O and time.
 
-Observing that a very common use case for a Serverless framework is:
+The `serverless-jetpack` plugin removes this bottleneck by performing a fast production dependency on-disk discovery via the [inspectdep][] library before any globbing is done. The discovered production dependencies are then converted into patterns and injected into the otherwise normal Serverless framework packaging heuristics to efficiently avoid all unnecessary disk I/O due to `devDependencies` in `node_modules`.
 
-- A `package.json` file defining production and development dependencies.
-- A `yarn.lock` file if using `yarn` or a `package-lock.json` file if using `npm` to lock down and speed up installations.
-- One or more JavaScript source file directories, typically something like `src`.
-
-The `serverless-jetpack` plugin leverages this use case and gains a potentially significant speedup by observing that manually pruning development dependencies (as Serverless does) can be much, much slower in practice than using honed, battle-tested tools like `yarn` and `npm` to install just the production dependencies from scratch -- by doing a fresh `yarn|npm install` in a temporary directory, copying over source files and zipping that all up!
-
-Process-wise, the `serverless-jetpack` plugin uses the internal logic from Serverless packaging to detect when Serverless would actually do it's own packaging. Then, it inserts its different packaging steps and copies over the analogous zip file to where Serverless would have put it, and sets internal Serverless `artifact` field that then causes Serverless to skip all its normal packaging steps.
+Process-wise, the `serverless-jetpack` plugin detects when built-in packaging applies and then takes over the packaging process. The plugin then sets appropriate internal Serverless `artifact` fields to cause Serverless to skip the (slower) built-in packaging.
 
 ### The nitty gritty of why it's faster
 
-Jetpack does _most_ of what Serverless does globbing-wise with `include|exclude` at the service or function level. Serverless does the following (more or less):
+Let's start by looking at how Serverless packages (more or less):
 
-1. Glob files from disk with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files.
-2. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
+1. If the `excludeDevDependencies` option is set, use synchronous `globby()` for on disk I/O calls to find all the `package.json` files in `node_modules`, then infer which are `devDependencies`. Use this information to enhance the `include|exclude` configured options.
+2. Glob files from disk using [globby][] with a root `**` (all files) and the `include` pattern, following symlinks, and create a list of files (no directories). This is again disk I/O.
+3. Filter the in-memory list of files using [nanomatch][] via service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
-This is potentially slow if `node_modules` contains a lot of ultimately removed files, yielding a lot of completely wasted disk I/O time. Also, following symlinks is expensive, and for `node_modules` almost never useful.
+This is potentially slow if `node_modules` contains a lot of ultimately removed files, yielding a lot of completely wasted disk I/O time.
 
 Jetpack, by contrast does the following:
 
-1. Glob files from disk with a root `**` (all files) and the `include` pattern, **except** for `node_modules` (never read) and without following symlinks to create a list of files.
-2. Apply service + function `exclude`, then `include` patterns in order.
-3. Separately `npm|yarn install` production `node_modules` into a dedicated dependencies build directory. Run the same glob logic and `exclude` + `include` matching over just the new `node_modules`.
-4. Then zip the files from the two separate matching operations.
+1. Efficiently infer production dependencies from disk without globbing, and without reading any `devDependencies`.
+2. Glob files from disk with a root `**` (all files), `!node_modules` (exclude all by default), `!node_modules/PROD_DEP_01, !node_modules/PROD_DEP_02, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
+3. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
-This _does_ have some other implications like:
+This ends up being way faster in most cases, and particularly when you have very large `devDependencies`. It is worth pointing out the minor implication that:
 
 * If your `include|exclude` logic intends to glob in `devDependencies`, this won't work anymore. But, you're not really planning on deploying non-production dependencies are you? 😉
 
 ### Complexities
 
-#### Root `node_modules` directory
+#### Minor differences vs. Serverless globbing
 
-This plugin assumes that the directory from which you run `serverless` commands is where `node_modules` is installed and the only one in play. It's fine if you have things like a monorepo with nested packages that each have a `serverless.yml` and `package.json` as long as each one is an independent "root" of `serverless` commands.
+Our [benchmark correctness tests](./test/benchmark.js) highlight a number of various files not included by Jetpack that are included by `serverless` in packaging our benchmark scenarios. Some of these are things like `node_modules/.yarn-integrity` which Jetpack knowingly ignores because you shouldn't need it. All of the others we've discovered to date are instances in which `serverless` incorrectly includes `devDependencies`...
 
-Having additional `node_modules` installs in nested directory from a root is unlikely to work properly with this plugin.
+#### Be careful with `include` configurations and `node_modules`
 
-#### Lockfiles
+Let's start with how `include|exclude` work for both Serverless built-in packaging and Jetpack:
 
-It is a best practice to use lockfiles (`yarn.lock` or `package-lock.json`) generally, and specifically important for the approach this plugin takes because it does **new** `yarn|npm` installs into a temporary directory. Without lockfiles you may be packaging/deploying something _different_ from what is in the root project. And, production installs with this plugin are much, much _faster_ with a lockfile than without.
+- `include`: Used in `globby()` disk reads files into a list and `nanomatch()` pattern matching to decide what to keep.
+    - `!**/node_modules/aws-sdk`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will **never** even be read from disk. This is faster. During later `nanomatch()` this has no effect, because it won't match an actual file.
+    - `!**/node_modules/aws-sdk/**`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will read from disk, but then individual files excluded from the list. This is slower. During later `nanomatch()` this will potentially re-exclude.
 
-To this end, the plugin assumes that a lockfile is provided by default and you must explicitly set the option to `lockfile: null` to avoid having a lockfile copied over. When a lockfile is present then the strict (and fast!) `yarn install --frozen-lockfile  --production` and `npm ci --production` commands are used to guarantee the packaged `node_modules` matches the relevant project modules. And, the installs will **fail** (by design) if the lockfile is out of date.
+- `exclude`: Only used in `nanomatch()` pattern matching to decide which files in a list to keep.
+    - `**/node_modules/aws-sdk`: No effect, because directory-only application.
+    - `**/node_modules/aws-sdk/**`: During `nanomatch()` this will exclude.
 
-#### Monorepos and lockfiles
+So, in either case if you were to add something like:
 
-Many projects use features like [yarn workspaces][] and/or [lerna][] to have a large root project that then has many separate serverless functions/packages in separate directories. In cases like these, the relevant lock file may not be in something like `packages/NAME/yarn.lock`, but instead at the project root like `yarn.lock`.
+```yml
+include:
+  - "node_modules/**"
+exclude:
+  - # ... a whole bunch of stuff ...
+```
 
-In cases like these, simply set the `lockfile` option to relatively point to the appropriate lockfile (e.g., `lockfile: ../../yarn.lock`).
+This would likely be just as slow as built-in Serverless packaging because all of `node_modules` gets read from disk.
 
-#### `npm install` vs `npm ci`
+Thus, the **best practice** here when crafting service or function `include` configurations is: **don't `include` anything extra in `node_modules`**. It's fine to do extra exclusions like:
 
-`npm ci` was introduced in version [`5.7.0`](https://blog.npmjs.org/post/171139955345/v570). Notwithstanding the general lockfile logic discussed above, if the plugin detects an `npm` version prior to `5.7.0`, the non-locking, slower `npm install --production` command will be used instead.
+```yml
+# Good. Remove dependency provided by lambda from zip
+exclude:
+  - "**/node_modules/aws-sdk"
 
-#### Excluding `serverless.*` files
-
-The serverless framework only excludes the _first_ match of `serverless.{yml,yaml,json,js}` in order. By contrast, Jetpack just glob excludes them all. We recommend using a glob `include` if your deploy logic depends on having something like `serverless.js` around.
+# Better! Never even read the files from disk during globbing in the first place!
+include:
+  - "!**/node_modules/aws-sdk"
+```
 
 ## Benchmarks
 
 The following is a simple, "on my machine" benchmark generated with `yarn benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
-
-When run with a lockfile (producing the fastest `yarn|npm` install), **all** of our scenarios have faster packaging with `serverless-jetpack`. In some cases, this means over a **6x** speedup. The results also indicate that if your project is **not** using a lockfile, then built-in Serverless packaging may be faster.
 
 As a quick guide to the results table:
 
@@ -154,55 +143,43 @@ As a quick guide to the results table:
     - `simple`: Very small production and development dependencies.
     - `individually`: Same dependencies as `simple`, but with `individually` packaging.
     - `huge`: Lots and lots of development dependencies.
-- `Mode`: Use `yarn` or `npm`?
-- `Lockfile`: Use a lockfile (fastest) or omit?
+- `Mode`: Project installed via `yarn` or `npm`? This really only matters in that `npm` and `yarn` may flatten dependencies differently, so we want to make sure Jetpack is correct in both cases.
 - `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
 - `Time`: Elapsed build time in milliseconds.
 - `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
-
-The rows that are **bolded** are the preferred configurations for `serverless-jetpack`, which is to say, configured with a lockfile and `npm@5.7.0+` if using `npm`.
 
 Machine information:
 
 * os:   `darwin 18.5.0 x64`
 * node: `v8.16.0`
-* yarn: `1.15.2`
-* npm:  `6.4.1`
 
 Results:
 
-| Scenario         | Mode     | Lockfile | Type        |      Time |      vs Base |
-| :--------------- | :------- | :------- | :---------- | --------: | -----------: |
-| **simple**       | **yarn** | **true** | **jetpack** |  **5687** | **-42.16 %** |
-| simple           | yarn     | true     | baseline    |      9832 |              |
-| **simple**       | **npm**  | **true** | **jetpack** |  **6163** | **-31.37 %** |
-| simple           | npm      | true     | baseline    |      8980 |              |
-| simple           | yarn     | false    | jetpack     |      7199 |     -27.73 % |
-| simple           | yarn     | false    | baseline    |      9961 |              |
-| simple           | npm      | false    | jetpack     |     17714 |      50.96 % |
-| simple           | npm      | false    | baseline    |     11734 |              |
-| **individually** | **yarn** | **true** | **jetpack** |  **8259** | **-50.44 %** |
-| individually     | yarn     | true     | baseline    |     16665 |              |
-| **individually** | **npm**  | **true** | **jetpack** |  **9787** | **-50.10 %** |
-| individually     | npm      | true     | baseline    |     19613 |              |
-| individually     | yarn     | false    | jetpack     |      9242 |     -45.27 % |
-| individually     | yarn     | false    | baseline    |     16888 |              |
-| individually     | npm      | false    | jetpack     |     17426 |     -35.68 % |
-| individually     | npm      | false    | baseline    |     27094 |              |
-| **huge**         | **yarn** | **true** | **jetpack** | **13473** | **-71.85 %** |
-| huge             | yarn     | true     | baseline    |     47864 |              |
-| **huge**         | **npm**  | **true** | **jetpack** |  **9451** | **-71.45 %** |
-| huge             | npm      | true     | baseline    |     33105 |              |
-| huge             | yarn     | false    | jetpack     |     15403 |     -38.98 % |
-| huge             | yarn     | false    | baseline    |     25243 |              |
-| huge             | npm      | false    | jetpack     |     25483 |      -9.95 % |
-| huge             | npm      | false    | baseline    |     28300 |              |
+| Scenario     | Mode | Type     | Time  |      vs Base |
+| :----------- | :--- | :------- | ----: | -----------: |
+| simple       | yarn | jetpack  |  4338 | **-46.37 %** |
+| simple       | yarn | baseline |  8089 |              |
+| simple       | npm  | jetpack  |  4055 | **-53.78 %** |
+| simple       | npm  | baseline |  8773 |              |
+| individually | yarn | jetpack  |  2964 | **-76.77 %** |
+| individually | yarn | baseline | 12760 |              |
+| individually | npm  | jetpack  |  4183 | **-69.67 %** |
+| individually | npm  | baseline | 13790 |              |
+| huge         | yarn | jetpack  |  4524 | **-84.03 %** |
+| huge         | yarn | baseline | 28321 |              |
+| huge         | npm  | jetpack  |  5680 | **-83.07 %** |
+| huge         | npm  | baseline | 33551 |              |
 
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/
 [yarn workspaces]: https://yarnpkg.com/lang/en/docs/workspaces/
+[inspectdep]: https://github.com/FormidableLabs/inspectdep/
+[globby]: https://github.com/sindresorhus/globby
+[nanomatch]: https://github.com/micromatch/nanomatch
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
 [trav_img]: https://api.travis-ci.com/FormidableLabs/serverless-jetpack.svg
 [trav_site]: https://travis-ci.com/FormidableLabs/serverless-jetpack
+[appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
+[appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack

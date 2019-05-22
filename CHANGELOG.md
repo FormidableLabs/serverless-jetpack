@@ -1,6 +1,13 @@
 Changes
 =======
 
+## UNRELEASED
+
+**BREAKING**
+
+* Replace strategy of `yarn|npm install --production` in a temporary directory with better, faster production dependency inference via `inspectdep`.
+* Change the API to take no `custom` options.
+
 ## 0.1.2
 
 * Add better exec support for yarn|npm on windows.
