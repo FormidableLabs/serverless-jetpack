@@ -1981,10 +1981,10 @@ inquirer@^6.2.2:
     strip-ansi "^5.1.0"
     through "^2.3.6"
 
-inspectdep@^0.1.1:
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/inspectdep/-/inspectdep-0.1.1.tgz#16defe917c7162491728eb03022266d8c486757f"
-  integrity sha512-mu6AjjmCNLVQv2mIg+wTVFKC+Hz+/PqkjXWvfpHbP/06bup0bnU2GCsIk0IjXr0RSIoDMWrYzh6ZeDrnZhL8vA==
+inspectdep@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/inspectdep/-/inspectdep-0.1.2.tgz#c1de47a0c481aebf91d19e033db10626bf6a7c46"
+  integrity sha512-3frWE9LPlWpRtlu2i1fXEmDC0wfEBCRcA4jqzcwb1i9AgwkCzmHEemFuoSEdTo6B9PM3fCxjgWn9NuEIaat3Wg==
 
 invert-kv@^2.0.0:
   version "2.0.0"
