@@ -1981,10 +1981,9 @@ inquirer@^6.2.2:
     strip-ansi "^5.1.0"
     through "^2.3.6"
 
-inspectdep@^0.1.2:
+inspectdep@FormidableLabs/inspectdep#feature/monorepo:
   version "0.1.2"
-  resolved "https://registry.yarnpkg.com/inspectdep/-/inspectdep-0.1.2.tgz#c1de47a0c481aebf91d19e033db10626bf6a7c46"
-  integrity sha512-3frWE9LPlWpRtlu2i1fXEmDC0wfEBCRcA4jqzcwb1i9AgwkCzmHEemFuoSEdTo6B9PM3fCxjgWn9NuEIaat3Wg==
+  resolved "https://codeload.github.com/FormidableLabs/inspectdep/tar.gz/0c92505dfffc723e02d6d7119dc3424fe6897e26"
 
 invert-kv@^2.0.0:
   version "2.0.0"
