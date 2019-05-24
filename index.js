@@ -260,19 +260,44 @@ class Jetpack {
 
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
+
+    // TODO(SLS): Temp hard-code needed things.
+    // const ROOT = path.resolve(servicePath, "..");
+    // const DEP_PATHS = [
+    //   path.resolve(servicePath, "functions/ncr-menus")
+    // ];
+
+    // TODO: HERE -- IDEA!!!
+    // Maybe this *OR* Add excludes of `!PATH/TO/node_modules` immediately
+    // after and let later appends?
+    // const HAS_DEV_DEPS = [
+    // ];
+
     let depInclude = await findProdInstalls({
       rootPath: path.resolve(servicePath, ".."),
-      curPath: path.resolve(servicePath, "functions/ncr-menus"),
+      curPath: path.resolve(servicePath, "functions/ncr-menus")
     });
-    // TODO: TEMP relativize
-    depInclude = depInclude.map((dep) => path.join("..", dep));
+
+    // TODO(SLS): Hackage
+    depInclude = depInclude
+      // Relativize to root.
+      .map((dep) => path.join("..", dep))
+      // Add excludes for node_modules in every discovered pattern dep dir.
+      // This allows us to exclude devDependencies because **later** include
+      // patterns should have all the production deps already and override.
+      .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
+        ? [dep, `!${path.join(dep, "node_modules")}`]
+        : [dep]
+      )
+      .reduce((m, a) => m.concat(a), []);
+
     // TODO: Need to go below into root of globby, but not get everything else.
     // maybe relativize depInclude to `../PATH`???
     // TODO: Not zipping the **ROOT** yet!!!
 
-    console.log("TODO HERE 001", { depInclude });
+    console.log("TODO HERE 001", JSON.stringify({ depInclude }, null, 2));
     const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
-    console.log("TODO HERE 002", { files });
+    console.log("TODO HERE 002", JSON.stringify({ files }, null, 2));
 
     // Create package zip.
     await this.createZip({
