@@ -51,6 +51,11 @@ const TIMING_SCENARIOS = new Set([
   "huge"
 ]);
 
+// Some scenarios are only feasible in Jetpack
+const JETPACK_ONLY_SCENARIOS = new Set([
+  "monorepo"
+]);
+
 const MATRIX = SCENARIOS
   .map((scenario) => CONFIGS.map((c) => ({ ...c, scenario })))
   .reduce((m, a) => m.concat(a), []);
@@ -194,29 +199,37 @@ const benchmark = async () => {
           path.join(pluginArchive, path.basename(zipFile))
         )));
 
-        logTask("[task:start:baseline]");
-        const baselineTime = await runPackage();
-        logTask("[task:end:baseline]");
+        let baselineTime;
+        if (JETPACK_ONLY_SCENARIOS.has(scenario)) {
+          logTask("[task:skipping:baseline]");
+        } else {
+          logTask("[task:start:baseline]");
+          baselineTime = await runPackage();
+          logTask("[task:end:baseline]");
 
-        const baselineArchive = path.join(archiveRoot, scenario, mode, "baseline");
-        await del(baselineArchive);
-        await fs.mkdirp(baselineArchive);
-        const baselineZips = await globby(".serverless/*.zip", { cwd });
-        await Promise.all(baselineZips.map((zipFile) => fs.copy(
-          path.join(cwd, zipFile),
-          path.join(baselineArchive, path.basename(zipFile))
-        )));
+          const baselineArchive = path.join(archiveRoot, scenario, mode, "baseline");
+          await del(baselineArchive);
+          await fs.mkdirp(baselineArchive);
+          const baselineZips = await globby(".serverless/*.zip", { cwd });
+          await Promise.all(baselineZips.map((zipFile) => fs.copy(
+            path.join(cwd, zipFile),
+            path.join(baselineArchive, path.basename(zipFile))
+          )));
+        }
 
-        // Data.
-        // eslint-disable-next-line no-magic-numbers
-        const pct = ((pluginTime - baselineTime) / baselineTime * 100).toFixed(2);
-        const pluginRow = [scenario, mode, "jetpack", pluginTime, `**${pct} %**`];
+        // Report.
+        let pct;
+        if (baselineTime) {
+          // eslint-disable-next-line no-magic-numbers
+          pct = ((pluginTime - baselineTime) / baselineTime * 100).toFixed(2);
+        }
+        const pluginRow = [scenario, mode, "jetpack", pluginTime, pct ? `**${pct} %**` : ""];
 
         const resultsKey = `${scenario}/${mode}`;
         results[resultsKey] = (results[resultsKey] || []).concat([
           pluginRow,
-          [scenario, mode, "baseline", baselineTime, ""]
-        ]);
+          baselineTime ? [scenario, mode, "baseline", baselineTime, ""] : null
+        ].filter(Boolean));
       });
     })
   );
