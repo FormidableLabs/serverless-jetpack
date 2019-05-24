@@ -260,8 +260,19 @@ class Jetpack {
 
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
-    const depInclude = await findProdInstalls({ rootPath: servicePath });
+    let depInclude = await findProdInstalls({
+      rootPath: path.resolve(servicePath, ".."),
+      curPath: path.resolve(servicePath, "functions/ncr-menus"),
+    });
+    // TODO: TEMP relativize
+    depInclude = depInclude.map((dep) => path.join("..", dep));
+    // TODO: Need to go below into root of globby, but not get everything else.
+    // maybe relativize depInclude to `../PATH`???
+    // TODO: Not zipping the **ROOT** yet!!!
+
+    console.log("TODO HERE 001", { depInclude });
     const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
+    console.log("TODO HERE 002", { files });
 
     // Create package zip.
     await this.createZip({
