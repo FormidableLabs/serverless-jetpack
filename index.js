@@ -262,15 +262,11 @@ class Jetpack {
     const { include, exclude } = this.filePatterns({ functionObject });
 
     // TODO(SLS): Temp hard-code needed things.
+    // OPTION: Add, default to `servicePath`.
     // const ROOT = path.resolve(servicePath, "..");
+    // OPTION: Need just one???
     // const DEP_PATHS = [
     //   path.resolve(servicePath, "functions/ncr-menus")
-    // ];
-
-    // TODO: HERE -- IDEA!!!
-    // Maybe this *OR* Add excludes of `!PATH/TO/node_modules` immediately
-    // after and let later appends?
-    // const HAS_DEV_DEPS = [
     // ];
 
     let depInclude = await findProdInstalls({
@@ -282,6 +278,7 @@ class Jetpack {
     depInclude = depInclude
       // Relativize to root.
       .map((dep) => path.join("..", dep))
+      // TODO(SLS): Document this more in (1) comments and (2) README
       // Add excludes for node_modules in every discovered pattern dep dir.
       // This allows us to exclude devDependencies because **later** include
       // patterns should have all the production deps already and override.
@@ -290,10 +287,6 @@ class Jetpack {
         : [dep]
       )
       .reduce((m, a) => m.concat(a), []);
-
-    // TODO: Need to go below into root of globby, but not get everything else.
-    // maybe relativize depInclude to `../PATH`???
-    // TODO: Not zipping the **ROOT** yet!!!
 
     console.log("TODO HERE 001", JSON.stringify({ depInclude }, null, 2));
     const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
