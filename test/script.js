@@ -38,6 +38,7 @@ const CONFIGS = [
 const SCENARIOS = [
   "simple",
   "individually",
+  "monorepo",
   "webpack",
   "huge"
 ]
@@ -73,13 +74,18 @@ const build = async () => {
   const clean = [
     "**",
     "!node_modules/**",
-    "!package-lock.json"
+    "!package-lock.json",
+    "!lerna.json"
   ];
   const patterns = [
     "package.json",
     "serverless.*",
     "src/**",
-    "*.js"
+    "*.js",
+    "functions/*/src/**",
+    "functions/*/package.json",
+    "lib/*/src/**",
+    "lib/*/package.json"
   ];
 
   for (const scenario of SCENARIOS) {

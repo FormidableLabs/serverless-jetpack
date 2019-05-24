@@ -1,0 +1,13 @@
+{
+  "name": "serverless-jetpack-monorepo-fn-base",
+  "version": "0.0.1",
+  "description": "An example sls monorepo application.",
+  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
+  "author": "Ryan Roemer <ryan.roemer@formidable.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.16.4",
+    "serverless-http": "^1.9.0",
+    "serverless-jetpack-monorepo-lib-camel": "^0.0.1"
+  }
+}
