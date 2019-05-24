@@ -306,17 +306,15 @@ class Jetpack {
     const servicePath = config.servicePath || ".";
     const bundlePath = path.resolve(servicePath, bundleName);
     const { base, roots } = this._functionOptions({ functionObject });
-
-    // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
 
     // Iterate all dependency roots to gather production dependencies.
     const rootPath = path.resolve(servicePath, base);
     const depInclude = await Promise
       .all((roots || ["."])
-        // Relative to servicePath
+        // Relative to servicePath.
         .map((depRoot) => path.resolve(servicePath, depRoot))
-        // Find deps
+        // Find deps.
         .map((curPath) => findProdInstalls({ rootPath, curPath }))
       )
       .then((found) => found
@@ -324,7 +322,7 @@ class Jetpack {
         .reduce((m, a) => m.concat(a), [])
         // Relativize to servicePath / CWD.
         .map((dep) => path.relative(servicePath, path.join(rootPath, dep)))
-        // Sort for proper glob order
+        // Sort for proper glob order.
         .sort()
         // Add excludes for node_modules in every discovered pattern dep dir.
         // This allows us to exclude devDependencies because **later** include
@@ -337,6 +335,7 @@ class Jetpack {
         .reduce((m, a) => m.concat(a), [])
       );
 
+    // Glob and filter all files in package.
     const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
 
     // Create package zip.
