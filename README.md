@@ -71,17 +71,64 @@ Most Serverless framework projects should be able to use Jetpack without any ext
 
 **Service**-level configurations available via `custom.jetpack`:
 
-* `TODO_ROOT` (`string`): The base directory at which dependencies may be discovered by Jetpack. This is useful in some bespoke monorepo scenarios where dependencies may be hoisted/flattened to a root `node_modules` directory that is the parent of the directory `serverless` is run from. (default: Serverless' `servicePath` / CWD).
+* `base` (`string`): The base directory (relative to `servicePath` / CWD) at which dependencies may be discovered by Jetpack. This is useful in some bespoke monorepo scenarios where dependencies may be hoisted/flattened to a root `node_modules` directory that is the parent of the directory `serverless` is run from. (default: Serverless' `servicePath` / CWD).
     * _WARNING_: If you don't **know** that you need this option, you probably don't want to set it. Setting the base dependency root outside of Serverless' `servicePath` / current working directory (e.g., `..`) may have some unintended side effects. Most notably, any discovered `node_modules` dependencies will be flattened into the zip at the same level as `servicePath` / CWD. E.g., if dependencies were included by Jetpack at `node_modules/foo` and then `../node_modules/foo` they would be collapsed in the resulting zip file package.
-* `TODO_DEP_ROOTS` (`Array<string>`):
-    * [ ] TODO: Decide is place default option of servicePath here?
-    * [ ] TODO: Decide if setting a value here or at function level **replaces** or augments default.
+* `roots` (`Array<string>`): A list of paths (relative to `servicePath` / CWD) at which there may additionally declared and/or installed `node_modules`. (default: [Serverless' `servicePath` / CWD]).
+    * _NOTE_: Setting a value here replaces the default `[servicePath]` with the new array, so if you want to additionally keep the `servicePath` in the roots array, set as: `[".", ADDITION_01, ADDITION_02, ...]`.
+    * _NOTE_: This typically occurs in a monorepo project, wherein dependencies may be located in e.g. `packages/{NAME}/node_modules` and/or hoisted to the `node_modules` at the project base. It is important to specify these additional dependency roots so that Jetpack can (1) find and include the right dependencies and (2) hone down these directories to just production dependencies when packaging. Otherwise, you risk having a slow `serverless package` execution and/or end up with additional/missing dependencies in your final application zip bundle.
 
 The following **function**-level configurations available via `functions.{FN_NAME}.jetpack`:
 
-* `TODO_DEP_ROOTS` (`Array<string>`): This option **adds** more dependency sources to the service-level `TODO_DEP_ROOTS` option.
+* `roots` (`Array<string>`): This option **adds** more dependency roots to the service-level `roots` option.
 
-TODO_HERE_CONFIGURATION_EXAMPLES
+Here are some example configurations:
+
+**Additional roots**
+
+```yml
+# serverless.yml
+plugins:
+  - serverless-jetpack
+
+functions:
+  base:
+    # ...
+  another:
+    # This example monorepo project has:
+    # - `packages/another/src`: JS source code to include
+    # - `packages/another/package.json`: Declares production dependencies
+    # - `packages/another/node_modules`: One location prod deps may be.
+    # - `node_modules`: Another location prod deps may be if hoisted.
+    # ...
+    package:
+      individually: true
+    jetpack:
+      roots:
+        # If you want to keep prod deps from servicePath/CWD package.json
+        # - "."
+        # Different root to infer prod deps from package.json
+        - "packages/another"
+    include:
+      # Ex: Typically you'll also add in sources from a monorepo package.
+      - "packages/another/src/**"
+```
+
+**Different base root**
+
+```yml
+# serverless.yml
+plugins:
+  - serverless-jetpack
+
+custom:
+  jetpack:
+    # Search for hoisted dependencies to one parent above normal.
+    base: ".."
+
+functions:
+  base:
+    # ...
+```
 
 ## How it works
 

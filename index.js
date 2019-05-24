@@ -82,7 +82,19 @@ class Jetpack {
 
     this.commands = {
       jetpack: {
-        usage: pkg.description
+        usage: pkg.description,
+        options: {
+          base: {
+            // eslint-disable-next-line max-len
+            usage: "Base directory at which dependencies may be discovered relative to `servicePath`/CWD. (default: Serverless' `servicePath` / CWD).",
+            shortcut: "b"
+          },
+          roots: {
+            // eslint-disable-next-line max-len
+            usage: "Comma-delimited list of directories to traverse for production dependencies to include relative to `servicePath`/CWD. (default: [Serverless' `servicePath` / CWD)].",
+            shortcut: "r"
+          }
+        }
       }
     };
 
@@ -100,6 +112,42 @@ class Jetpack {
     if (process.env.SLS_DEBUG) {
       this._log(msg);
     }
+  }
+
+  // Root options.
+  get _serviceOptions() {
+    if (this.__options) { return this.__options; }
+
+    const { service } = this.serverless;
+    const defaults = {
+      base: ".",
+      roots: null
+    };
+
+    const custom = (service.custom || {}).jetpack;
+    this.__options = Object.assign({}, defaults, custom, this.options);
+
+    // Coerce CLI roots into array.
+    if (typeof this.__options.roots === "string") {
+      this.__options.roots = this.__options.roots.split(",");
+    }
+
+    return this.__options;
+  }
+
+  // Function overrides, etc.
+  _functionOptions({ functionObject }) {
+    if (!functionObject) {
+      return this._serviceOptions;
+    }
+
+    const opts = Object.assign({}, this._serviceOptions);
+    const fnOpts = functionObject.jetpack || {};
+    if (fnOpts.roots) {
+      opts.roots = (opts.roots || []).concat(fnOpts.roots);
+    }
+
+    return opts;
   }
 
   filePatterns({ functionObject }) {
@@ -257,44 +305,41 @@ class Jetpack {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const bundlePath = path.resolve(servicePath, bundleName);
+    const { base, roots } = this._functionOptions({ functionObject });
 
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
 
-    // TODO(SLS): Figure out custom service + function options
-    // TODO(SLS): Merge those options too???
-    // TODO(SLS): Monorepo fixture (can dummy up `node_modules` in subdirs)
-
-    // TODO(SLS): Temp hard-code needed things.
-    // OPTION: Add, default to `servicePath`.
-    // const ROOT = path.resolve(servicePath, "..");
-    // OPTION: Need just one???
-    // const DEP_PATHS = [
-    //   path.resolve(servicePath, "functions/ncr-menus")
-    // ];
-
-    let depInclude = await findProdInstalls({
-      rootPath: path.resolve(servicePath, ".."),
-      curPath: path.resolve(servicePath, "functions/ncr-menus")
-    });
-
-    // TODO(SLS): Hackage
-    depInclude = depInclude
-      // Relativize to root.
-      .map((dep) => path.join("..", dep))
-      // TODO(SLS): Document this more in (1) comments and (2) README
-      // Add excludes for node_modules in every discovered pattern dep dir.
-      // This allows us to exclude devDependencies because **later** include
-      // patterns should have all the production deps already and override.
-      .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
-        ? [dep, `!${path.join(dep, "node_modules")}`]
-        : [dep]
+    // Iterate all dependency roots to gather production dependencies.
+    const rootPath = path.resolve(servicePath, base);
+    const depInclude = await Promise
+      .all((roots || ["."])
+        // Relative to servicePath
+        .map((depRoot) => path.resolve(servicePath, depRoot))
+        // Sort for proper glob order
+        .sort()
+        // Find deps
+        .map((curPath) => findProdInstalls({ rootPath, curPath }))
       )
-      .reduce((m, a) => m.concat(a), []);
+      .then((found) => found
+        // Flatten.
+        .reduce((m, a) => m.concat(a), [])
+        // Relativize to servicePath / CWD.
+        .map((dep) => path.relative(servicePath, path.join(rootPath, dep)))
+        // Add excludes for node_modules in every discovered pattern dep dir.
+        // This allows us to exclude devDependencies because **later** include
+        // patterns should have all the production deps already and override.
+        .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
+          ? [dep, `!${path.join(dep, "node_modules")}`]
+          : [dep]
+        )
+        // Re-flatten the temp arrays we just introduced.
+        .reduce((m, a) => m.concat(a), [])
+        // Sort again for proper pattern ordering.
+        .sort()
+      );
 
-    console.log("TODO HERE 001", JSON.stringify({ depInclude }, null, 2));
     const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
-    console.log("TODO HERE 002", JSON.stringify({ files }, null, 2));
 
     // Create package zip.
     await this.createZip({
