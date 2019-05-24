@@ -316,8 +316,6 @@ class Jetpack {
       .all((roots || ["."])
         // Relative to servicePath
         .map((depRoot) => path.resolve(servicePath, depRoot))
-        // Sort for proper glob order
-        .sort()
         // Find deps
         .map((curPath) => findProdInstalls({ rootPath, curPath }))
       )
@@ -326,6 +324,8 @@ class Jetpack {
         .reduce((m, a) => m.concat(a), [])
         // Relativize to servicePath / CWD.
         .map((dep) => path.relative(servicePath, path.join(rootPath, dep)))
+        // Sort for proper glob order
+        .sort()
         // Add excludes for node_modules in every discovered pattern dep dir.
         // This allows us to exclude devDependencies because **later** include
         // patterns should have all the production deps already and override.
@@ -335,8 +335,6 @@ class Jetpack {
         )
         // Re-flatten the temp arrays we just introduced.
         .reduce((m, a) => m.concat(a), [])
-        // Sort again for proper pattern ordering.
-        .sort()
       );
 
     const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
