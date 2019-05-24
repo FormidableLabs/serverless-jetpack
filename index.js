@@ -261,6 +261,10 @@ class Jetpack {
     // Gather files, deps to zip.
     const { include, exclude } = this.filePatterns({ functionObject });
 
+    // TODO(SLS): Figure out custom service + function options
+    // TODO(SLS): Merge those options too???
+    // TODO(SLS): Monorepo fixture (can dummy up `node_modules` in subdirs)
+
     // TODO(SLS): Temp hard-code needed things.
     // OPTION: Add, default to `servicePath`.
     // const ROOT = path.resolve(servicePath, "..");
