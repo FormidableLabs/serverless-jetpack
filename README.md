@@ -1,8 +1,9 @@
 Serverless Jetpack 🚀
 ====================
 [![npm version][npm_img]][npm_site]
-[![Travis Status][trav_img]][trav_site]
-[![AppVeyor Status][appveyor_img]][appveyor_site]
+[![Travis status][trav_img]][trav_site]
+[![AppVeyor status][appveyor_img]][appveyor_site]
+[![MIT license][lic_img]][lic_site]
 
 A faster JavaScript packager for [Serverless][] applications.
 
@@ -63,6 +64,24 @@ functions:
         - "!**/node_modules/aws-sdk" # Faster way to exclude
         - "package.json"
 ```
+
+### Configuration
+
+Most Serverless framework projects should be able to use Jetpack without any extra configuration besides the `plugins` entry. However, there are some additional options that may be useful in some projects (e.g., [lerna][] monorepos, [yarn workspaces][])...
+
+**Service**-level configurations available via `custom.jetpack`:
+
+* `TODO_ROOT` (`string`): The base directory at which dependencies may be discovered by Jetpack. This is useful in some bespoke monorepo scenarios where dependencies may be hoisted/flattened to a root `node_modules` directory that is the parent of the directory `serverless` is run from. (default: Serverless' `servicePath` / CWD).
+    * _WARNING_: If you don't **know** that you need this option, you probably don't want to set it. Setting the base dependency root outside of Serverless' `servicePath` / current working directory (e.g., `..`) may have some unintended side effects. Most notably, any discovered `node_modules` dependencies will be flattened into the zip at the same level as `servicePath` / CWD. E.g., if dependencies were included by Jetpack at `node_modules/foo` and then `../node_modules/foo` they would be collapsed in the resulting zip file package.
+* `TODO_DEP_ROOTS` (`Array<string>`):
+    * [ ] TODO: Decide is place default option of servicePath here?
+    * [ ] TODO: Decide if setting a value here or at function level **replaces** or augments default.
+
+The following **function**-level configurations available via `functions.{FN_NAME}.jetpack`:
+
+* `TODO_DEP_ROOTS` (`Array<string>`): This option **adds** more dependency sources to the service-level `TODO_DEP_ROOTS` option.
+
+TODO_HERE_CONFIGURATION_EXAMPLES
 
 ## How it works
 
@@ -183,3 +202,5 @@ Results:
 [trav_site]: https://travis-ci.com/FormidableLabs/serverless-jetpack
 [appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
 [appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
+[lic_img]: https://img.shields.io/npm/l/serverless-jetpack.svg?color=brightgreen&style=flat
+[lic_site]: https://github.com/FormidableLabs/serverless-jetpack/blob/master/LICENSE.txt
