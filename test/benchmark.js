@@ -9,7 +9,9 @@
 const path = require("path");
 const globby = require("globby");
 const AdmZip = require("adm-zip");
+
 const { MATRIX } = require("./script");
+const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => scenario !== "monorepo");
 
 // Filter known false positives.
 //
@@ -295,43 +297,91 @@ describe("benchmark", () => {
     }, {});
   });
 
-  MATRIX.forEach(({ scenario, mode }) => {
-    const combo = `${scenario}/${mode}`;
+  describe("baseline vs jetpack", () => {
+    // Baseline sls vs. jetpack validation.
+    BASELINE_COMP_MATRIX.forEach(({ scenario, mode }) => {
+      const combo = `${scenario}/${mode}`;
 
-    it(combo, async () => {
-      const baselineFixture = fixtures[`${combo}/baseline`];
+      it(combo, async () => {
+        const baselineFixture = fixtures[`${combo}/baseline`];
 
-      // Sanity check baseline exists.
-      expect(baselineFixture).to.be.ok;
-      const baselineFileNames = Object.keys(baselineFixture);
-      expect(baselineFileNames).to.be.ok.and.to.not.eql([]);
+        // Sanity check baseline exists.
+        expect(baselineFixture).to.be.ok;
+        const baselineFileNames = Object.keys(baselineFixture);
+        expect(baselineFileNames).to.be.ok.and.to.not.eql([]);
 
-      baselineFileNames.forEach((fileName) => {
-        // Get all of the lines from our file lists.
-        const baselineLines = baselineFixture[fileName];
-        const baselineSet = new Set(baselineLines);
-        const pluginLines = (fixtures[`${combo}/jetpack`] || {})[fileName];
-        const pluginSet = new Set(pluginLines);
+        baselineFileNames.forEach((fileName) => {
+          // Get all of the lines from our file lists.
+          const baselineLines = baselineFixture[fileName];
+          const baselineSet = new Set(baselineLines);
+          const pluginLines = (fixtures[`${combo}/jetpack`] || {})[fileName];
+          const pluginSet = new Set(pluginLines);
 
-        // Sanity check that we _generated_ lines for both jetpack + baseline.
-        // These being empty means most likely our test harness messed up
-        // and generated empty zips as **all** present scenarios should have
-        // at least one file.
-        expect(pluginLines).to.be.ok.and.to.not.eql([]);
+          // Sanity check that we _generated_ lines for both jetpack + baseline.
+          // These being empty means most likely our test harness messed up
+          // and generated empty zips as **all** present scenarios should have
+          // at least one file.
+          expect(pluginLines).to.be.ok.and.to.not.eql([]);
 
-        // Figure out what is missing from each.
-        const missingInBaseline = pluginLines
-          .filter((l) => !baselineSet.has(l))
-          .filter(keepMatchesAll);
+          // Figure out what is missing from each.
+          const missingInBaseline = pluginLines
+            .filter((l) => !baselineSet.has(l))
+            .filter(keepMatchesAll);
 
-        const missingInPlugin = baselineLines
-          .filter((l) => !pluginSet.has(l))
-          .filter(keepMatchesAll)
-          .filter(keepBaselineMatch({ scenario, mode }));
+          const missingInPlugin = baselineLines
+            .filter((l) => !pluginSet.has(l))
+            .filter(keepMatchesAll)
+            .filter(keepBaselineMatch({ scenario, mode }));
 
-        expect(missingInBaseline, "extra files in jetpack").to.eql([]);
-        expect(missingInPlugin, "missing files in jetpack").to.eql([]);
+          expect(missingInBaseline, "extra files in jetpack").to.eql([]);
+          expect(missingInPlugin, "missing files in jetpack").to.eql([]);
+        });
       });
+    });
+  });
+
+
+  describe("monorepo", () => {
+    it("has same npm and yarn package contents", () => {
+      let yarnFiles = fixtures["monorepo/yarn/jetpack"]["base.zip"];
+      let npmFiles = fixtures["monorepo/npm/jetpack"]["base.zip"];
+
+      expect(yarnFiles).to.be.ok;
+      expect(npmFiles).to.be.ok;
+
+      // Now, normalize file lists before comparing.
+      yarnFiles = yarnFiles.sort();
+
+      const NPM_NORMS = {
+        // Duplicated in yarn.
+        // eslint-disable-next-line max-len
+        "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/": null,
+        "node_modules/.bin/mime": null,
+        // Just differences in installation.
+        "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
+        "functions/base/node_modules/send/node_modules/ms/": "node_modules/debug/node_modules/ms/",
+        // Hoist everything to root (which is what yarn should do).
+        "functions/base/node_modules/": "node_modules/",
+        "lib/camel/node_modules/": "node_modules/"
+      };
+      npmFiles = npmFiles
+        .map((dep) => {
+          for (const norm of Object.keys(NPM_NORMS)) {
+            if (dep.startsWith(norm)) {
+              return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
+            }
+          }
+
+          return dep;
+        })
+        .filter(Boolean)
+        .sort();
+
+      expect(yarnFiles).to.include.members([
+        "node_modules/camelcase/package.json",
+        "node_modules/ms/package.json"
+      ]);
+      expect(npmFiles).to.eql(yarnFiles);
     });
   });
 });
