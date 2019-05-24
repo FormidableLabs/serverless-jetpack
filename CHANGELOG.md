@@ -1,6 +1,13 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Add custom options `base` and `roots` for better monorepo/workspaces support.
+  [#26](https://github.com/FormidableLabs/serverless-jetpack/pull/26)
+* Add automatic exclusion of `devDependencies` in traversed directories outside of the root.
+* Add `monorepo` test scenario.
+
 ## 0.2.0
 
 **BREAKING**
