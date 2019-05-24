@@ -79,6 +79,8 @@ const build = async () => {
   const clean = [
     "**",
     "!node_modules/**",
+    "!functions/*/node_modules/**",
+    "!lib/*/node_modules/**",
     "!package-lock.json",
     "!lerna.json"
   ];
