@@ -233,6 +233,13 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why node-pre-gyp
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents"
     "node_modules/node-pre-gyp",
+    "node_modules/node-pre-gyp/node_modules/.bin/detect-libc",
+    "node_modules/node-pre-gyp/node_modules/.bin/mkdirp",
+    "node_modules/node-pre-gyp/node_modules/.bin/needle",
+    "node_modules/node-pre-gyp/node_modules/.bin/nopt",
+    "node_modules/node-pre-gyp/node_modules/.bin/rc",
+    "node_modules/node-pre-gyp/node_modules/.bin/rimraf",
+    "node_modules/node-pre-gyp/node_modules/.bin/semver",
 
     // $ yarn why nopt
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
