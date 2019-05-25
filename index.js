@@ -2,7 +2,7 @@
 
 const pkg = require("./package.json");
 const path = require("path");
-const { createWriteStream } = require("fs");
+const { createWriteStream, existsSync, mkdirSync } = require("fs");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
@@ -226,6 +226,12 @@ class Jetpack {
   createZip({ files, filesRoot, bundlePath }) {
     // Use Serverless-analogous library + logic to create zipped artifact.
     const zip = archiver.create("zip");
+    const serverlessDirectory = `${filesRoot}/${SLS_TMP_DIR}`;
+
+    if (!existsSync(serverlessDirectory)) {
+      mkdirSync(serverlessDirectory);
+    }
+
     const output = createWriteStream(bundlePath);
 
     this._logDebug(
