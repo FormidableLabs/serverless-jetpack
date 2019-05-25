@@ -22,7 +22,7 @@ app.set("json spaces", 2); // eslint-disable-line no-magic-numbers
 app.use(`${BASE_URL}/hello.json`, (req, res) => {
   res.json({
     msg: `${camel("mono-repo")} serverless app!`
-  });s
+  });
 });
 app.use(`${BASE_URL}/*`, (req, res) => {
   res.send(`
