@@ -137,7 +137,10 @@ const SLS_FALSE_POSITIVES = {
 
     // $ yarn why abbrev
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
-    "node_modules/abbrev"
+    "node_modules/abbrev",
+
+    // in `node_modules/.bin/mime`
+    "node_modules/send/node_modules/.bin/mime"
   ]),
 
   "simple/npm": new Set([
@@ -148,7 +151,10 @@ const SLS_FALSE_POSITIVES = {
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
     // $ yarn why uuid -> serverless
-    "node_modules/.bin/uuid"
+    "node_modules/.bin/uuid",
+
+    // in `node_modules/.bin/mime`
+    "node_modules/send/node_modules/.bin/mime"
   ]),
 
   "individually/npm": new Set([
@@ -267,7 +273,7 @@ const keepBaselineMatch = ({ scenario, mode }) => (f) => {
   if (!matches) { return true; }
 
   // Exact match for .bin, top-level for everything else.
-  return f.startsWith("node_modules/.bin")
+  return f.indexOf("node_modules/.bin/") !== -1
     ? !matches.has(f.replace(/\.cmd$/, "")) // match unix or windows script
     : !matches.has(topLevel(f));
 };
