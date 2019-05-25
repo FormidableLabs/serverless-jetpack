@@ -10,6 +10,8 @@ branches:
     - master
 
 install:
+  # Get a more modern yarn.
+  - npm install --global yarn@latest
   # Fail if lockfile outdated.
   # https://yarnpkg.com/lang/en/docs/cli/install/#toc-yarn-install-frozen-lockfile
   - yarn install --frozen-lockfile
