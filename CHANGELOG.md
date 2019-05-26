@@ -1,6 +1,12 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Add a `mkdir -p` equivalent of the directory containing the output bundle same as `serverless` built-in packaging behavior.
+  [#30](https://github.com/FormidableLabs/serverless-jetpack/pull/30)
+  [#31](https://github.com/FormidableLabs/serverless-jetpack/pull/31)
+
 ## 0.2.0
 
 **BREAKING**
