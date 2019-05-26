@@ -1,6 +1,6 @@
 {
   "name": "serverless-jetpack",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
   "repository": "https://github.com/FormidableLabs/serverless-jetpack",
@@ -39,6 +39,7 @@
     "archiver": "^3.0.0",
     "globby": "^9.2.0",
     "inspectdep": "FormidableLabs/inspectdep#feature/monorepo",
+    "make-dir": "^3.0.0",
     "nanomatch": "^1.2.13"
   },
   "devDependencies": {

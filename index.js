@@ -3,6 +3,7 @@
 const pkg = require("./package.json");
 const path = require("path");
 const { createWriteStream } = require("fs");
+const makeDir = require("make-dir");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
@@ -271,9 +272,12 @@ class Jetpack {
     return filtered;
   }
 
-  createZip({ files, filesRoot, bundlePath }) {
+  async createZip({ files, filesRoot, bundlePath }) {
     // Use Serverless-analogous library + logic to create zipped artifact.
     const zip = archiver.create("zip");
+
+    // Ensure full path to bundle exists before opening stream.
+    await makeDir(path.dirname(bundlePath));
     const output = createWriteStream(bundlePath);
 
     this._logDebug(
