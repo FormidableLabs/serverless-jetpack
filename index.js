@@ -9,6 +9,7 @@ const makeDir = require("make-dir");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
+const pLimit = require("p-limit");
 const { findProdInstalls } = require("inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
@@ -108,6 +109,9 @@ class Jetpack {
     this.hooks = {
       "before:package:createDeploymentArtifacts": this.package.bind(this)
     };
+
+    // For inspectdep
+    this.pkgCache = {};
   }
 
   _log(msg) {
@@ -312,6 +316,7 @@ class Jetpack {
   }
 
   async globAndZip({ bundleName, functionObject }) {
+    const { pkgCache } = this;
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const bundlePath = path.resolve(servicePath, bundleName);
@@ -325,7 +330,7 @@ class Jetpack {
         // Relative to servicePath.
         .map((depRoot) => path.resolve(servicePath, depRoot))
         // Find deps.
-        .map((curPath) => findProdInstalls({ rootPath, curPath }))
+        .map((curPath) => findProdInstalls({ rootPath, curPath, pkgCache }))
       )
       .then((found) => found
         // Flatten.
@@ -414,12 +419,16 @@ class Jetpack {
         artifact: obj.functionPackage.artifact
       }));
 
+    // Gate concurrency to limit system impacts.
+    const concurrency = 2; // TODO: REVIEW NUMBER. TAKE AS OPTION?
+    const limit = pLimit(concurrency);
+
     // Now, iterate all functions and decide if this plugin should package them.
     const fnProms = await Promise.all(fnsPkgs
       .filter((obj) =>
         (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
       )
-      .map((obj) => this.packageFunction(obj))
+      .map((obj) => limit(() => this.packageFunction(obj)))
     );
 
     // We recreate the logic from `packager#packageService` for deciding whether
