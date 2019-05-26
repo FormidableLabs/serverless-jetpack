@@ -2,7 +2,6 @@
 
 const pkg = require("./package.json");
 
-const os = require("os");
 const path = require("path");
 const { createWriteStream } = require("fs");
 
@@ -10,17 +9,15 @@ const makeDir = require("make-dir");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
-const pLimit = require("p-limit");
 const { findProdInstalls } = require("inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
 const IS_WIN = process.platform === "win32";
 
-// Our builds are CPU and I/O intensive. Add some limits.
-// Use number of cpus as concurrency.
-const concurrency = os.cpus().length;
-const limit = pLimit(concurrency);
+// Timer and formatter.
+// eslint-disable-next-line no-magic-numbers
+const elapsed = (start) => ((new Date() - start) / 1000).toFixed(2);
 
 // Simple, stable union.
 const union = (arr1, arr2) => {
@@ -366,6 +363,7 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Package.
+    const start = new Date();
     this._log(`Start packaging function: ${bundleName}`);
     await this.globAndZip({ bundleName, functionObject });
 
@@ -373,7 +371,7 @@ class Jetpack {
     functionObject.package = functionObject.package || {};
     functionObject.package.artifact = bundleName;
 
-    this._log(`Finish packaging function: ${bundleName}`);
+    this._log(`Finish packaging function: ${bundleName} (${elapsed(start)}s)`);
   }
 
   async packageService() {
@@ -385,13 +383,14 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Package.
+    const start = new Date();
     this._log(`Start packaging service: ${bundleName}`);
     await this.globAndZip({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
 
-    this._log(`Finish packaging service: ${bundleName}`);
+    this._log(`Finish packaging service: ${bundleName} (${elapsed(start)}s)`);
   }
 
   async package() {
@@ -420,7 +419,7 @@ class Jetpack {
       .filter((obj) =>
         (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
       )
-      .map((obj) => limit(() => this.packageFunction(obj)))
+      .map((obj) => this.packageFunction(obj))
     );
 
     // We recreate the logic from `packager#packageService` for deciding whether
