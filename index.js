@@ -420,7 +420,7 @@ class Jetpack {
       }));
 
     // Gate concurrency to limit system impacts.
-    const concurrency = 2; // TODO: REVIEW NUMBER. TAKE AS OPTION?
+    const concurrency = 1; // TODO: REVIEW NUMBER. TAKE AS OPTION?
     const limit = pLimit(concurrency);
 
     // Now, iterate all functions and decide if this plugin should package them.
