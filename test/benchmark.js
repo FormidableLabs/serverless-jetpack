@@ -402,6 +402,8 @@ describe("benchmark", () => {
         .sort();
 
       expect(yarnFiles).to.include.members([
+        "functions/base/src/base.js",
+        "lib/camel/src/camel.js",
         "node_modules/camelcase/package.json",
         "node_modules/ms/package.json"
       ]);
