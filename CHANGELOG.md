@@ -7,6 +7,7 @@ Changes
   [#26](https://github.com/FormidableLabs/serverless-jetpack/pull/26)
 * Add automatic exclusion of `devDependencies` in traversed directories outside of the root.
 * Add `monorepo` test scenario.
+* Add `p-limit` to limit concurrency of packaging to number of CPUs.
 
 ## 0.2.1
 
