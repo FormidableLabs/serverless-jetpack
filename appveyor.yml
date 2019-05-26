@@ -23,7 +23,6 @@ test_script:
   - yarn run check
   - yarn benchmark:build
   - yarn benchmark:install
-  - yarn benchmark:lint
   # Run in serial so we don't get cache corruption. E.g.:
   # ```
   # error https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.455.0.tgz:

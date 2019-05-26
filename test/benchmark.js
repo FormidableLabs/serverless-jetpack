@@ -139,7 +139,7 @@ const SLS_FALSE_POSITIVES = {
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
     "node_modules/abbrev",
 
-    // in `node_modules/.bin/mime`
+    // Hoisted to `node_modules/.bin/mime`
     "node_modules/send/node_modules/.bin/mime"
   ]),
 
@@ -153,7 +153,7 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid",
 
-    // in `node_modules/.bin/mime`
+    // Hoisted to `node_modules/.bin/mime`
     "node_modules/send/node_modules/.bin/mime"
   ]),
 
@@ -195,6 +195,16 @@ const SLS_FALSE_POSITIVES = {
     "node_modules/.bin/sshpk-verify",
     // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
     "node_modules/.bin/watch",
+
+    // Hoisted to `node_moduels/.bin/loose-envify`
+    "node_modules/react-dom/node_modules/.bin/loose-envify",
+    "node_modules/react-dom/node_modules/prop-types/node_modules/.bin/loose-envify",
+    "node_modules/react/node_modules/.bin/loose-envify",
+    "node_modules/react/node_modules/prop-types/node_modules/.bin/loose-envify",
+    "node_modules/scheduler/node_modules/.bin/loose-envify",
+
+    // Hoisted to `node_modules/.bin/mime`
+    "node_modules/send/node_modules/.bin/mime",
 
     // $ yarn why abbrev
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
@@ -260,6 +270,7 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why tar
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
     "node_modules/tar",
+    "node_modules/tar/node_modules/.bin/mkdirp",
 
     // $ yarn why wide-align
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npmlog#gauge"

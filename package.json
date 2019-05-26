@@ -23,11 +23,10 @@
     "clean": "del-cli \"test/packages/*/*/.serverless\" .test-zips",
     "benchmark:install": "node test/script.js install",
     "benchmark:build": "node test/script.js build",
-    "benchmark:lint": "eslint \"test/packages/**/*.js\"",
     "benchmark:test": "mocha test/benchmark.js",
     "benchmark": "node test/script.js benchmark",
     "test:spec": "mocha test/spec",
-    "lint": "eslint \"*.js\" test/plugins test/spec \"test/*.js\" \"test/packages/*/*/src/**\"  \"test/packages/*/*/*.js\"",
+    "lint": "eslint .",
     "test": "yarn test:spec",
     "check:git-dirty": "test -z \"$(git status --porcelain)\" || (echo \"ERROR: Found git dirty files:\n$(git status --porcelain)\" && exit 1)",
     "check": "yarn lint && yarn test:spec"
