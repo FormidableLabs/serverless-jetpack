@@ -10,6 +10,7 @@ Changes
 
 **Behavior**
 
+* Process functions in serial to reduce system resource contention and typically make overall process faster.
 * Add automatic exclusion of `devDependencies` in traversed directories outside of the root.
 
 **Test**

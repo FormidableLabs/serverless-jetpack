@@ -109,10 +109,6 @@ class Jetpack {
     this.hooks = {
       "before:package:createDeploymentArtifacts": this.package.bind(this)
     };
-
-    // For inspectdep.
-    // TODO(SLS): Check that this is actually used still!
-    this.pkgCache = {};
   }
 
   _log(msg) {
@@ -317,7 +313,6 @@ class Jetpack {
   }
 
   async globAndZip({ bundleName, functionObject }) {
-    const { pkgCache } = this;
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const bundlePath = path.resolve(servicePath, bundleName);
@@ -331,7 +326,7 @@ class Jetpack {
         // Relative to servicePath.
         .map((depRoot) => path.resolve(servicePath, depRoot))
         // Find deps.
-        .map((curPath) => findProdInstalls({ rootPath, curPath, pkgCache }))
+        .map((curPath) => findProdInstalls({ rootPath, curPath }))
       )
       .then((found) => found
         // Flatten.
