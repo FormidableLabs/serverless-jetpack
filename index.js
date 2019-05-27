@@ -9,6 +9,7 @@ const makeDir = require("make-dir");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
+const pLimit = require("p-limit");
 const { findProdInstalls } = require("inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
@@ -425,9 +426,8 @@ class Jetpack {
 
     // Process functions in serial.
     this._log(`Packaging ${fnsPkgsToPackage.length} functions`);
-    for (const fnObj of fnsPkgsToPackage) {
-      await this.packageFunction(fnObj);
-    }
+    const limit = pLimit(1);
+    await Promise.all(fnsPkgsToPackage.map((obj) => limit(() => this.packageFunction(obj))));
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
