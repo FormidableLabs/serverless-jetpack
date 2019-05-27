@@ -7,7 +7,6 @@ Changes
 
 * Add custom options `base` and `roots` for better monorepo/workspaces support.
   [#26](https://github.com/FormidableLabs/serverless-jetpack/pull/26)
-* Add custom option `concurrency` to limit concurrency of function packaging.
 
 **Behavior**
 

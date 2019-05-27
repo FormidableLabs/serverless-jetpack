@@ -9,7 +9,6 @@ const makeDir = require("make-dir");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
-const pLimit = require("p-limit");
 const { findProdInstalls } = require("inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
@@ -101,11 +100,6 @@ class Jetpack {
             // eslint-disable-next-line max-len
             usage: "Comma-delimited list of directories to traverse for production dependencies to include relative to `servicePath`/CWD. (default: [Serverless' `servicePath` / CWD]).",
             shortcut: "r"
-          },
-          concurrency: {
-            // eslint-disable-next-line max-len
-            usage: "Number of concurrent packaging actions to allow (default: `4`).",
-            shortcut: "r"
           }
         }
       }
@@ -138,8 +132,7 @@ class Jetpack {
     const { service } = this.serverless;
     const defaults = {
       base: ".",
-      roots: null,
-      concurrency: 4
+      roots: null
     };
 
     const custom = (service.custom || {}).jetpack;
@@ -148,10 +141,6 @@ class Jetpack {
     // Coerce CLI roots into array.
     if (typeof this.__options.roots === "string") {
       this.__options.roots = this.__options.roots.split(",");
-    }
-
-    if (typeof this.__options.concurrency === "string") {
-      this.__options.concurrency = parseInt(this.__options.concurrency, 10);
     }
 
     return this.__options;
@@ -380,14 +369,14 @@ class Jetpack {
 
     // Package.
     const start = new Date();
-    this._log(`Start packaging function: ${bundleName}`);
+    this._logDebug(`Start packaging function: ${bundleName}`);
     await this.globAndZip({ bundleName, functionObject });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
     functionObject.package.artifact = bundleName;
 
-    this._log(`Finish packaging function: ${bundleName} (${elapsed(start)}s)`);
+    this._log(`Packaged function: ${bundleName} (${elapsed(start)}s)`);
   }
 
   async packageService() {
@@ -400,18 +389,17 @@ class Jetpack {
 
     // Package.
     const start = new Date();
-    this._log(`Start packaging service: ${bundleName}`);
+    this._logDebug(`Start packaging service: ${bundleName}`);
     await this.globAndZip({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
 
-    this._log(`Finish packaging service: ${bundleName} (${elapsed(start)}s)`);
+    this._log(`Packaged service: ${bundleName} (${elapsed(start)}s)`);
   }
 
   async package() {
     const { service } = this.serverless;
-    const { concurrency } = this._serviceOptions;
     const servicePackage = service.package;
 
     // Gather internal configuration.
@@ -431,20 +419,15 @@ class Jetpack {
         artifact: obj.functionPackage.artifact
       }));
 
-    // Gate concurrency to limit system impacts.
-    const limit = pLimit(concurrency);
+    const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
+      (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
+    );
 
-    // Now, iterate all functions and decide if this plugin should package them.
-    const fnProms = fnsPkgs
-      .filter((obj) =>
-        (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
-      )
-      .map((obj) => limit(() => this.packageFunction(obj)));
-
-    if (fnProms.length) {
-      this._log(`Packaging ${fnProms.length} functions with concurrency ${concurrency}`);
+    // Process functions in serial.
+    this._log(`Packaging ${fnsPkgsToPackage.length} functions`);
+    for (const fnObj of fnsPkgsToPackage) {
+      await this.packageFunction(fnObj);
     }
-    await Promise.all(fnProms);
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
@@ -454,7 +437,7 @@ class Jetpack {
     // Package entire service if applicable.
     if (shouldPackageService && !servicePackage.artifact) {
       await this.packageService();
-    } else if (!fnProms.length) {
+    } else if (!fnsPkgsToPackage.length) {
       // Detect if we did nothing...
       this._logDebug("No matching service or functions to package.");
     }
