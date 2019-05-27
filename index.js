@@ -425,9 +425,11 @@ class Jetpack {
     );
 
     // Process functions in serial.
-    this._log(`Packaging ${fnsPkgsToPackage.length} functions`);
-    const limit = pLimit(1);
-    await Promise.all(fnsPkgsToPackage.map((obj) => limit(() => this.packageFunction(obj))));
+    if (fnsPkgsToPackage.length) {
+      this._log(`Packaging ${fnsPkgsToPackage.length} functions`);
+      const limit = pLimit(1);
+      await Promise.all(fnsPkgsToPackage.map((obj) => limit(() => this.packageFunction(obj))));
+    }
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
