@@ -3,11 +3,19 @@ Changes
 
 ## UNRELEASED
 
+**API**
+
 * Add custom options `base` and `roots` for better monorepo/workspaces support.
   [#26](https://github.com/FormidableLabs/serverless-jetpack/pull/26)
+* Add custom option `concurrency` to limit concurrency of function packaging.
+
+**Behavior**
+
 * Add automatic exclusion of `devDependencies` in traversed directories outside of the root.
+
+**Test**
+
 * Add `monorepo` test scenario.
-* Add `p-limit` to limit concurrency of packaging.
 
 ## 0.2.1
 

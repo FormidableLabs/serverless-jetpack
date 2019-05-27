@@ -99,7 +99,12 @@ class Jetpack {
           },
           roots: {
             // eslint-disable-next-line max-len
-            usage: "Comma-delimited list of directories to traverse for production dependencies to include relative to `servicePath`/CWD. (default: [Serverless' `servicePath` / CWD)].",
+            usage: "Comma-delimited list of directories to traverse for production dependencies to include relative to `servicePath`/CWD. (default: [Serverless' `servicePath` / CWD]).",
+            shortcut: "r"
+          },
+          concurrency: {
+            // eslint-disable-next-line max-len
+            usage: "Number of concurrent packaging actions to allow (default: `4`).",
             shortcut: "r"
           }
         }
@@ -110,7 +115,8 @@ class Jetpack {
       "before:package:createDeploymentArtifacts": this.package.bind(this)
     };
 
-    // For inspectdep
+    // For inspectdep.
+    // TODO(SLS): Check that this is actually used still!
     this.pkgCache = {};
   }
 
@@ -132,7 +138,8 @@ class Jetpack {
     const { service } = this.serverless;
     const defaults = {
       base: ".",
-      roots: null
+      roots: null,
+      concurrency: 4
     };
 
     const custom = (service.custom || {}).jetpack;
@@ -141,6 +148,10 @@ class Jetpack {
     // Coerce CLI roots into array.
     if (typeof this.__options.roots === "string") {
       this.__options.roots = this.__options.roots.split(",");
+    }
+
+    if (typeof this.__options.concurrency === "string") {
+      this.__options.concurrency = parseInt(this.__options.concurrency, 10);
     }
 
     return this.__options;
@@ -400,6 +411,7 @@ class Jetpack {
 
   async package() {
     const { service } = this.serverless;
+    const { concurrency } = this._serviceOptions;
     const servicePackage = service.package;
 
     // Gather internal configuration.
@@ -420,16 +432,19 @@ class Jetpack {
       }));
 
     // Gate concurrency to limit system impacts.
-    const concurrency = 1; // TODO: REVIEW NUMBER. TAKE AS OPTION?
     const limit = pLimit(concurrency);
 
     // Now, iterate all functions and decide if this plugin should package them.
-    const fnProms = await Promise.all(fnsPkgs
+    const fnProms = fnsPkgs
       .filter((obj) =>
         (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
       )
-      .map((obj) => limit(() => this.packageFunction(obj)))
-    );
+      .map((obj) => limit(() => this.packageFunction(obj)));
+
+    if (fnProms.length) {
+      this._log(`Packaging ${fnProms.length} functions with concurrency ${concurrency}`);
+    }
+    await Promise.all(fnProms);
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
