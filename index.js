@@ -117,11 +117,6 @@ class Jetpack {
     const custom = (service.custom || {}).jetpack;
     this.__options = Object.assign({}, defaults, custom, this.options);
 
-    // Coerce CLI roots into array.
-    if (typeof this.__options.roots === "string") {
-      this.__options.roots = this.__options.roots.split(",");
-    }
-
     return this.__options;
   }
 
