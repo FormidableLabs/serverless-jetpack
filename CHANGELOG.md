@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.3.1
 
 * Remove unnecessary `commands` in constructor as we have no actual CLI yet.
 
