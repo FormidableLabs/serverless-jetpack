@@ -1,6 +1,10 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Remove unnecessary `commands` in constructor as we have no actual CLI yet.
+
 ## 0.3.0
 
 **API**

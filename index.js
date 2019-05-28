@@ -88,24 +88,6 @@ class Jetpack {
     this.serverless = serverless;
     this.options = options;
 
-    this.commands = {
-      jetpack: {
-        usage: pkg.description,
-        options: {
-          base: {
-            // eslint-disable-next-line max-len
-            usage: "Base directory at which dependencies may be discovered relative to `servicePath`/CWD. (default: Serverless' `servicePath` / CWD).",
-            shortcut: "b"
-          },
-          roots: {
-            // eslint-disable-next-line max-len
-            usage: "Comma-delimited list of directories to traverse for production dependencies to include relative to `servicePath`/CWD. (default: [Serverless' `servicePath` / CWD]).",
-            shortcut: "r"
-          }
-        }
-      }
-    };
-
     this.hooks = {
       "before:package:createDeploymentArtifacts": this.package.bind(this)
     };
