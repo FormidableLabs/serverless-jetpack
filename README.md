@@ -152,7 +152,7 @@ This is potentially slow if `node_modules` contains a lot of ultimately removed 
 Jetpack, by contrast does the following:
 
 1. Efficiently infer production dependencies from disk without globbing, and without reading any `devDependencies`.
-2. Glob files from disk with a root `**` (all files), `!node_modules` (exclude all by default), `!node_modules/PROD_DEP_01, !node_modules/PROD_DEP_02, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
+2. Glob files from disk with a root `**` (all files), `!node_modules` (exclude all by default), `node_modules/PROD_DEP_01, node_modules/PROD_DEP_02, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
 3. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
 This ends up being way faster in most cases, and particularly when you have very large `devDependencies`. It is worth pointing out the minor implication that:
