@@ -99,10 +99,7 @@ $ yarn benchmark
 # Now, test the benchmark for correctness.
 $ yarn benchmark:test
 
-# Generate the usage message.
-$ yarn usage
-
-# If the timed benchmark stats and/or the usage message are notably different
+# If the timed benchmark stats and/or usage is notably different
 # than what's in README.md, update relevant sections and commit your changes.
 $ vim README.md
 
