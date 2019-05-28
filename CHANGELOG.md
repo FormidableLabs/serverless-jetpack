@@ -1,6 +1,22 @@
 Changes
 =======
 
+## UNRELEASED
+
+**API**
+
+* Add custom options `base` and `roots` for better monorepo/workspaces support.
+  [#26](https://github.com/FormidableLabs/serverless-jetpack/pull/26)
+
+**Behavior**
+
+* Process functions in serial to reduce system resource contention and typically make overall process faster.
+* Add automatic exclusion of `devDependencies` in traversed directories outside of the root.
+
+**Test**
+
+* Add `monorepo` test scenario.
+
 ## 0.2.1
 
 * Add a `mkdir -p` equivalent of the directory containing the output bundle same as `serverless` built-in packaging behavior.

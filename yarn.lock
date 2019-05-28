@@ -1981,10 +1981,10 @@ inquirer@^6.2.2:
     strip-ansi "^5.1.0"
     through "^2.3.6"
 
-inspectdep@^0.1.2:
-  version "0.1.2"
-  resolved "https://registry.yarnpkg.com/inspectdep/-/inspectdep-0.1.2.tgz#c1de47a0c481aebf91d19e033db10626bf6a7c46"
-  integrity sha512-3frWE9LPlWpRtlu2i1fXEmDC0wfEBCRcA4jqzcwb1i9AgwkCzmHEemFuoSEdTo6B9PM3fCxjgWn9NuEIaat3Wg==
+inspectdep@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/inspectdep/-/inspectdep-0.2.0.tgz#88e8aac8f96ef37a1afacd6cdf010c851ae0dab0"
+  integrity sha512-DSa0F9KfYjMIVKbJpqn196ZGnoO6lv+/OOL1kbJMqGAyFeIkG5rAUmabVnqlp4o26y8XCINj1xp2Yecb6Q/MUQ==
 
 invert-kv@^2.0.0:
   version "2.0.0"
@@ -3022,7 +3022,7 @@ p-limit@^1.1.0:
   dependencies:
     p-try "^1.0.0"
 
-p-limit@^2.0.0:
+p-limit@^2.0.0, p-limit@^2.2.0:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/p-limit/-/p-limit-2.2.0.tgz#417c9941e6027a9abcba5092dd2904e255b5fbc2"
   integrity sha512-pZbTJpoUsCzV48Mc9Nh51VbwO0X9cuPFE8gYwx9BTCt9SF8/b7Zljd2fVgOxhIF/HDTKgpVzs+GPhyKfjLLFRQ==

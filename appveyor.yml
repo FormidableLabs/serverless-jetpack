@@ -13,7 +13,7 @@ branches:
 install:
   - ps: Install-Product node $env:nodejs_version
   # Get a more modern yarn.
-  - npm install --global yarn@latest
+  - npm install --global yarn@latest cross-env
   # Fail if lockfile outdated.
   # https://yarnpkg.com/lang/en/docs/cli/install/#toc-yarn-install-frozen-lockfile
   - yarn install --frozen-lockfile
@@ -23,15 +23,7 @@ test_script:
   - yarn run check
   - yarn benchmark:build
   - yarn benchmark:install
-  - yarn benchmark:lint
-  # Run in serial so we don't get cache corruption. E.g.:
-  # ```
-  # error https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.455.0.tgz:
-  # Extracting tar content of undefined failed, the file appears to be corrupt:
-  # "ENOENT: no such file or directory, stat
-  # 'C:\\Users\\appveyor\\AppData\\Local\\Yarn\\Cache\\v2\\npm-aws-sdk-2.455.0-67caab4324e3482b3facd17e522a1fea2ded07e1\\clients\\backup.d.ts'"
-  # ```
-  - yarn benchmark
+  - cross-env TEST_PARALLEL=true yarn benchmark
   - yarn benchmark:test
 
 # Don't actually build.

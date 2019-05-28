@@ -1,8 +1,9 @@
 Serverless Jetpack 🚀
 ====================
 [![npm version][npm_img]][npm_site]
-[![Travis Status][trav_img]][trav_site]
-[![AppVeyor Status][appveyor_img]][appveyor_site]
+[![Travis status][trav_img]][trav_site]
+[![AppVeyor status][appveyor_img]][appveyor_site]
+[![MIT license][lic_img]][lic_site]
 
 A faster JavaScript packager for [Serverless][] applications.
 
@@ -62,6 +63,72 @@ functions:
         - "src/**"
         - "!**/node_modules/aws-sdk" # Faster way to exclude
         - "package.json"
+```
+
+### Configuration
+
+Most Serverless framework projects should be able to use Jetpack without any extra configuration besides the `plugins` entry. However, there are some additional options that may be useful in some projects (e.g., [lerna][] monorepos, [yarn workspaces][])...
+
+**Service**-level configurations available via `custom.jetpack`:
+
+* `base` (`string`): The base directory (relative to `servicePath` / CWD) at which dependencies may be discovered by Jetpack. This is useful in some bespoke monorepo scenarios where dependencies may be hoisted/flattened to a root `node_modules` directory that is the parent of the directory `serverless` is run from. (default: Serverless' `servicePath` / CWD).
+    * _WARNING_: If you don't **know** that you need this option, you probably don't want to set it. Setting the base dependency root outside of Serverless' `servicePath` / current working directory (e.g., `..`) may have some unintended side effects. Most notably, any discovered `node_modules` dependencies will be flattened into the zip at the same level as `servicePath` / CWD. E.g., if dependencies were included by Jetpack at `node_modules/foo` and then `../node_modules/foo` they would be collapsed in the resulting zip file package.
+* `roots` (`Array<string>`): A list of paths (relative to `servicePath` / CWD) at which there may additionally declared and/or installed `node_modules`. (default: [Serverless' `servicePath` / CWD]).
+    * Setting a value here replaces the default `[servicePath]` with the new array, so if you want to additionally keep the `servicePath` in the roots array, set as: `[".", ADDITION_01, ADDITION_02, ...]`.
+    * This typically occurs in a monorepo project, wherein dependencies may be located in e.g. `packages/{NAME}/node_modules` and/or hoisted to the `node_modules` at the project base. It is important to specify these additional dependency roots so that Jetpack can (1) find and include the right dependencies and (2) hone down these directories to just production dependencies when packaging. Otherwise, you risk having a slow `serverless package` execution and/or end up with additional/missing dependencies in your final application zip bundle.
+    * You only need to declare roots of things that _aren't_ naturally inferred in a dependency traversal. E.g., if starting at `packages/{NAME}/package.json` causes a traversal down to `node_modules/something` then symlinked up to `lib/something-else/node_modules/even-more` these additional paths don't need to be separately declared because they're just part of the dependency traversal.
+
+The following **function**-level configurations available via `functions.{FN_NAME}.jetpack`:
+
+* `roots` (`Array<string>`): This option **adds** more dependency roots to the service-level `roots` option.
+
+Here are some example configurations:
+
+**Additional roots**
+
+```yml
+# serverless.yml
+plugins:
+  - serverless-jetpack
+
+functions:
+  base:
+    # ...
+  another:
+    # This example monorepo project has:
+    # - `packages/another/src`: JS source code to include
+    # - `packages/another/package.json`: Declares production dependencies
+    # - `packages/another/node_modules`: One location prod deps may be.
+    # - `node_modules`: Another location prod deps may be if hoisted.
+    # ...
+    package:
+      individually: true
+    jetpack:
+      roots:
+        # If you want to keep prod deps from servicePath/CWD package.json
+        # - "."
+        # Different root to infer prod deps from package.json
+        - "packages/another"
+    include:
+      # Ex: Typically you'll also add in sources from a monorepo package.
+      - "packages/another/src/**"
+```
+
+**Different base root**
+
+```yml
+# serverless.yml
+plugins:
+  - serverless-jetpack
+
+custom:
+  jetpack:
+    # Search for hoisted dependencies to one parent above normal.
+    base: ".."
+
+functions:
+  base:
+    # ...
 ```
 
 ## How it works
@@ -183,3 +250,5 @@ Results:
 [trav_site]: https://travis-ci.com/FormidableLabs/serverless-jetpack
 [appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
 [appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
+[lic_img]: https://img.shields.io/npm/l/serverless-jetpack.svg?color=brightgreen&style=flat
+[lic_site]: https://github.com/FormidableLabs/serverless-jetpack/blob/master/LICENSE.txt

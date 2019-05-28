@@ -1,17 +1,24 @@
 "use strict";
 
 const pkg = require("./package.json");
+
 const path = require("path");
 const { createWriteStream } = require("fs");
+
 const makeDir = require("make-dir");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
+const pLimit = require("p-limit");
 const { findProdInstalls } = require("inspectdep");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
 const IS_WIN = process.platform === "win32";
+
+// Timer and formatter.
+// eslint-disable-next-line no-magic-numbers
+const elapsed = (start) => ((new Date() - start) / 1000).toFixed(2);
 
 // Simple, stable union.
 const union = (arr1, arr2) => {
@@ -83,7 +90,19 @@ class Jetpack {
 
     this.commands = {
       jetpack: {
-        usage: pkg.description
+        usage: pkg.description,
+        options: {
+          base: {
+            // eslint-disable-next-line max-len
+            usage: "Base directory at which dependencies may be discovered relative to `servicePath`/CWD. (default: Serverless' `servicePath` / CWD).",
+            shortcut: "b"
+          },
+          roots: {
+            // eslint-disable-next-line max-len
+            usage: "Comma-delimited list of directories to traverse for production dependencies to include relative to `servicePath`/CWD. (default: [Serverless' `servicePath` / CWD]).",
+            shortcut: "r"
+          }
+        }
       }
     };
 
@@ -101,6 +120,42 @@ class Jetpack {
     if (process.env.SLS_DEBUG) {
       this._log(msg);
     }
+  }
+
+  // Root options.
+  get _serviceOptions() {
+    if (this.__options) { return this.__options; }
+
+    const { service } = this.serverless;
+    const defaults = {
+      base: ".",
+      roots: null
+    };
+
+    const custom = (service.custom || {}).jetpack;
+    this.__options = Object.assign({}, defaults, custom, this.options);
+
+    // Coerce CLI roots into array.
+    if (typeof this.__options.roots === "string") {
+      this.__options.roots = this.__options.roots.split(",");
+    }
+
+    return this.__options;
+  }
+
+  // Function overrides, etc.
+  _functionOptions({ functionObject }) {
+    if (!functionObject) {
+      return this._serviceOptions;
+    }
+
+    const opts = Object.assign({}, this._serviceOptions);
+    const fnOpts = functionObject.jetpack || {};
+    if (fnOpts.roots) {
+      opts.roots = (opts.roots || []).concat(fnOpts.roots);
+    }
+
+    return opts;
   }
 
   filePatterns({ functionObject }) {
@@ -261,10 +316,37 @@ class Jetpack {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const bundlePath = path.resolve(servicePath, bundleName);
-
-    // Gather files, deps to zip.
+    const { base, roots } = this._functionOptions({ functionObject });
     const { include, exclude } = this.filePatterns({ functionObject });
-    const depInclude = await findProdInstalls({ rootPath: servicePath });
+
+    // Iterate all dependency roots to gather production dependencies.
+    const rootPath = path.resolve(servicePath, base);
+    const depInclude = await Promise
+      .all((roots || ["."])
+        // Relative to servicePath.
+        .map((depRoot) => path.resolve(servicePath, depRoot))
+        // Find deps.
+        .map((curPath) => findProdInstalls({ rootPath, curPath }))
+      )
+      .then((found) => found
+        // Flatten.
+        .reduce((m, a) => m.concat(a), [])
+        // Relativize to servicePath / CWD.
+        .map((dep) => path.relative(servicePath, path.join(rootPath, dep)))
+        // Sort for proper glob order.
+        .sort()
+        // Add excludes for node_modules in every discovered pattern dep dir.
+        // This allows us to exclude devDependencies because **later** include
+        // patterns should have all the production deps already and override.
+        .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
+          ? [dep, `!${path.join(dep, "node_modules")}`]
+          : [dep]
+        )
+        // Re-flatten the temp arrays we just introduced.
+        .reduce((m, a) => m.concat(a), [])
+      );
+
+    // Glob and filter all files in package.
     const files = await this.resolveFilePathsFromPatterns({ depInclude, include, exclude });
 
     // Create package zip.
@@ -282,12 +364,15 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Package.
-    this._log(`Packaging function: ${bundleName}`);
+    const start = new Date();
+    this._logDebug(`Start packaging function: ${bundleName}`);
     await this.globAndZip({ bundleName, functionObject });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
     functionObject.package.artifact = bundleName;
+
+    this._log(`Packaged function: ${bundleName} (${elapsed(start)}s)`);
   }
 
   async packageService() {
@@ -299,11 +384,14 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Package.
-    this._log(`Packaging service: ${bundleName}`);
+    const start = new Date();
+    this._logDebug(`Start packaging service: ${bundleName}`);
     await this.globAndZip({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
+
+    this._log(`Packaged service: ${bundleName} (${elapsed(start)}s)`);
   }
 
   async package() {
@@ -327,13 +415,16 @@ class Jetpack {
         artifact: obj.functionPackage.artifact
       }));
 
-    // Now, iterate all functions and decide if this plugin should package them.
-    const fnProms = await Promise.all(fnsPkgs
-      .filter((obj) =>
-        (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
-      )
-      .map((obj) => this.packageFunction(obj))
+    const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
+      (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
     );
+
+    // Process functions in serial.
+    if (fnsPkgsToPackage.length) {
+      this._log(`Packaging ${fnsPkgsToPackage.length} functions`);
+      const limit = pLimit(1);
+      await Promise.all(fnsPkgsToPackage.map((obj) => limit(() => this.packageFunction(obj))));
+    }
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
@@ -343,7 +434,7 @@ class Jetpack {
     // Package entire service if applicable.
     if (shouldPackageService && !servicePackage.artifact) {
       await this.packageService();
-    } else if (!fnProms.length) {
+    } else if (!fnsPkgsToPackage.length) {
       // Detect if we did nothing...
       this._logDebug("No matching service or functions to package.");
     }
