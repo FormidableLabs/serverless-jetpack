@@ -289,6 +289,10 @@ class Jetpack {
     });
   }
 
+  // TODO_HERE
+  // TODO: Extract to separate `util` library.
+  // TODO: Refactor this to the minimum parameter design (Keep inspectdep, glob, zip).
+  // TODO: Use `jest-worker` to invoke...
   async globAndZip({ bundleName, functionObject }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
