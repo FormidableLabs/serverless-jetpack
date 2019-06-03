@@ -1,6 +1,10 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Add support for `deploy -f {NAME}` to (1) hook in `jetpack` to overtake built-in packaging and (2) limit builds to just the function if `individually` or just the service if not.
+
 ## 0.3.1
 
 * Remove unnecessary `commands` in constructor as we have no actual CLI yet.
