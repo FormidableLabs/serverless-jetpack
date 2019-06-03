@@ -89,7 +89,8 @@ class Jetpack {
     this.options = options;
 
     this.hooks = {
-      "before:package:createDeploymentArtifacts": this.package.bind(this)
+      "before:package:createDeploymentArtifacts": this.package.bind(this),
+      "before:package:function:package": this.package.bind(this)
     };
   }
 
@@ -375,6 +376,12 @@ class Jetpack {
     const { service } = this.serverless;
     const servicePackage = service.package;
 
+    // Check if we have a single function limitation from `deploy -f name`.
+    const singleFunctionName = (this.options || {}).function;
+    if (singleFunctionName) {
+      this._logDebug(`Packaging only for function: ${singleFunctionName}`);
+    }
+
     // Gather internal configuration.
     const fnsPkgs = service.getAllFunctions()
       .map((functionName) => ({
@@ -392,9 +399,14 @@ class Jetpack {
         artifact: obj.functionPackage.artifact
       }));
 
-    const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
-      (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
-    );
+    // Get list of individual functions to package.
+    const fnsPkgsToPackage = fnsPkgs
+      // Limit to single function if provided.
+      .filter((obj) => !singleFunctionName || singleFunctionName === obj.functionName)
+      // Limit based on configuration.
+      .filter((obj) =>
+        (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
+      );
 
     // Process functions in serial.
     if (fnsPkgsToPackage.length) {
