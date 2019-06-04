@@ -187,8 +187,9 @@ class Jetpack {
     const servicePath = config.servicePath || ".";
     const { base, roots } = this._functionOptions({ functionObject });
     const { include, exclude } = this.filePatterns({ functionObject });
+    const logDebug = this._logDebug.bind(this);
 
-    await globAndZip({ servicePath, base, roots, bundleName, include, exclude });
+    await globAndZip({ servicePath, base, roots, bundleName, include, exclude, logDebug });
   }
 
   async packageFunction({ functionName, functionObject }) {

@@ -133,7 +133,7 @@ const createZip = async ({ files, filesRoot, bundlePath, logDebug = () => {} }) 
   });
 };
 
-const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclude }) => {
+const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclude, logDebug }) => {
   const bundlePath = path.resolve(servicePath, bundleName);
 
   // Iterate all dependency roots to gather production dependencies.
@@ -170,7 +170,8 @@ const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclu
   await createZip({
     files,
     filesRoot: servicePath,
-    bundlePath
+    bundlePath,
+    logDebug
   });
 };
 
