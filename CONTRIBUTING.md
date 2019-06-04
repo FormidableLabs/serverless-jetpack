@@ -92,6 +92,11 @@ $ yarn run check
 $ yarn benchmark:install
 $ yarn benchmark:build
 
+# After this, you can run the CLI tests which use real fixtures in E2E scenarios
+# They're relatively slow (several seconds a test), but nowhere near as slow
+# as the benchmark.
+$ yarn test:cli
+
 # Run a benchmark.
 # Then, actually generate the benchmark.
 # _Note_: Unfortunately, this takes some **time**. Grab a ☕

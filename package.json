@@ -24,6 +24,7 @@
     "benchmark:build": "node test/script.js build",
     "benchmark:test": "mocha test/benchmark.js",
     "benchmark": "node test/script.js benchmark",
+    "test:cli": "mocha test/cli",
     "test:spec": "mocha test/spec",
     "lint": "eslint .",
     "test": "yarn test:spec",
