@@ -1,6 +1,6 @@
 {
   "name": "serverless-jetpack",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
   "repository": "https://github.com/FormidableLabs/serverless-jetpack",
@@ -24,6 +24,7 @@
     "benchmark:build": "node test/script.js build",
     "benchmark:test": "mocha test/benchmark.js",
     "benchmark": "node test/script.js benchmark",
+    "test:cli": "mocha test/cli",
     "test:spec": "mocha test/spec",
     "lint": "eslint .",
     "test": "yarn test:spec",

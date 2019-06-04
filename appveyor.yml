@@ -23,6 +23,7 @@ test_script:
   - yarn run check
   - yarn benchmark:build
   - yarn benchmark:install
+  - yarn test:cli
   - cross-env TEST_PARALLEL=true yarn benchmark
   - yarn benchmark:test
 
