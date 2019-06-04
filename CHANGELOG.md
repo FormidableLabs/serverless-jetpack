@@ -1,7 +1,7 @@
 Changes
 =======
 
-## Unreleased
+## 0.3.3
 
 * Add CLI options for `serverless jetpack package`.
   [#35](https://github.com/FormidableLabs/serverless-jetpack/pull/35)
