@@ -5,6 +5,7 @@ Changes
 
 * Add CLI options for `serverless jetpack package`.
   [#35](https://github.com/FormidableLabs/serverless-jetpack/pull/35)
+* BUG: Don't package service if `serverless deploy -f {NAME}` is specified.
 
 ## 0.3.2
 

@@ -439,10 +439,14 @@ class Jetpack {
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
     const shouldPackageService = !servicePackage.individually
+      && !servicePackage.artifact
+      // Don't package service if we specify a single function **and** have a match
+      && (!singleFunctionName || !fnsPkgsToPackage.length)
+      // Otherwise, have some functions left that need to use the service package.
       && fnsPkgs.some((obj) => !(obj.disable || obj.individually || obj.artifact));
 
     // Package entire service if applicable.
-    if (shouldPackageService && !servicePackage.artifact) {
+    if (shouldPackageService) {
       await this.packageService();
     } else if (!fnsPkgsToPackage.length) {
       // Detect if we did nothing...
