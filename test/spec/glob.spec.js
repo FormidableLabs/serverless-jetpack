@@ -118,8 +118,7 @@ describe("globbing (include/exclude) logic", () => {
     mock.restore();
   });
 
-  // TODO: Need to handle split plugin directories.
-  it.skip("should error on no patterns, no matches", async () => {
+  it("should error on no patterns, no matches", async () => {
     expect(await compare({}))
       .to.be.an("Error").and
       .to.have.property("message", "No file matches include / exclude patterns");
