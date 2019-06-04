@@ -405,6 +405,9 @@ class Jetpack {
 
     // Gather internal configuration.
     const fnsPkgs = service.getAllFunctions()
+      // Limit to single function if provided.
+      .filter((functionName) => !singleFunctionName || singleFunctionName === functionName)
+      // Convert to more useful format.
       .map((functionName) => ({
         functionName,
         functionObject: service.getFunction(functionName)
@@ -421,13 +424,9 @@ class Jetpack {
       }));
 
     // Get list of individual functions to package.
-    const fnsPkgsToPackage = fnsPkgs
-      // Limit to single function if provided.
-      .filter((obj) => !singleFunctionName || singleFunctionName === obj.functionName)
-      // Limit based on configuration.
-      .filter((obj) =>
-        (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
-      );
+    const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
+      (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
+    );
 
     // Process functions in serial.
     if (fnsPkgsToPackage.length) {
