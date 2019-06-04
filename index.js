@@ -3,6 +3,7 @@
 const pkg = require("./package.json");
 const path = require("path");
 const pLimit = require("p-limit");
+const Worker = require("jest-worker").default;
 const { globAndZip } = require("./util/bundle");
 
 const SLS_TMP_DIR = ".serverless";
@@ -234,6 +235,12 @@ class Jetpack {
   async package() {
     const { service } = this.serverless;
     const servicePackage = service.package;
+
+    // TODO(PARALLEL): Temp sandbox to do async stuff.
+    const worker = new Worker(require.resolve("./util/bundle"));
+    const result = await worker.hello("Bob");
+    console.log("TODO HERE", result);
+    return;
 
     // Check if we have a single function limitation from `deploy -f name`.
     const singleFunctionName = (this.options || {}).function;

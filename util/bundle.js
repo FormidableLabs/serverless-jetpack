@@ -1,8 +1,5 @@
 "use strict";
 
-// TODO_HERE
-// TODO: Also expose a worker with lazy requires or something to do in worker?
-
 const path = require("path");
 const { createWriteStream } = require("fs");
 
@@ -177,5 +174,6 @@ const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclu
 
 module.exports = {
   resolveFilePathsFromPatterns,
-  globAndZip
+  globAndZip,
+  hello: (name) => `Hello: ${name}` // TODO REMOVE
 };
