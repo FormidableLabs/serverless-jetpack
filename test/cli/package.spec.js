@@ -6,7 +6,7 @@ const execa = require("execa");
 
 // Constants.
 // We're doing real builds, so these tests are **slow**...
-const TIMEOUT = 5000;
+const TIMEOUT = 10000;
 
 // Helpers.
 const exists = (filePath) => stat(filePath)
