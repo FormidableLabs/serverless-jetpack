@@ -46,7 +46,8 @@ describe("jetpack package", function () {
 
     it("packages the entire service with no options", async () => {
       const { stdout } = await sls(["jetpack", "package"], { cwd });
-      expect(stdout).to.contain("Packaged service: .serverless/serverless-jetpack-simple.zip");
+      const pkg = path.normalize(".serverless/serverless-jetpack-simple.zip");
+      expect(stdout).to.contain(`Packaged service: ${pkg}`);
 
       const pkgExists = await exists(path.join(PKG_DIR, "serverless-jetpack-simple.zip"));
       expect(pkgExists).to.equal(true);
@@ -54,7 +55,8 @@ describe("jetpack package", function () {
 
     it("packages the entire service with -f base", async () => {
       const { stdout } = await sls(["jetpack", "package", "-f", "base"], { cwd });
-      expect(stdout).to.contain("Packaged service: .serverless/serverless-jetpack-simple.zip");
+      const pkg = path.normalize(".serverless/serverless-jetpack-simple.zip");
+      expect(stdout).to.contain(`Packaged service: ${pkg}`);
 
       expect(await exists(path.join(PKG_DIR, "serverless-jetpack-simple.zip"))).to.equal(true);
     });
@@ -71,8 +73,8 @@ describe("jetpack package", function () {
     it("packages all functions with no options", async () => {
       const { stdout } = await sls(["jetpack", "package"], { cwd });
       expect(stdout)
-        .to.contain("Packaged function: .serverless/base.zip").and
-        .to.contain("Packaged function: .serverless/another.zip");
+        .to.contain(`Packaged function: ${path.normalize(".serverless/base.zip")}`).and
+        .to.contain(`Packaged function: ${path.normalize(".serverless/another.zip")}`);
 
       expect(await exists(path.join(PKG_DIR, "base.zip"))).to.equal(true);
       expect(await exists(path.join(PKG_DIR, "another.zip"))).to.equal(true);
@@ -81,8 +83,8 @@ describe("jetpack package", function () {
     it("packages 1 function with -f base", async () => {
       const { stdout } = await sls(["jetpack", "package", "-f", "base"], { cwd });
       expect(stdout)
-        .to.contain("Packaged function: .serverless/base.zip").and
-        .to.not.contain("Packaged function: .serverless/another.zip");
+        .to.contain(`Packaged function: ${path.normalize(".serverless/base.zip")}`).and
+        .to.not.contain(`Packaged function: ${path.normalize(".serverless/another.zip")}`);
 
       expect(await exists(path.join(PKG_DIR, "base.zip"))).to.equal(true);
       expect(await exists(path.join(PKG_DIR, "another.zip"))).to.equal(false);
