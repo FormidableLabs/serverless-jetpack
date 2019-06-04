@@ -52,7 +52,13 @@ describe("jetpack package", function () {
       expect(pkgExists).to.equal(true);
     });
 
-    it("packages the entire service with -f base"); // TODO
+    it("packages the entire service with -f base", async () => {
+      const { stdout } = await sls(["jetpack", "package", "-f", "base"], { cwd });
+      expect(stdout).to.contain("Packaged service: .serverless/serverless-jetpack-simple.zip");
+
+      const pkgExists = await exists(path.join(PKG_DIR, "serverless-jetpack-simple.zip"));
+      expect(pkgExists).to.equal(true);
+    });
   });
 
   describe("individually", () => {
