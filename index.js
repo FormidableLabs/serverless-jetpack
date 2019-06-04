@@ -88,9 +88,30 @@ class Jetpack {
     this.serverless = serverless;
     this.options = options;
 
+    this.commands = {
+      jetpack: {
+        usage: "Alternate Serverless packager",
+        commands: {
+          "package": {
+            usage: "Packages a Serverless service or function",
+            lifecycleEvents: [
+              "package"
+            ],
+            options: {
+              "function": {
+                usage: "Function name. Packages a single function (see 'deploy function')",
+                shortcut: "f"
+              }
+            }
+          }
+        }
+      }
+    };
+
     this.hooks = {
       "before:package:createDeploymentArtifacts": this.package.bind(this),
-      "before:package:function:package": this.package.bind(this)
+      "before:package:function:package": this.package.bind(this),
+      "jetpack:package:package": this.package.bind(this)
     };
   }
 
@@ -384,6 +405,9 @@ class Jetpack {
 
     // Gather internal configuration.
     const fnsPkgs = service.getAllFunctions()
+      // Limit to single function if provided.
+      .filter((functionName) => !singleFunctionName || singleFunctionName === functionName)
+      // Convert to more useful format.
       .map((functionName) => ({
         functionName,
         functionObject: service.getFunction(functionName)
@@ -400,13 +424,9 @@ class Jetpack {
       }));
 
     // Get list of individual functions to package.
-    const fnsPkgsToPackage = fnsPkgs
-      // Limit to single function if provided.
-      .filter((obj) => !singleFunctionName || singleFunctionName === obj.functionName)
-      // Limit based on configuration.
-      .filter((obj) =>
-        (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
-      );
+    const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
+      (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
+    );
 
     // Process functions in serial.
     if (fnsPkgsToPackage.length) {
@@ -418,10 +438,14 @@ class Jetpack {
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
     const shouldPackageService = !servicePackage.individually
+      && !servicePackage.artifact
+      // Don't package service if we specify a single function **and** have a match
+      && (!singleFunctionName || !fnsPkgsToPackage.length)
+      // Otherwise, have some functions left that need to use the service package.
       && fnsPkgs.some((obj) => !(obj.disable || obj.individually || obj.artifact));
 
     // Package entire service if applicable.
-    if (shouldPackageService && !servicePackage.artifact) {
+    if (shouldPackageService) {
       await this.packageService();
     } else if (!fnsPkgsToPackage.length) {
       // Detect if we did nothing...

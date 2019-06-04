@@ -1,6 +1,12 @@
 Changes
 =======
 
+## Unreleased
+
+* Add CLI options for `serverless jetpack package`.
+  [#35](https://github.com/FormidableLabs/serverless-jetpack/pull/35)
+* BUG: Don't package service if `serverless deploy -f {NAME}` is specified.
+
 ## 0.3.2
 
 * Add support for `deploy -f {NAME}` to (1) hook in `jetpack` to overtake built-in packaging and (2) limit builds to just the function if `individually` or just the service if not.

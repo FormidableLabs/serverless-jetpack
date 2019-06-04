@@ -70,7 +70,11 @@ $ yarn benchmark:test
 
 (The `lint` needs the individual installs and `test` needs file list output from a full benchmark).
 
-### QA
+## Checks
+
+### Fast stuff
+
+Run these often -- unit tests and lint:
 
 ```sh
 $ yarn lint
@@ -78,6 +82,31 @@ $ yarn test
 
 # ... or all together ...
 $ yarn run check
+```
+
+### Slow stuff
+
+Run these before a PR and when changing things / kicking tires...
+
+*Requirements*: For CLI and benchmark tests...
+
+```sh
+# Install once (or on changes to dependencies or fixtures)
+$ yarn benchmark:install
+$ yarn benchmark:build
+```
+
+*CLI tests*: Use the fixtures
+
+```sh
+$ yarn test:cli
+```
+
+*Benchmark tests*: Run the benchmark to gather data and assess correctness of packages vs. real Serverless.
+
+```sh
+$ yarn benchmark
+$ yarn benchmark:test
 ```
 
 ## Before submitting a PR...
@@ -91,6 +120,11 @@ $ yarn run check
 # Make sure all fixtures are updated and valid
 $ yarn benchmark:install
 $ yarn benchmark:build
+
+# After this, you can run the CLI tests which use real fixtures in E2E scenarios
+# They're relatively slow (several seconds a test), but nowhere near as slow
+# as the benchmark.
+$ yarn test:cli
 
 # Run a benchmark.
 # Then, actually generate the benchmark.

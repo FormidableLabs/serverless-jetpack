@@ -37,6 +37,7 @@ const CONFIGS = [
 
 const SCENARIOS = [
   "simple",
+  "complex",
   "individually",
   "monorepo",
   "webpack",
@@ -47,6 +48,7 @@ const SCENARIOS = [
 // Only some scenarios are part of our timing benchmark.
 const TIMING_SCENARIOS = new Set([
   "simple",
+  "complex",
   "individually",
   "huge"
 ]);

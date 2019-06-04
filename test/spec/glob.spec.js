@@ -118,8 +118,7 @@ describe("globbing (include/exclude) logic", () => {
     mock.restore();
   });
 
-  // TODO: Need to handle split plugin directories.
-  it.skip("should error on no patterns, no matches", async () => {
+  it("should error on no patterns, no matches", async () => {
     expect(await compare({}))
       .to.be.an("Error").and
       .to.have.property("message", "No file matches include / exclude patterns");
@@ -180,7 +179,6 @@ describe("globbing (include/exclude) logic", () => {
     ]);
   });
 
-  it("should handle only node_modules"); // TODO: Needs split plugin dirs!!!
-  it("should handle only sources and node_modules"); // TODO: Needs split plugin dirs!!!
-  // TODO: MORE TESTS
+  it("should handle only node_modules"); // TODO(10)
+  it("should handle sources and node_modules"); // TODO(10)
 });
