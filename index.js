@@ -90,7 +90,7 @@ class Jetpack {
 
     this.commands = {
       jetpack: {
-        usage: "", // TODO(CLI): Get rid of this in display.
+        usage: "Alternate Serverless packager",
         commands: {
           "package": {
             usage: "Packages a Serverless service or function",

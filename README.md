@@ -135,7 +135,7 @@ functions:
 
 Jetpack also provides some CLI options.
 
-### Package
+### `serverless jetpack package`
 
 Package a function like `serverless package` does, just with better options.
 
