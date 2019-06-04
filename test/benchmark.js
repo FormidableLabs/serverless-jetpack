@@ -147,6 +147,25 @@ const SLS_FALSE_POSITIVES = {
     ...SLS_FALSE_POSITIVES_WIN_BASE
   ]),
 
+  "complex/yarn": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // Hoisted to `node_modules/.bin/mime`
+    "node_modules/send/node_modules/.bin/mime",
+
+    // devDependency
+    // (`manual_test_websocket/scripts/serverless..yml`)
+    "node_modules/serverless-offline"
+  ]),
+
+  "complex/npm": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // devDependency
+    // (`manual_test_websocket/scripts/serverless..yml`)
+    "node_modules/serverless-offline"
+  ]),
+
   "individually/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
