@@ -32,6 +32,8 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/esparse",
   // yarn why esvalidate -> esprima serverless#js-yaml
   "node_modules/.bin/esvalidate",
+  // yarn why flat -> serverless#@serverless#enterprise-plugin
+  "node_modules/.bin/flat",
   // yarn why is-ci -> serverless#update-notifier
   "node_modules/.bin/is-ci",
   // yarn why js-yaml -> serverless
@@ -60,10 +62,15 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/slss",
   // yarn why tabtab -> serverless
   "node_modules/.bin/tabtab",
+  // $ yarn why uuid -> serverless
+  "node_modules/.bin/uuid",
   // yarn why velocity -> velocityjs serverless-offline
   "node_modules/.bin/velocity",
   // yarn why which -> serverless#update-notifier#boxen#term-size#execa#cross-spawn
-  "node_modules/.bin/which"
+  "node_modules/.bin/which",
+  // yarn why yamljs -> serverless#@serverless#enterprise-plugin
+  "node_modules/.bin/yaml2json",
+  "node_modules/.bin/json2yaml"
 ];
 
 // ... and the huge scenario has even more false positives
