@@ -131,6 +131,38 @@ functions:
     # ...
 ```
 
+## Command Line Interface
+
+Jetpack also provides some CLI options.
+
+### Package
+
+Package a function like `serverless package` does, just with better options.
+
+```sh
+$ serverless jetpack package -h
+Plugin: Jetpack
+jetpack package ............... Packages a Serverless service or function
+    --function / -f .................... Function name. Packages a single function (see 'deploy function')
+```
+
+So, to package all service / functions like `serverless package` does, use:
+
+```sh
+$ serverless jetpack package # OR
+$ serverless package
+```
+
+... as this is basically the same built-in or custom.
+
+The neat addition that Jetpack provides is:
+
+```sh
+$ serverless jetpack package -f|--function {NAME}
+```
+
+which allows you to package just one named function exactly the same as `serverless deploy -f {NAME}` does. (Curiously `serverless deploy` implements the `-f {NAME}` option but `serverless package` does not.)
+
 ## How it works
 
 Serverless built-in packaging slows to a crawl in applications that have lots of files from `devDependencies`. Although the `excludeDevDependencies` option will ultimately remove these from the target zip bundle, it does so only **after** the files are read from disk, wasting a lot of disk I/O and time.

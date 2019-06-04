@@ -88,9 +88,30 @@ class Jetpack {
     this.serverless = serverless;
     this.options = options;
 
+    this.commands = {
+      jetpack: {
+        usage: "", // TODO(CLI): Get rid of this in display.
+        commands: {
+          "package": {
+            usage: "Packages a Serverless service or function",
+            lifecycleEvents: [
+              "package"
+            ],
+            options: {
+              "function": {
+                usage: "Function name. Packages a single function (see 'deploy function')",
+                shortcut: "f"
+              }
+            }
+          }
+        }
+      }
+    };
+
     this.hooks = {
       "before:package:createDeploymentArtifacts": this.package.bind(this),
-      "before:package:function:package": this.package.bind(this)
+      "before:package:function:package": this.package.bind(this),
+      "jetpack:package:package": this.package.bind(this)
     };
   }
 
