@@ -179,7 +179,6 @@ describe("globbing (include/exclude) logic", () => {
     ]);
   });
 
-  it("should handle only node_modules"); // TODO: Needs split plugin dirs!!!
-  it("should handle only sources and node_modules"); // TODO: Needs split plugin dirs!!!
-  // TODO: MORE TESTS
+  it("should handle only node_modules"); // TODO(10)
+  it("should handle sources and node_modules"); // TODO(10)
 });
