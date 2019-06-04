@@ -56,15 +56,36 @@ describe("jetpack package", function () {
       const { stdout } = await sls(["jetpack", "package", "-f", "base"], { cwd });
       expect(stdout).to.contain("Packaged service: .serverless/serverless-jetpack-simple.zip");
 
-      const pkgExists = await exists(path.join(PKG_DIR, "serverless-jetpack-simple.zip"));
-      expect(pkgExists).to.equal(true);
+      expect(await exists(path.join(PKG_DIR, "serverless-jetpack-simple.zip"))).to.equal(true);
     });
   });
 
   describe("individually", () => {
-    it("packages all functions with no options"); // TODO
-    it("packages 1 function with -f base"); // TODO
-  });
+    const cwd = path.resolve(__dirname, "../packages/individually/yarn");
+    const PKG_DIR = path.join(cwd, ".serverless");
 
-  it("TODO MORE TESTS");
+    beforeEach(async () => {
+      await remove(PKG_DIR);
+    });
+
+    it("packages all functions with no options", async () => {
+      const { stdout } = await sls(["jetpack", "package"], { cwd });
+      expect(stdout)
+        .to.contain("Packaged function: .serverless/base.zip").and
+        .to.contain("Packaged function: .serverless/another.zip");
+
+      expect(await exists(path.join(PKG_DIR, "base.zip"))).to.equal(true);
+      expect(await exists(path.join(PKG_DIR, "another.zip"))).to.equal(true);
+    });
+
+    it("packages 1 function with -f base", async () => {
+      const { stdout } = await sls(["jetpack", "package", "-f", "base"], { cwd });
+      expect(stdout)
+        .to.contain("Packaged function: .serverless/base.zip").and
+        .to.not.contain("Packaged function: .serverless/another.zip");
+
+      expect(await exists(path.join(PKG_DIR, "base.zip"))).to.equal(true);
+      expect(await exists(path.join(PKG_DIR, "another.zip"))).to.equal(false);
+    });
+  });
 });
