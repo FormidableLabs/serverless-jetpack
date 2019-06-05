@@ -53,6 +53,7 @@ class Jetpack {
   constructor(serverless, options) {
     this.serverless = serverless;
     this.options = options;
+    this.worker = null; // Default "no concurrency".
 
     this.commands = {
       jetpack: {
@@ -189,12 +190,10 @@ class Jetpack {
     const { base, roots } = this._functionOptions({ functionObject });
     const { include, exclude } = this.filePatterns({ functionObject });
 
-    // TODO(PARALLEL): Need to tune concurrency.
-    // TODO: Is this the best way to do this?
-    // TODO: Is this really 1 new thing in parallel?
-    const worker = new Worker(require.resolve("./util/bundle"));
-    const { numFiles, bundlePath, buildTime } = await worker.globAndZip(
-      { servicePath, base, roots, bundleName, include, exclude });
+    const buildFn = this.worker ? this.worker.globAndZip : globAndZip;
+    const { numFiles, bundlePath, buildTime } = await buildFn(
+      { servicePath, base, roots, bundleName, include, exclude }
+    );
 
     this._logDebug(
       `Zipped ${numFiles} sources from ${servicePath} to artifact location: ${bundlePath}`
@@ -294,8 +293,10 @@ class Jetpack {
     }
 
     this._log(`Packaging ${numFns} functions and ${shouldPackageService ? 1 : 0} services`);
-    const limit = pLimit(1);
-    await Promise.all(tasks.map(limit));
+
+    // TODO: HERE -- Get concurrency from options.
+    this.worker = new Worker(require.resolve("./util/bundle"));
+    await Promise.all(tasks.map((fn) => fn()));
   }
 }
 
