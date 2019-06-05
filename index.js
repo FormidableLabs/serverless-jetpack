@@ -292,13 +292,26 @@ class Jetpack {
       this._logDebug("No matching service or functions to package.");
     }
 
-    this._log(`Packaging ${numFns} functions and ${shouldPackageService ? 1 : 0} services`);
-
-    // TODO: HERE -- Get concurrency from options.
-    this.worker = new Worker(require.resolve("./util/bundle"));
-    await Promise.all(tasks.map((fn) => fn()));
-    // const limit = pLimit(1);
-    // await Promise.all(tasks.map(limit));
+    // TODO: FROM OPTIONS
+    // TODO: PASS TO WORKER POOL
+    const concurrency = 4;
+    this._log(
+      `Packaging ${numFns} functions and ${shouldPackageService ? 1 : 0} services `
+      + `with concurrency ${concurrency}`
+    );
+    if (concurrency > 1) {
+      // Run concurrently.
+      this.worker = new Worker(require.resolve("./util/bundle"), {
+        numWorkers: concurrency
+      });
+      await Promise.all(tasks.map((fn) => fn()));
+      this.worker.end();
+      this.worker = null;
+    } else {
+      // Run serially in-band.
+      const limit = pLimit(1);
+      await Promise.all(tasks.map(limit));
+    }
   }
 }
 
