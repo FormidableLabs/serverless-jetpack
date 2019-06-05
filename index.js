@@ -53,7 +53,6 @@ class Jetpack {
   constructor(serverless, options) {
     this.serverless = serverless;
     this.options = options;
-    this.worker = null; // Default "no concurrency".
 
     this.commands = {
       jetpack: {
@@ -185,13 +184,13 @@ class Jetpack {
     };
   }
 
-  async globAndZip({ bundleName, functionObject }) {
+  async globAndZip({ bundleName, functionObject, worker }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const { base, roots } = this._functionOptions({ functionObject });
     const { include, exclude } = this.filePatterns({ functionObject });
 
-    const buildFn = this.worker ? this.worker.globAndZip : globAndZip;
+    const buildFn = worker ? worker.globAndZip : globAndZip;
     const { numFiles, bundlePath, buildTime } = await buildFn(
       { servicePath, base, roots, bundleName, include, exclude }
     );
@@ -203,7 +202,7 @@ class Jetpack {
     return { numFiles, bundlePath, buildTime };
   }
 
-  async packageFunction({ functionName, functionObject }) {
+  async packageFunction({ functionName, functionObject, worker }) {
     // Mimic built-in serverless naming.
     // **Note**: We _do_ append ".serverless" in path skipping serverless'
     // internal copying logic.
@@ -211,7 +210,7 @@ class Jetpack {
 
     // Package.
     this._logDebug(`Start packaging function: ${bundleName}`);
-    const { buildTime } = await this.globAndZip({ bundleName, functionObject });
+    const { buildTime } = await this.globAndZip({ bundleName, functionObject, worker });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -220,7 +219,7 @@ class Jetpack {
     this._log(`Packaged function: ${bundleName} (${toSecs(buildTime)}s)`);
   }
 
-  async packageService() {
+  async packageService({ worker }) {
     const { service } = this.serverless;
     const serviceName = service.service;
     const servicePackage = service.package;
@@ -230,7 +229,7 @@ class Jetpack {
 
     // Package.
     this._logDebug(`Start packaging service: ${bundleName}`);
-    const { buildTime } = await this.globAndZip({ bundleName });
+    const { buildTime } = await this.globAndZip({ bundleName, worker });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
@@ -238,11 +237,14 @@ class Jetpack {
     this._log(`Packaged service: ${bundleName} (${toSecs(buildTime)}s)`);
   }
 
+  // eslint-disable-next-line max-statements
   async package() {
     const { service } = this.serverless;
     const servicePackage = service.package;
     const { concurrency } = this._serviceOptions;
+
     let tasks = [];
+    let worker;
 
     // Check if we have a single function limitation from `deploy -f name`.
     const singleFunctionName = (this.options || {}).function;
@@ -275,7 +277,9 @@ class Jetpack {
       (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
     );
     const numFns = fnsPkgsToPackage.length;
-    tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () => this.packageFunction(obj)));
+    tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () =>
+      this.packageFunction({ ...obj, worker })
+    ));
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
@@ -288,7 +292,7 @@ class Jetpack {
 
     // Package entire service if applicable.
     if (shouldPackageService) {
-      tasks.push(() => this.packageService());
+      tasks.push(() => this.packageService({ worker }));
     } else if (!numFns) {
       // Detect if we did nothing...
       this._logDebug("No matching service or functions to package.");
@@ -301,12 +305,11 @@ class Jetpack {
     );
     if (concurrency > 1) {
       // Run concurrently.
-      this.worker = new Worker(require.resolve("./util/bundle"), {
+      worker = new Worker(require.resolve("./util/bundle"), {
         numWorkers: concurrency
       });
       await Promise.all(tasks.map((fn) => fn()));
-      this.worker.end();
-      this.worker = null;
+      worker.end();
     } else {
       // Run serially in-band.
       const limit = pLimit(1);
