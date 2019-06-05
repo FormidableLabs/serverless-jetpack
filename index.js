@@ -31,7 +31,7 @@ const union = (arr1, arr2) => {
  * Functionally, this looks something like:
  * 1. Looks for any services and/or functions that the Serverless framework
  *    would publish with its built-in logic,
- * 2. Disables this by setting `service|function.pacakge.artifact` fields in
+ * 2. Disables this by setting `service|function.package.artifact` fields in
  *    the runtime Serverless configuration object, and;
  * 3. Invoking scripts to create an artifact that matches the newly-set
  *    `.artifact` paths in configuration
@@ -241,6 +241,7 @@ class Jetpack {
   async package() {
     const { service } = this.serverless;
     const servicePackage = service.package;
+    let tasks = [];
 
     // Check if we have a single function limitation from `deploy -f name`.
     const singleFunctionName = (this.options || {}).function;
@@ -272,30 +273,29 @@ class Jetpack {
     const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
       (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
     );
-
-    // Process functions in serial.
-    if (fnsPkgsToPackage.length) {
-      this._log(`Packaging ${fnsPkgsToPackage.length} functions`);
-      const limit = pLimit(1);
-      await Promise.all(fnsPkgsToPackage.map((obj) => limit(() => this.packageFunction(obj))));
-    }
+    const numFns = fnsPkgsToPackage.length;
+    tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () => this.packageFunction(obj)));
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
     const shouldPackageService = !servicePackage.individually
       && !servicePackage.artifact
       // Don't package service if we specify a single function **and** have a match
-      && (!singleFunctionName || !fnsPkgsToPackage.length)
+      && (!singleFunctionName || !numFns)
       // Otherwise, have some functions left that need to use the service package.
       && fnsPkgs.some((obj) => !(obj.disable || obj.individually || obj.artifact));
 
     // Package entire service if applicable.
     if (shouldPackageService) {
-      await this.packageService();
-    } else if (!fnsPkgsToPackage.length) {
+      tasks.push(() => this.packageService());
+    } else if (!numFns) {
       // Detect if we did nothing...
       this._logDebug("No matching service or functions to package.");
     }
+
+    this._log(`Packaging ${numFns} functions and ${shouldPackageService ? 1 : 0} services`);
+    const limit = pLimit(1);
+    await Promise.all(tasks.map(limit));
   }
 }
 
