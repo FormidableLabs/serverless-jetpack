@@ -97,17 +97,13 @@ const resolveFilePathsFromPatterns = async ({ servicePath, depInclude, include, 
   return filtered;
 };
 
-const createZip = async ({ files, filesRoot, bundlePath, logDebug = () => {} }) => {
+const createZip = async ({ files, filesRoot, bundlePath }) => {
   // Use Serverless-analogous library + logic to create zipped artifact.
   const zip = archiver.create("zip");
 
   // Ensure full path to bundle exists before opening stream.
   await makeDir(path.dirname(bundlePath));
   const output = createWriteStream(bundlePath);
-
-  logDebug(
-    `Zipping ${files.length} sources from ${filesRoot} to artifact location: ${bundlePath}`
-  );
 
   return new Promise((resolve, reject) => { // eslint-disable-line promise/avoid-new
     output.on("close", () => resolve());
@@ -130,7 +126,7 @@ const createZip = async ({ files, filesRoot, bundlePath, logDebug = () => {} }) 
   });
 };
 
-const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclude, logDebug }) => {
+const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclude }) => {
   const bundlePath = path.resolve(servicePath, bundleName);
 
   // Iterate all dependency roots to gather production dependencies.
@@ -167,13 +163,13 @@ const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclu
   await createZip({
     files,
     filesRoot: servicePath,
-    bundlePath,
-    logDebug
+    bundlePath
   });
+
+  return { numFiles: files.length, bundlePath };
 };
 
 module.exports = {
   resolveFilePathsFromPatterns,
-  globAndZip,
-  hello: (name) => `Hello: ${name}` // TODO REMOVE
+  globAndZip
 };

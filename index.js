@@ -189,10 +189,16 @@ class Jetpack {
     const { base, roots } = this._functionOptions({ functionObject });
     const { include, exclude } = this.filePatterns({ functionObject });
 
-    // TODO(PARALLEL): Maybe remove or return this? We won't be able to serialize off process.
-    const logDebug = this._logDebug.bind(this);
+    // TODO(PARALLEL): Need to tune concurrency.
+    // TODO: Is this the best way to do this?
+    // TODO: Is this really 1 new thing in parallel?
+    const worker = new Worker(require.resolve("./util/bundle"));
+    const { numFiles, bundlePath } = await worker.globAndZip(
+      { servicePath, base, roots, bundleName, include, exclude });
 
-    await globAndZip({ servicePath, base, roots, bundleName, include, exclude, logDebug });
+    this._logDebug(
+      `Zipped ${numFiles} sources from ${servicePath} to artifact location: ${bundlePath}`
+    );
   }
 
   async packageFunction({ functionName, functionObject }) {
@@ -235,12 +241,6 @@ class Jetpack {
   async package() {
     const { service } = this.serverless;
     const servicePackage = service.package;
-
-    // TODO(PARALLEL): Temp sandbox to do async stuff.
-    const worker = new Worker(require.resolve("./util/bundle"));
-    const result = await worker.hello("Bob");
-    console.log("TODO HERE", result);
-    return;
 
     // Check if we have a single function limitation from `deploy -f name`.
     const singleFunctionName = (this.options || {}).function;
