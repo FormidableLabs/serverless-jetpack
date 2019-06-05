@@ -94,7 +94,7 @@ describe("jetpack package", function () {
   describe("complex", () => {
     const cwd = path.resolve(__dirname, "../packages/complex/yarn");
     const PKG_DIR = path.join(cwd, ".serverless");
-    const SERVICE_PKG = path.normalize(".serverless/serverless-jetpack-simple.zip");
+    const SERVICE_PKG = path.normalize(".serverless/serverless-jetpack-complex.zip");
     const INDIVIDUALLY_PKG = path.normalize(".serverless/individually.zip");
     const DISABLED_PKG = path.normalize(".serverless/disabled.zip");
 

@@ -27,6 +27,9 @@ Our present fixture setup is:
 ```
 $ tree test/packages/ -L 2
 test/packages/
+├── complex
+│   ├── npm
+│   └── yarn
 ├── huge
 │   ├── npm
 │   └── yarn
