@@ -38,6 +38,7 @@
     "archiver": "^3.0.0",
     "globby": "^9.2.0",
     "inspectdep": "^0.2.0",
+    "jest-worker": "^24.6.0",
     "make-dir": "^3.0.0",
     "nanomatch": "^1.2.13",
     "p-limit": "^2.2.0"

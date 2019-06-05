@@ -7,7 +7,8 @@
 
 const mock = require("mock-fs");
 
-const Jetpack = require("../..");
+const Jetpack = require("../../..");
+const { resolveFilePathsFromPatterns } = require("../../../util/bundle");
 const packageService = require("serverless/lib/plugins/package/lib/packageService");
 
 // Serverless mixes in the function, so we do for a mock.
@@ -22,16 +23,17 @@ const pluginAdapter = async ({ plugin, pkgExclude, pkgInclude, fnExclude, fnIncl
   plugin.serverless.service.package.exclude = pkgExclude;
   plugin.serverless.service.package.include = pkgInclude;
 
-  return await plugin.resolveFilePathsFromPatterns(
-    plugin.filePatterns({
-      functionObject: {
-        "package": {
-          include: fnInclude,
-          exclude: fnExclude
-        }
+  const servicePath = plugin.serverless.servicePath || ".";
+  const { include, exclude } = plugin.filePatterns({
+    functionObject: {
+      "package": {
+        include: fnInclude,
+        exclude: fnExclude
       }
-    })
-  );
+    }
+  });
+
+  return await resolveFilePathsFromPatterns({ servicePath, include, exclude });
 };
 
 const slsAdapter = async ({ sls, pkgExclude, pkgInclude, fnExclude, fnInclude }) => {
@@ -47,7 +49,7 @@ const slsAdapter = async ({ sls, pkgExclude, pkgInclude, fnExclude, fnInclude })
   });
 };
 
-describe("globbing (include/exclude) logic", () => {
+describe("util/bundle#resolveFilePathsFromPatterns", () => {
   let plugin;
   let sls;
 
