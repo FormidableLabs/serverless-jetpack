@@ -90,7 +90,6 @@ const resolveFilePathsFromPatterns = async ({ servicePath, depInclude, include, 
   // Filter as Serverless does.
   const filtered = filterFiles({ files, exclude, include });
   if (!filtered.length) {
-    // TODO(PARALLEL): Re-insert `this.serverless.classes.Error`
     throw new Error("No file matches include / exclude patterns");
   }
 
