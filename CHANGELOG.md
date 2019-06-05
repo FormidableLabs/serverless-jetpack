@@ -1,6 +1,10 @@
 Changes
 =======
 
+## 0.4.1
+
+* BUG: Publish missing `util` directory.
+
 ## 0.4.0
 
 * Add `concurrency` configuration option to run packaging off main thread and in parallel.
