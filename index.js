@@ -11,7 +11,7 @@ const PLUGIN_NAME = pkg.name;
 
 // Timer and formatter.
 // eslint-disable-next-line no-magic-numbers
-const elapsed = (start) => ((new Date() - start) / 1000).toFixed(2);
+const toSecs = (time) => (time / 1000).toFixed(2);
 
 // Simple, stable union.
 const union = (arr1, arr2) => {
@@ -193,12 +193,14 @@ class Jetpack {
     // TODO: Is this the best way to do this?
     // TODO: Is this really 1 new thing in parallel?
     const worker = new Worker(require.resolve("./util/bundle"));
-    const { numFiles, bundlePath } = await worker.globAndZip(
+    const { numFiles, bundlePath, buildTime } = await worker.globAndZip(
       { servicePath, base, roots, bundleName, include, exclude });
 
     this._logDebug(
       `Zipped ${numFiles} sources from ${servicePath} to artifact location: ${bundlePath}`
     );
+
+    return { numFiles, bundlePath, buildTime };
   }
 
   async packageFunction({ functionName, functionObject }) {
@@ -208,15 +210,14 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Package.
-    const start = new Date();
     this._logDebug(`Start packaging function: ${bundleName}`);
-    await this.globAndZip({ bundleName, functionObject });
+    const { buildTime } = await this.globAndZip({ bundleName, functionObject });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
     functionObject.package.artifact = bundleName;
 
-    this._log(`Packaged function: ${bundleName} (${elapsed(start)}s)`);
+    this._log(`Packaged function: ${bundleName} (${toSecs(buildTime)}s)`);
   }
 
   async packageService() {
@@ -228,14 +229,13 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Package.
-    const start = new Date();
     this._logDebug(`Start packaging service: ${bundleName}`);
-    await this.globAndZip({ bundleName });
+    const { buildTime } = await this.globAndZip({ bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
 
-    this._log(`Packaged service: ${bundleName} (${elapsed(start)}s)`);
+    this._log(`Packaged service: ${bundleName} (${toSecs(buildTime)}s)`);
   }
 
   async package() {
