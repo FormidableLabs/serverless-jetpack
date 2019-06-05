@@ -1,4 +1,4 @@
-service: serverless-jetpack-simple
+service: serverless-jetpack-complex
 
 package:
   individually: ${file(./serverless.js):pkg.individually}

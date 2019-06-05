@@ -78,6 +78,7 @@ Most Serverless framework projects should be able to use Jetpack without any ext
     * This typically occurs in a monorepo project, wherein dependencies may be located in e.g. `packages/{NAME}/node_modules` and/or hoisted to the `node_modules` at the project base. It is important to specify these additional dependency roots so that Jetpack can (1) find and include the right dependencies and (2) hone down these directories to just production dependencies when packaging. Otherwise, you risk having a slow `serverless package` execution and/or end up with additional/missing dependencies in your final application zip bundle.
     * You only need to declare roots of things that _aren't_ naturally inferred in a dependency traversal. E.g., if starting at `packages/{NAME}/package.json` causes a traversal down to `node_modules/something` then symlinked up to `lib/something-else/node_modules/even-more` these additional paths don't need to be separately declared because they're just part of the dependency traversal.
 * `concurrency` (`Number`): The number of independent package tasks (per function and service) to run off the main execution thread. If `1`, then run tasks serially in main thread. If `2+` run off main thread with `concurrency` number of workers. (default: `1`).
+    * This option is most useful for Serverless projects that (1) have many individually packaged functions, and (2) large numbers of files and dependencies. E.g., start considering this option if your per-function packaging time takes more than 10 seconds and you have more than one service and/or function package.
 
 The following **function**-level configurations available via `functions.{FN_NAME}.jetpack`:
 
@@ -255,20 +256,24 @@ Machine information:
 
 Results:
 
-| Scenario     | Mode | Type     | Time  |      vs Base |
+| Scenario     | Mode | Type     |  Time |      vs Base |
 | :----------- | :--- | :------- | ----: | -----------: |
-| simple       | yarn | jetpack  |  4338 | **-46.37 %** |
-| simple       | yarn | baseline |  8089 |              |
-| simple       | npm  | jetpack  |  4055 | **-53.78 %** |
-| simple       | npm  | baseline |  8773 |              |
-| individually | yarn | jetpack  |  2964 | **-76.77 %** |
-| individually | yarn | baseline | 12760 |              |
-| individually | npm  | jetpack  |  4183 | **-69.67 %** |
-| individually | npm  | baseline | 13790 |              |
-| huge         | yarn | jetpack  |  4524 | **-84.03 %** |
-| huge         | yarn | baseline | 28321 |              |
-| huge         | npm  | jetpack  |  5680 | **-83.07 %** |
-| huge         | npm  | baseline | 33551 |              |
+| simple       | yarn | jetpack  |  2151 | **-71.48 %** |
+| simple       | yarn | baseline |  7541 |              |
+| simple       | npm  | jetpack  |  3245 | **-62.83 %** |
+| simple       | npm  | baseline |  8730 |              |
+| complex      | yarn | jetpack  |  4219 | **-69.07 %** |
+| complex      | yarn | baseline | 13642 |              |
+| complex      | npm  | jetpack  |  4663 | **-71.11 %** |
+| complex      | npm  | baseline | 16142 |              |
+| individually | yarn | jetpack  |  3520 | **-73.57 %** |
+| individually | yarn | baseline | 13316 |              |
+| individually | npm  | jetpack  |  3759 | **-74.68 %** |
+| individually | npm  | baseline | 14848 |              |
+| huge         | yarn | jetpack  |  4799 | **-80.91 %** |
+| huge         | yarn | baseline | 25142 |              |
+| huge         | npm  | jetpack  |  3426 | **-88.46 %** |
+| huge         | npm  | baseline | 29684 |              |
 
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/
