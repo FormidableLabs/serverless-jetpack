@@ -297,6 +297,8 @@ class Jetpack {
     // TODO: HERE -- Get concurrency from options.
     this.worker = new Worker(require.resolve("./util/bundle"));
     await Promise.all(tasks.map((fn) => fn()));
+    // const limit = pLimit(1);
+    // await Promise.all(tasks.map(limit));
   }
 }
 
