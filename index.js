@@ -100,7 +100,8 @@ class Jetpack {
     const { service } = this.serverless;
     const defaults = {
       base: ".",
-      roots: null
+      roots: null,
+      concurrency: 1
     };
 
     const custom = (service.custom || {}).jetpack;
@@ -240,6 +241,7 @@ class Jetpack {
   async package() {
     const { service } = this.serverless;
     const servicePackage = service.package;
+    const { concurrency } = this._serviceOptions;
     let tasks = [];
 
     // Check if we have a single function limitation from `deploy -f name`.
@@ -292,9 +294,7 @@ class Jetpack {
       this._logDebug("No matching service or functions to package.");
     }
 
-    // TODO: FROM OPTIONS
-    // TODO: PASS TO WORKER POOL
-    const concurrency = 4;
+    // Run all packaging work.
     this._log(
       `Packaging ${numFns} functions and ${shouldPackageService ? 1 : 0} services `
       + `with concurrency ${concurrency}`

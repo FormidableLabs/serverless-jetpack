@@ -1,6 +1,12 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Add `concurrency` configuration option to run packaging off main thread and in parallel.
+  [#33](https://github.com/FormidableLabs/serverless-jetpack/pull/33)
+  [#34](https://github.com/FormidableLabs/serverless-jetpack/pull/34)
+
 ## 0.3.3
 
 * Add CLI options for `serverless jetpack package`.
