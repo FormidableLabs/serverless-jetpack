@@ -21,7 +21,7 @@ First, install the plugin:
 
 ```sh
 $ yarn add --dev serverless-jetpack
-$ npm add --save-dev serverless-jetpack
+$ npm install --save-dev serverless-jetpack
 ```
 
 Add to `serverless.yml`
