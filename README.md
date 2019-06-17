@@ -7,6 +7,11 @@ Serverless Jetpack 🚀
 
 A faster JavaScript packager for [Serverless][] applications.
 
+- ⚡ Drop-in replacement for `serverless package|deploy`
+- 🐉 Monorepo (`lerna`, `yarn workspace`) support
+- 📦 Per-function packaging
+- 🚀🚀🚀 Tunable, multi-cpu parallelization
+
 ## Overview
 
 The Serverless framework is a **fantastic** one-stop-shop for taking your code and packing up all the infrastructure around it to deploy it to the cloud. Unfortunately, for many JavaScript applications, some aspects of packaging are slow, hindering deployment speed and developer happiness.
