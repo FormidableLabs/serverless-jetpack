@@ -246,13 +246,16 @@ class Jetpack {
     let tasks = [];
     let worker;
 
+    // ------------------------------------------------------------------------
+    // Lambdas
+    // ------------------------------------------------------------------------
     // Check if we have a single function limitation from `deploy -f name`.
     const singleFunctionName = (this.options || {}).function;
     if (singleFunctionName) {
       this._logDebug(`Packaging only for function: ${singleFunctionName}`);
     }
 
-    // Gather internal configuration.
+    // Functions.
     const fnsPkgs = service.getAllFunctions()
       // Limit to single function if provided.
       .filter((functionName) => !singleFunctionName || singleFunctionName === functionName)
@@ -298,10 +301,37 @@ class Jetpack {
       this._logDebug("No matching service or functions to package.");
     }
 
+    // ------------------------------------------------------------------------
+    // Layers
+    // ------------------------------------------------------------------------
+    const layersPkgs = service.getAllLayers()
+      // Convert to more useful format.
+      .map((layerName) => ({
+        layerName,
+        layerObject: service.getLayer(layerName)
+      }))
+      .map((obj) => ({
+        ...obj,
+        layerPackage: obj.layerObject.package || {}
+      }))
+      .map((obj) => ({
+        ...obj,
+        disable: !!obj.layerObject.disable,
+        artifact: obj.layerObject.artifact
+      }));
+
+    // Get list of layers to package.
+    const layersPkgsToPackage = layersPkgs.filter((obj) => !(obj.disable || obj.artifact));
+    const numLayers = layersPkgsToPackage.length;
+    // TODO: ACTUALLY PACKAGE
+    // tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () =>
+    //   this.packageFunction({ ...obj, worker })
+    // ));
+
     // Run all packaging work.
     this._log(
-      `Packaging ${numFns} functions and ${shouldPackageService ? 1 : 0} services `
-      + `with concurrency ${concurrency}`
+      `Packaging ${numFns} functions, ${shouldPackageService ? 1 : 0} services, and `
+      + `${numLayers} layers with concurrency ${concurrency}`
     );
     if (concurrency > 1) {
       // Run concurrently.
