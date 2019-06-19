@@ -12,5 +12,8 @@
   "devDependencies": {
     "serverless": "^1.41.1",
     "serverless-offline": "^4.2.1"
+  },
+  "scripts": {
+    "postinstall": "CMD=$(basename `pwd`) && cd layers/with-deps/nodejs && $CMD install"
   }
 }
