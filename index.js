@@ -328,6 +328,8 @@ class Jetpack {
     //   this.packageFunction({ ...obj, worker })
     // ));
 
+    // TODO(LAYER): Exclude from package.
+
     // Run all packaging work.
     this._log(
       `Packaging ${numFns} functions, ${shouldPackageService ? 1 : 0} services, and `
