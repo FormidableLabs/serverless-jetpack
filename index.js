@@ -237,6 +237,23 @@ class Jetpack {
     this._log(`Packaged service: ${bundleName} (${toSecs(buildTime)}s)`);
   }
 
+  async packageLayer({ layerName, layerObject, worker }) {
+    const bundleName = path.join(SLS_TMP_DIR, `${layerName}.zip`);
+
+    // Package.
+    this._logDebug(`Start packaging layer: ${bundleName}`);
+
+    // TODO: IMPLEMENT
+    const buildTime = 1000;
+    // const { buildTime } = await this.globAndZip({ bundleName, functionObject, worker });
+
+    // // Mutate serverless configuration to use our artifacts.
+    // layerObject.package = layerObject.package || {};
+    // layerObject.package.artifact = bundleName;
+
+    this._log(`Packaged layer: ${bundleName} (${toSecs(buildTime)}s)`);
+  }
+
   // eslint-disable-next-line max-statements
   async package() {
     const { service } = this.serverless;
@@ -323,10 +340,9 @@ class Jetpack {
     // Get list of layers to package.
     const layersPkgsToPackage = layersPkgs.filter((obj) => !(obj.disable || obj.artifact));
     const numLayers = layersPkgsToPackage.length;
-    // TODO: ACTUALLY PACKAGE
-    // tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () =>
-    //   this.packageFunction({ ...obj, worker })
-    // ));
+    tasks = tasks.concat(layersPkgsToPackage.map((obj) => () =>
+      this.packageLayer({ ...obj, worker })
+    ));
 
     // TODO(LAYER): Exclude from package.
 
