@@ -29,8 +29,13 @@ provider:
 layers:
   no-deps:
     path: layers/no-deps
+  # serverless built-in _won't_ exclude devDeps nested in `nodejs`
+  # TODO(LAYERS): Configure jetpack to exclude with `jetpack.roots` option.
   with-deps:
     path: layers/with-deps
+  # serverless built-in _will_ exclude devDeps at root
+  with-deps-root:
+    path: layers/with-deps/nodejs
 
 functions:
   base:
