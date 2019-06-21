@@ -219,9 +219,11 @@ class Jetpack {
   async globAndZip({ bundleName, functionObject, layerObject, worker }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
+    const layerPath = (layerObject || {}).path;
+    const cwd = layerPath ? path.relative(servicePath, layerPath) : servicePath;
+
     const { base, roots } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
-    const cwd = (layerObject || {}).path || servicePath;
 
     // TODO(LAYERS): HERE - continue refactoring in packaging support for layer.
     if (layerObject) {
@@ -233,7 +235,6 @@ class Jetpack {
         include,
         exclude
       });
-      return { buildTime: 1000 }; // fake build time
     }
 
     const buildFn = worker ? worker.globAndZip : globAndZip;
@@ -290,9 +291,9 @@ class Jetpack {
     this._logDebug(`Start packaging layer: ${bundleName}`);
     const { buildTime } = await this.globAndZip({ bundleName, layerObject, worker });
 
-    // // Mutate serverless configuration to use our artifacts.
-    // layerObject.package = layerObject.package || {};
-    // layerObject.package.artifact = bundleName;
+    // Mutate serverless configuration to use our artifacts.
+    layerObject.package = layerObject.package || {};
+    layerObject.package.artifact = bundleName;
 
     this._log(`Packaged layer: ${bundleName} (${toSecs(buildTime)}s)`);
   }

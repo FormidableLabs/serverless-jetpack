@@ -1,7 +1,8 @@
 "use strict";
 
 const path = require("path");
-const { createWriteStream } = require("fs");
+const fs = require("fs");
+const { promisify } = require("util");
 
 const makeDir = require("make-dir");
 const archiver = require("archiver");
@@ -10,6 +11,15 @@ const nanomatch = require("nanomatch");
 const { findProdInstalls } = require("inspectdep");
 
 const IS_WIN = process.platform === "win32";
+
+// File helpers
+const stat = promisify(fs.stat);
+const exists = (filePath) => stat(filePath)
+  .then(() => true)
+  .catch((err) => {
+    if (err.code === "ENOENT") { return false; }
+    throw err;
+  });
 
 // Filter list of files like serverless.
 const filterFiles = ({ files, include, exclude }) => {
@@ -102,7 +112,7 @@ const createZip = async ({ files, filesRoot, bundlePath }) => {
 
   // Ensure full path to bundle exists before opening stream.
   await makeDir(path.dirname(bundlePath));
-  const output = createWriteStream(bundlePath);
+  const output = fs.createWriteStream(bundlePath);
 
   return new Promise((resolve, reject) => { // eslint-disable-line promise/avoid-new
     output.on("close", () => resolve());
@@ -130,9 +140,17 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
   const bundlePath = path.resolve(servicePath, bundleName);
   const rootPath = path.resolve(servicePath, base);
 
+  // Dependency roots.
+  let depRoots = roots;
+  if (!depRoots) {
+    // Special case: Allow `{CWD}/package.json` to not exist. Any `roots` must.
+    const cwdPkgExists = await exists(path.resolve(servicePath, path.join(cwd, "package.json")));
+    depRoots = cwdPkgExists ? [cwd] : [];
+  }
+
   // Iterate all dependency roots to gather production dependencies.
   const depInclude = await Promise
-    .all((roots || [cwd])
+    .all(depRoots
       // Relative to servicePath.
       .map((depRoot) => path.resolve(servicePath, depRoot))
       // Find deps.
