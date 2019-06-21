@@ -204,6 +204,14 @@ This ends up being way faster in most cases, and particularly when you have very
 
 Our [benchmark correctness tests](./test/benchmark.js) highlight a number of various files not included by Jetpack that are included by `serverless` in packaging our benchmark scenarios. Some of these are things like `node_modules/.yarn-integrity` which Jetpack knowingly ignores because you shouldn't need it. All of the others we've discovered to date are instances in which `serverless` incorrectly includes `devDependencies`...
 
+#### Layers
+
+Jetpack supports `layer` packaging as close to `serverless` as it can. However, there are a couple of very wonky things with `serverless`' approach that you probably want to keep in mind:
+
+* Service level `package.include|exclude` patterns are applied at the `layers.NAME.path` level for a given layer. So, e.g., if you have a service-level `include` pattern of `"!*"` to remove `ROOT/foo.txt`, this will apply at a **different** root path from `layers.NAME.path` of like `ROOT/layers/NAME/foo.txt`.
+
+TODO(LAYERS): More README work.
+
 #### Be careful with `include` configurations and `node_modules`
 
 Let's start with how `include|exclude` work for both Serverless built-in packaging and Jetpack:
