@@ -45,7 +45,7 @@ const filterFiles = ({ files, include, exclude }) => {
 //
 // See: `resolveFilePathsFromPatterns` in
 // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
-const resolveFilePathsFromPatterns = async ({ servicePath, depInclude, include, exclude }) => {
+const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, include, exclude }) => {
   // Start globbing like serverless does.
   // 1. Glob everything on disk using only _includes_ (except `node_modules`).
   //    This is loosely, what serverless would do with the difference that
@@ -61,7 +61,7 @@ const resolveFilePathsFromPatterns = async ({ servicePath, depInclude, include, 
     .concat(include || []);
 
   const files = await globby(globInclude, {
-    cwd: servicePath,
+    cwd,
     dot: true,
     silent: true,
     follow: true,
@@ -157,7 +157,10 @@ const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclu
     );
 
   // Glob and filter all files in package.
-  const files = await resolveFilePathsFromPatterns({ servicePath, depInclude, include, exclude });
+  const cwd = servicePath;
+  const files = await resolveFilePathsFromPatterns(
+    { cwd, servicePath, depInclude, include, exclude }
+  );
 
   // Create package zip.
   await createZip({

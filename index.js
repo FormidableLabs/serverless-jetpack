@@ -231,7 +231,7 @@ class Jetpack {
         include,
         exclude
       });
-      return 1000; // fake build time
+      return { buildTime: 1000 }; // fake build time
     }
 
     // TODO: Need a new root path / `servicePath` for layers?
