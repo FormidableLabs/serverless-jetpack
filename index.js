@@ -109,16 +109,20 @@ class Jetpack {
     return this.__options;
   }
 
-  // Function overrides, etc.
-  _functionOptions({ functionObject }) {
-    if (!functionObject) {
+  // Function, layer overrides, etc.
+  // eslint-disable-next-line complexity
+  _extraOptions({ functionObject, layerObject }) {
+    if (!functionObject && !layerObject) {
       return this._serviceOptions;
     }
 
     const opts = Object.assign({}, this._serviceOptions);
-    const fnOpts = functionObject.jetpack || {};
-    if (fnOpts.roots) {
-      opts.roots = (opts.roots || []).concat(fnOpts.roots);
+    const fnRoots = ((functionObject || {}).jetpack || {}).roots;
+    const layerRoots = ((layerObject || {}).jetpack || {}).roots;
+    if (fnRoots || layerRoots) {
+      opts.roots = (opts.roots || [])
+        .concat(fnRoots || [])
+        .concat(layerRoots || []);
     }
 
     return opts;
@@ -137,8 +141,8 @@ class Jetpack {
     return this.__layerExcludes;
   }
 
-
-  filePatterns({ functionObject }) {
+  // eslint-disable-next-line complexity,max-statements
+  filePatterns({ functionObject, layerObject }) {
     const { service, pluginManager } = this.serverless;
     const servicePackage = service.package;
     const serviceInclude = servicePackage.include || [];
@@ -148,9 +152,19 @@ class Jetpack {
     const functionInclude = functionPackage.include || [];
     const functionExclude = functionPackage.exclude || [];
 
+    const layerPackage = (layerObject || {}).package || {};
+    const layerInclude = layerPackage.include || [];
+    const layerExclude = layerPackage.exclude || [];
+
     // Combined, unique patterns, in stable sorted order (remove _later_ instances).
     // This is `_.union` in serverless built-in.
-    const include = union(serviceInclude, functionInclude);
+    let include = serviceInclude;
+    if (functionInclude) {
+      include = union(include, functionInclude);
+    }
+    if (layerInclude) {
+      include = union(include, layerInclude);
+    }
 
     // Packaging logic.
     //
@@ -158,8 +172,10 @@ class Jetpack {
     // - Default excludes
     // - Exclude serverless config files
     // - Exclude plugin local paths
+    // - Exclude all layers
     // - Apply service package excludes
     // - Apply function package excludes
+    // - Apply layer package excludes
     //
     // https://serverless.com/framework/docs/providers/aws/guide/packaging#exclude--include
     // > At first it will apply the globs defined in exclude. After that it'll
@@ -188,7 +204,8 @@ class Jetpack {
       pluginsLocalPath ? [pluginsLocalPath] : null,
       serviceExclude,
       this._layerExcludes,
-      functionExclude
+      functionExclude,
+      layerExclude
     ]
       .filter((arr) => !!arr && arr.length)
       .reduce((memo, arr) => union(memo, arr), []);
@@ -199,17 +216,31 @@ class Jetpack {
     };
   }
 
-  async globAndZip({ bundleName, functionObject, worker }) {
+  async globAndZip({ bundleName, functionObject, layerObject, worker }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
-    const { base, roots } = this._functionOptions({ functionObject });
-    const { include, exclude } = this.filePatterns({ functionObject });
+    const { base, roots } = this._extraOptions({ functionObject, layerObject });
+    const { include, exclude } = this.filePatterns({ functionObject, layerObject });
 
+    // TODO(LAYERS): HERE - continue refactoring in packaging support for layer.
+    if (layerObject) {
+      console.log("TODO(LAYERS): Skipping globAndZip", {
+        layerObject,
+        base,
+        roots,
+        include,
+        exclude
+      });
+      return 1000; // fake build time
+    }
+
+    // TODO: Need a new root path for layers?
     const buildFn = worker ? worker.globAndZip : globAndZip;
     const { numFiles, bundlePath, buildTime } = await buildFn(
       { servicePath, base, roots, bundleName, include, exclude }
     );
 
+    // TODO: Need a new root path for layers?
     this._logDebug(
       `Zipped ${numFiles} sources from ${servicePath} to artifact location: ${bundlePath}`
     );
@@ -252,15 +283,12 @@ class Jetpack {
     this._log(`Packaged service: ${bundleName} (${toSecs(buildTime)}s)`);
   }
 
-  async packageLayer({ layerName /* , layerObject, worker*/ }) {
+  async packageLayer({ layerName, layerObject, worker }) {
     const bundleName = path.join(SLS_TMP_DIR, `${layerName}.zip`);
 
     // Package.
     this._logDebug(`Start packaging layer: ${bundleName}`);
-
-    // TODO: IMPLEMENT
-    const buildTime = 1000;
-    // const { buildTime } = await this.globAndZip({ bundleName, functionObject, worker });
+    const { buildTime } = await this.globAndZip({ bundleName, layerObject, worker });
 
     // // Mutate serverless configuration to use our artifacts.
     // layerObject.package = layerObject.package || {};
@@ -359,7 +387,7 @@ class Jetpack {
       this.packageLayer({ ...obj, worker })
     ));
 
-    // TODO(LAYER): Exclude from package.
+    // TODO(LAYER): Handle `--function` CLI option.
 
     // Run all packaging work.
     this._log(
