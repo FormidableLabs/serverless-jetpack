@@ -235,8 +235,8 @@ class Jetpack {
     }
 
     // TODO: Need a new root path / `servicePath` for layers?
-    // TODO: Does service `base` need to adjust for layers?
-    // TODO: Do service `roots` need to adjust for layers?
+    // TODO: Service `base` is relative to `servicePath`.
+    // TODO: Service `roots` are relative to `servicePath` (service and layer specific).
     const buildFn = worker ? worker.globAndZip : globAndZip;
     const { numFiles, bundlePath, buildTime } = await buildFn(
       { servicePath, base, roots, bundleName, include, exclude }
