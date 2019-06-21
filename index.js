@@ -221,10 +221,12 @@ class Jetpack {
     const servicePath = config.servicePath || ".";
     const { base, roots } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
+    const cwd = (layerObject || {}).path || servicePath;
 
     // TODO(LAYERS): HERE - continue refactoring in packaging support for layer.
     if (layerObject) {
-      console.log("TODO(LAYERS): Skipping globAndZip", {
+      console.log("TODO(LAYERS): globAndZip", {
+        cwd,
         layerObject,
         base,
         roots,
@@ -234,17 +236,13 @@ class Jetpack {
       return { buildTime: 1000 }; // fake build time
     }
 
-    // TODO: Need a new root path / `servicePath` for layers?
-    // TODO: Service `base` is relative to `servicePath`.
-    // TODO: Service `roots` are relative to `servicePath` (service and layer specific).
     const buildFn = worker ? worker.globAndZip : globAndZip;
     const { numFiles, bundlePath, buildTime } = await buildFn(
-      { servicePath, base, roots, bundleName, include, exclude }
+      { cwd, servicePath, base, roots, bundleName, include, exclude }
     );
 
-    // TODO: Need a new root path for layers?
     this._logDebug(
-      `Zipped ${numFiles} sources from ${servicePath} to artifact location: ${bundlePath}`
+      `Zipped ${numFiles} sources from ${cwd} to artifact location: ${bundlePath}`
     );
 
     return { numFiles, bundlePath, buildTime };

@@ -78,7 +78,7 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
     .reduce((m, f) => ({ ...m, [f]: true }), {});
   // These extensions are specifically ordered. First wins.
   const cfgToRemove = ["json", "yml", "yaml", "js"]
-    .map((ext) => path.relative(servicePath, `serverless.${ext}`))
+    .map((ext) => path.join(path.relative(servicePath, cwd), `serverless.${ext}`))
     .filter((f) => slsConfigMap[f])[0];
   // Add to excludes like serverless does.
   // _Note_: Mutates `exclude`, but this is really like a "late fixing" of
@@ -125,14 +125,14 @@ const createZip = async ({ files, filesRoot, bundlePath }) => {
   });
 };
 
-const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclude }) => {
+const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, exclude }) => {
   const start = new Date();
   const bundlePath = path.resolve(servicePath, bundleName);
+  const rootPath = path.resolve(servicePath, base);
 
   // Iterate all dependency roots to gather production dependencies.
-  const rootPath = path.resolve(servicePath, base);
   const depInclude = await Promise
-    .all((roots || ["."])
+    .all((roots || [cwd])
       // Relative to servicePath.
       .map((depRoot) => path.resolve(servicePath, depRoot))
       // Find deps.
@@ -141,8 +141,8 @@ const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclu
     .then((found) => found
       // Flatten.
       .reduce((m, a) => m.concat(a), [])
-      // Relativize to servicePath / CWD.
-      .map((dep) => path.relative(servicePath, path.join(rootPath, dep)))
+      // Relativize to cwd.
+      .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
       // Sort for proper glob order.
       .sort()
       // Add excludes for node_modules in every discovered pattern dep dir.
@@ -157,7 +157,6 @@ const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclu
     );
 
   // Glob and filter all files in package.
-  const cwd = servicePath;
   const files = await resolveFilePathsFromPatterns(
     { cwd, servicePath, depInclude, include, exclude }
   );
@@ -165,7 +164,7 @@ const globAndZip = async ({ servicePath, base, roots, bundleName, include, exclu
   // Create package zip.
   await createZip({
     files,
-    filesRoot: servicePath,
+    filesRoot: cwd,
     bundlePath
   });
 
