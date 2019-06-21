@@ -124,6 +124,20 @@ class Jetpack {
     return opts;
   }
 
+  // Helper for layer patterns we'll need for all packages
+  get _layerExcludes() {
+    if (this.__layerExcludes) { return this.__layerExcludes; }
+
+    const { service } = this.serverless;
+    this.__layerExcludes = service.getAllLayers()
+      .map((layer) => service.getLayer(layer))
+      .filter((layerObj) => layerObj.path)
+      .map((layerObj) => `${layerObj.path}/**`);
+
+    return this.__layerExcludes;
+  }
+
+
   filePatterns({ functionObject }) {
     const { service, pluginManager } = this.serverless;
     const servicePackage = service.package;
@@ -173,6 +187,7 @@ class Jetpack {
       slsDefaultExcludePatterns,
       pluginsLocalPath ? [pluginsLocalPath] : null,
       serviceExclude,
+      this._layerExcludes,
       functionExclude
     ]
       .filter((arr) => !!arr && arr.length)
@@ -237,7 +252,7 @@ class Jetpack {
     this._log(`Packaged service: ${bundleName} (${toSecs(buildTime)}s)`);
   }
 
-  async packageLayer({ layerName, layerObject, worker }) {
+  async packageLayer({ layerName /* , layerObject, worker*/ }) {
     const bundleName = path.join(SLS_TMP_DIR, `${layerName}.zip`);
 
     // Package.
