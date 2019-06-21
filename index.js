@@ -225,18 +225,6 @@ class Jetpack {
     const { base, roots } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
 
-    // TODO(LAYERS): HERE - continue refactoring in packaging support for layer.
-    if (layerObject) {
-      console.log("TODO(LAYERS): globAndZip", {
-        cwd,
-        layerObject,
-        base,
-        roots,
-        include,
-        exclude
-      });
-    }
-
     const buildFn = worker ? worker.globAndZip : globAndZip;
     const { numFiles, bundlePath, buildTime } = await buildFn(
       { cwd, servicePath, base, roots, bundleName, include, exclude }
