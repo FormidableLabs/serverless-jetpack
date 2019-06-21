@@ -114,7 +114,7 @@ const createZip = async ({ files, filesRoot, bundlePath }) => {
 
       // Serverless framework packages up files individually with various tweaks
       // (setting file times to epoch, chmod-ing things, etc.) that we don't do
-      // here. Instead we just zip up the whole build directory.
+      // here.
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
       files.forEach((name) => {
         zip.file(path.join(filesRoot, name), { name });
