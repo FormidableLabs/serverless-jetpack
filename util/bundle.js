@@ -142,6 +142,7 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
   let depRoots = roots;
   if (!depRoots) {
     // Special case: Allow `{CWD}/package.json` to not exist. Any `roots` must.
+    // TODO: Is this wrong too relative to servicePath? Is it all cwd?
     const cwdPkgExists = await exists(path.resolve(servicePath, path.join(cwd, "package.json")));
     depRoots = cwdPkgExists ? [cwd] : [];
   }
@@ -150,6 +151,7 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
   const depInclude = await Promise
     .all(depRoots
       // Relative to servicePath.
+      // TODO: Is this wrong too relative to servicePath? Is it all cwd?
       .map((depRoot) => path.resolve(servicePath, depRoot))
       // Find deps.
       .map((curPath) => findProdInstalls({ rootPath, curPath })
@@ -161,6 +163,8 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
       return val;
     })
     // TODO HERE -- SOMETHING IS WRONG
+    // TODO IDEA: Need relative to cwd, **NOT** servicePath
+    // TODO IDEA: Splice in the root-level node_modules excludes differently
     // TODO: Need a **lot** of prefixing work...
     .then((found) => found
       // Flatten and begin with dep root node_modules exclusion.
