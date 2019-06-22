@@ -286,7 +286,7 @@ class Jetpack {
     this._log(`Packaged layer: ${bundleName} (${toSecs(buildTime)}s)`);
   }
 
-  // eslint-disable-next-line max-statements
+  // eslint-disable-next-line max-statements,complexity
   async package() {
     const { service } = this.serverless;
     const servicePackage = service.package;
@@ -369,14 +369,16 @@ class Jetpack {
         artifact: obj.layerObject.artifact
       }));
 
-    // Get list of layers to package.
-    const layersPkgsToPackage = layersPkgs.filter((obj) => !(obj.disable || obj.artifact));
-    const numLayers = layersPkgsToPackage.length;
-    tasks = tasks.concat(layersPkgsToPackage.map((obj) => () =>
-      this.packageLayer({ ...obj, worker })
-    ));
-
-    // TODO(LAYER): Handle `--function` CLI option.
+    // Package layers if not in `-f NAME` single-function mode.
+    let numLayers = 0;
+    if (!singleFunctionName) {
+      // Get list of layers to package.
+      const layersPkgsToPackage = layersPkgs.filter((obj) => !(obj.disable || obj.artifact));
+      numLayers = layersPkgsToPackage.length;
+      tasks = tasks.concat(layersPkgsToPackage.map((obj) => () =>
+        this.packageLayer({ ...obj, worker })
+      ));
+    }
 
     // Run all packaging work.
     this._log(
