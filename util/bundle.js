@@ -63,6 +63,9 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   //    excluded manually by `nanomatch` after. We get the same result here
   //    without reading from disk.
   const globInclude = ["**"]
+    // TODO: REMOVE THIS.
+    // Remove all node_modules.
+    .concat(["!node_modules"])
     // ... hone to the production node_modules
     .concat(depInclude || [])
     // ... then normal include like serverless does.
@@ -142,37 +145,21 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
   let depRoots = roots;
   if (!depRoots) {
     // Special case: Allow `{CWD}/package.json` to not exist. Any `roots` must.
-    // TODO: Is this wrong too relative to servicePath? Is it all cwd?
     const cwdPkgExists = await exists(path.resolve(servicePath, path.join(cwd, "package.json")));
     depRoots = cwdPkgExists ? [cwd] : [];
   }
 
   // Iterate all dependency roots to gather production dependencies.
-  const depInclude = await Promise
+  let depInclude = await Promise
     .all(depRoots
-      // Relative to servicePath.
-      // TODO: Is this wrong too relative to servicePath? Is it all cwd?
+      // Relative to servicePath _first_, then to cwd...
       .map((depRoot) => path.resolve(servicePath, depRoot))
       // Find deps.
-      .map((curPath) => findProdInstalls({ rootPath, curPath })
-        .then((prodInstalls) => ({ prodInstalls, curPath }))
-      )
+      .map((curPath) => findProdInstalls({ rootPath, curPath }))
     )
-    .then((val) => {
-      console.log(val);
-      return val;
-    })
-    // TODO HERE -- SOMETHING IS WRONG
-    // TODO IDEA: Need relative to cwd, **NOT** servicePath
-    // TODO IDEA: Splice in the root-level node_modules excludes differently
-    // TODO: Need a **lot** of prefixing work...
     .then((found) => found
       // Flatten and begin with dep root node_modules exclusion.
-      .reduce((memo, { prodInstalls, curPath }) => memo
-        .concat([`!${path.relative(servicePath, path.join(curPath, "node_modules"))}`])
-        .concat(prodInstalls),
-      []
-      )
+      .reduce((m, a) => m.concat(a), [])
       // Relativize to cwd.
       .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
       // Sort for proper glob order.
@@ -188,7 +175,18 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
       .reduce((m, a) => m.concat(a), [])
     );
 
-  console.log("TODO HERE depInclude", { depInclude })
+  // Prepend node_modules exclusions.
+  const resolvedCwd = path.resolve(cwd);
+  const resolvedServicePath = path.resolve(servicePath)
+  const TMP = depRoots.map((depRoot) =>
+    path.relative(resolvedCwd, path.join(resolvedServicePath, depRoot, "node_modules"))
+  );
+
+  // TODO: HERE -- BIG TASK
+  //       - [ ] Do a big code comment about cwd, base, servicePath, layers.*.path relations.
+  //       - [ ] Then come back here and do actual coding.
+  // TODO: HERE -- Have aboslute TMP values that need to be relativized.
+  console.log("TODO HERE", { cwd, TMP, resolvedCwd, resolvedServicePath, depRoots })
 
   // Glob and filter all files in package.
   const files = await resolveFilePathsFromPatterns(
