@@ -422,7 +422,6 @@ describe("benchmark", () => {
           // Duplicated in yarn.
           // eslint-disable-next-line max-len
           "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/": null,
-          "node_modules/.bin/mime": null,
           // Just differences in installation.
           "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
           "functions/base/node_modules/send/node_modules/ms/":
