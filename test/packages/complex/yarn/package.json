@@ -14,6 +14,6 @@
     "serverless-offline": "^4.2.1"
   },
   "scripts": {
-    "postinstall": "CMD=$(basename `pwd`) && cd layers/with-deps/nodejs && $CMD install"
+    "postinstall": "node postinstall.js"
   }
 }
