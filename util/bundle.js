@@ -199,19 +199,12 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
       .sort()
       // Do async + individual root stuff.
       .map((curPath) => findProdInstalls({ rootPath, curPath })
-        // TODO REMOVE
-        // .then((tmp) => {
-        //   const relPath = path.relative(cwd, curPath);
-        //   console.log("TODO HERE FOUND", { relPath, rootPath, curPath, tmp });
-        //   return tmp;
-        // })
         .then((deps) => []
           // Dependency root-level exclude (relative to dep root, not root-path + dep)
           .concat([`!${path.relative(cwd, path.join(curPath, "node_modules"))}`])
           // All other includes.
           .concat(deps
             // Relativize to root path for inspectdep results, the cwd for glob.
-            // TODO: HERE -- This is broken monorepo vs. layers...
             .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
             // Sort for proper glob order.
             .sort()
@@ -230,9 +223,6 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
     )
     // Flatten to final list.
     .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
-
-  // // TODO: HERE BROKEN - Monorepo vs. Layers are still broken variously...
-  // console.log("TODO HERE", { cwd, servicePath, base, rootPath, roots, depRoots, depInclude });
 
   // Glob and filter all files in package.
   const files = await resolveFilePathsFromPatterns(
