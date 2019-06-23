@@ -63,6 +63,9 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   //    excluded manually by `nanomatch` after. We get the same result here
   //    without reading from disk.
   const globInclude = ["**"]
+    // Remove all cwd-relative-root node_modules. (Specific `roots` can bring
+    // back in, and at least monorepo scenario needs the exclude.)
+    .concat(["!node_modules"])
     // ... hone to the production node_modules
     .concat(depInclude || [])
     // ... then normal include like serverless does.
@@ -196,13 +199,18 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
       .sort()
       // Do async + individual root stuff.
       .map((curPath) => findProdInstalls({ rootPath, curPath })
+        .then((tmp) => {
+          console.log("TODO HERE FOUND", { tmp })
+          return tmp;
+        })
         .then((deps) => []
           // Dependency root-level exclude (relative to dep root, not root-path + dep)
           .concat([`!${path.relative(cwd, path.join(curPath, "node_modules"))}`])
           // All other includes.
           .concat(deps
             // Relativize to cwd.
-            .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
+            // TODO: HERE -- This is broken monorepo vs. layers...
+            .map((dep) => path.relative(cwd, path.join(curPath, dep)))
             // Sort for proper glob order.
             .sort()
             // Add excludes for node_modules in every discovered pattern dep dir.
@@ -221,11 +229,8 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
     // Flatten to final list.
     .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
 
-  // // TODO: HERE -- BIG TASK
-  // //       - [ ] Do a big code comment about cwd, base, servicePath, layers.*.path relations.
-  // //       - [ ] Then come back here and do actual coding.
-  // // TODO: HERE -- Have aboslute TMP values that need to be relativized.
-  // console.log("TODO HERE", { cwd, servicePath, base, rootPath, roots, depRoots, depInclude });
+  // TODO: HERE BROKEN - Monorepo vs. Layers are still broken variously...
+  console.log("TODO HERE", { cwd, servicePath, base, rootPath, roots, depRoots, depInclude });
 
   // Glob and filter all files in package.
   const files = await resolveFilePathsFromPatterns(
