@@ -8,7 +8,7 @@ custom:
   region: ${opt:region, env:AWS_REGION}
   stage: ${opt:stage, env:STAGE}
   jetpack:
-    concurrency: 1 # TODO: PARALLEL AGAIN
+    concurrency: 2
 
 plugins:
   localPath: ../../../plugins

@@ -63,9 +63,6 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   //    excluded manually by `nanomatch` after. We get the same result here
   //    without reading from disk.
   const globInclude = ["**"]
-    // TODO: REMOVE THIS.
-    // Remove all node_modules.
-    .concat(["!node_modules"])
     // ... hone to the production node_modules
     .concat(depInclude || [])
     // ... then normal include like serverless does.
@@ -107,7 +104,7 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   return filtered;
 };
 
-const createZip = async ({ files, filesRoot, bundlePath }) => {
+const createZip = async ({ files, cwd, bundlePath }) => {
   // Use Serverless-analogous library + logic to create zipped artifact.
   const zip = archiver.create("zip");
 
@@ -128,7 +125,7 @@ const createZip = async ({ files, filesRoot, bundlePath }) => {
       // here.
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
       files.forEach((name) => {
-        zip.file(path.join(filesRoot, name), { name });
+        zip.file(path.join(cwd, name), { name });
       });
 
       zip.finalize();
@@ -136,57 +133,99 @@ const createZip = async ({ files, filesRoot, bundlePath }) => {
   });
 };
 
+/**
+ * Take various configuration inputs and produce a zip bundle.
+ *
+ * ## Background
+ *
+ * Built-in Serverless has some weird behavior around the "working directory".
+ * For a function, it's pretty straightforward `servicePath` the root of all
+ * things to start at.
+ *
+ * But once you bring in a layer, it ends up  with `layers.*.path` as the new
+ * root for globbing and pattern application, which is strange because service-
+ * level `include|exclude` are then applied at a **new** root.
+ *
+ * ## Jetpack
+ *
+ * We use the `layers.*.path` scenario, which sets an alternate `cwd` to
+ * `servicePath` to illustrate how we apply things:
+ *
+ * * Resolve `cwd` to `servicePath + cwd`
+ * * Resolve `base` to `servicePath + base`
+ * * Resolve `roots` to `servicePath + root`
+ *
+ * When searching for dependencies:
+ *
+ * * Start at a given `root`
+ * * Traverse all the way down to `base`
+ * * Relativize to `cwd`
+ *
+ * @param {*}         opts              options object
+ * @param {string}    opts.cwd          current working directory
+ * @param {string}    opts.servicePath  Serverless project working directory
+ * @param {string}    opts.base         optional base directory (relative to `servicePath`)
+ * @param {string[]}  opts.roots        optional dependency roots (relative to `servicePath`)
+ * @param {string}    opts.bundleName   output bundle name
+ * @param {string[]}  opts.include      glob patterns to include
+ * @param {string[]}  opts.exclude      glob patterns to exclude
+ * @returns {Promise<Object>} Various information about the bundle
+ */
 const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, exclude }) => {
   const start = new Date();
-  const bundlePath = path.resolve(servicePath, bundleName);
+
+  // Fully resolve paths.
+  cwd = path.resolve(servicePath, cwd);
+  roots = roots ? roots.map((r) => path.resolve(servicePath, r)) : roots;
   const rootPath = path.resolve(servicePath, base);
+  const bundlePath = path.resolve(servicePath, bundleName);
 
   // Dependency roots.
   let depRoots = roots;
   if (!depRoots) {
     // Special case: Allow `{CWD}/package.json` to not exist. Any `roots` must.
-    const cwdPkgExists = await exists(path.resolve(servicePath, path.join(cwd, "package.json")));
+    const cwdPkgExists = await exists(path.join(cwd, "package.json"));
     depRoots = cwdPkgExists ? [cwd] : [];
   }
 
   // Iterate all dependency roots to gather production dependencies.
-  let depInclude = await Promise
+  const depInclude = await Promise
+    // Find the production install paths
     .all(depRoots
-      // Relative to servicePath _first_, then to cwd...
-      .map((depRoot) => path.resolve(servicePath, depRoot))
-      // Find deps.
-      .map((curPath) => findProdInstalls({ rootPath, curPath }))
-    )
-    .then((found) => found
-      // Flatten and begin with dep root node_modules exclusion.
-      .reduce((m, a) => m.concat(a), [])
-      // Relativize to cwd.
-      .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
       // Sort for proper glob order.
       .sort()
-      // Add excludes for node_modules in every discovered pattern dep dir.
-      // This allows us to exclude devDependencies because **later** include
-      // patterns should have all the production deps already and override.
-      .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
-        ? [dep, `!${path.join(dep, "node_modules")}`]
-        : [dep]
+      // Do async + individual root stuff.
+      .map((curPath) => findProdInstalls({ rootPath, curPath })
+        .then((deps) => []
+          // Dependency root-level exclude (relative to dep root, not root-path + dep)
+          .concat([`!${path.relative(cwd, path.join(curPath, "node_modules"))}`])
+          // All other includes.
+          .concat(deps
+            // Relativize to cwd.
+            .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
+            // Sort for proper glob order.
+            .sort()
+            // Add excludes for node_modules in every discovered pattern dep dir.
+            // This allows us to exclude devDependencies because **later** include
+            // patterns should have all the production deps already and override.
+            .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
+              ? [dep, `!${path.join(dep, "node_modules")}`]
+              : [dep]
+            )
+            // Flatten the temp arrays we just introduced.
+            .reduce((m, a) => m.concat(a), [])
+          )
+        )
       )
-      // Re-flatten the temp arrays we just introduced.
-      .reduce((m, a) => m.concat(a), [])
-    );
+    )
+    // Flatten to final list.
+    .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
 
-  // Prepend node_modules exclusions.
-  const resolvedCwd = path.resolve(cwd);
-  const resolvedServicePath = path.resolve(servicePath)
-  const TMP = depRoots.map((depRoot) =>
-    path.relative(resolvedCwd, path.join(resolvedServicePath, depRoot, "node_modules"))
-  );
-
-  // TODO: HERE -- BIG TASK
-  //       - [ ] Do a big code comment about cwd, base, servicePath, layers.*.path relations.
-  //       - [ ] Then come back here and do actual coding.
-  // TODO: HERE -- Have aboslute TMP values that need to be relativized.
-  console.log("TODO HERE", { cwd, TMP, resolvedCwd, resolvedServicePath, depRoots })
+  // // TODO: HERE -- BIG TASK
+  // //       - [ ] Do a big code comment about cwd, base, servicePath, layers.*.path relations.
+  // //       - [ ] Then come back here and do actual coding.
+  // // TODO: HERE -- Have aboslute TMP values that need to be relativized.
+  // console.log("TODO HERE", { cwd, servicePath, base, rootPath, roots, depRoots, depInclude });
 
   // Glob and filter all files in package.
   const files = await resolveFilePathsFromPatterns(
@@ -196,7 +235,7 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
   // Create package zip.
   await createZip({
     files,
-    filesRoot: cwd,
+    cwd,
     bundlePath
   });
 

@@ -163,7 +163,12 @@ const SLS_FALSE_POSITIVES = {
 
     // devDependency
     // (`manual_test_websocket/scripts/serverless..yml`)
-    "node_modules/serverless-offline"
+    "node_modules/serverless-offline",
+
+    // Jetpack properly excludes with `roots` (not availabel in Serevrless)
+    "nodejs/node_modules/.yarn-integrity",
+    "nodejs/node_modules/.bin/uuid",
+    "nodejs/node_modules/uuid"
   ]),
 
   "complex/npm": new Set([
@@ -171,7 +176,11 @@ const SLS_FALSE_POSITIVES = {
 
     // devDependency
     // (`manual_test_websocket/scripts/serverless..yml`)
-    "node_modules/serverless-offline"
+    "node_modules/serverless-offline",
+
+    // Jetpack properly excludes with `roots` (not availabel in Serevrless)
+    "nodejs/node_modules/.bin/uuid",
+    "nodejs/node_modules/uuid"
   ]),
 
   "individually/yarn": new Set([
@@ -306,8 +315,14 @@ const SLS_FALSE_POSITIVES = {
 };
 
 // General version
-// eslint-disable-next-line no-magic-numbers
-const topLevel = (f) => f.split("/").slice(0, 2).join("/");
+const topLevel = (filePath) => {
+  const parts = filePath.split("/");
+  const nodeModulesIdx = parts.indexOf("node_modules");
+
+  // Get `node_modules` directory and entry after.
+  // eslint-disable-next-line no-magic-numbers
+  return parts.slice(0, nodeModulesIdx + 2).join("/");
+};
 
 // Applies to both plugin and baselines
 const keepMatchesAll = (f) => !PKG_IGNORE_ALL.has(topLevel(f));
