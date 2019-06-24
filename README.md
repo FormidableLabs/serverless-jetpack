@@ -142,6 +142,27 @@ functions:
     # ...
 ```
 
+**Layers**
+
+```yml
+# serverless.yml
+plugins:
+  - serverless-jetpack
+
+layers:
+  vendor:
+    # A typical pattern is `NAME/nodejs/node_modules` that expands to
+    # `/opt/nodejs/node_modules` which is included in `NODE_PATH` and available
+    # to running lambdas. Here, we use `jetpack.roots` to properly exclude
+    # `devDependencies` that built-in Serverless wouldn't.
+    path: layers/vendor
+    jetpack:
+      roots:
+        # Instruct Jetpack to review and exclude devDependencies originating
+        # from this `package.json` directory.
+        - "layers/vendor/nodejs"
+```
+
 ## Command Line Interface
 
 Jetpack also provides some CLI options.
