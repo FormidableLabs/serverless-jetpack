@@ -338,6 +338,11 @@ const keepBaselineMatch = ({ scenario, mode }) => (f) => {
     : !matches.has(topLevel(f));
 };
 
+const describeScenario = (scenario, callback) =>
+  !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(scenario)
+    ? describe(scenario, callback)
+    : describe.skip(scenario, callback);
+
 describe("benchmark", () => {
   let fixtures;
 
@@ -406,51 +411,49 @@ describe("benchmark", () => {
     });
   });
 
-  if (!TEST_SCENARIO || TEST_SCENARIO.split(",").includes("monorepo")) {
-    describe("monorepo", () => {
-      it("has same npm and yarn package contents", () => {
-        let yarnFiles = fixtures["monorepo/yarn/jetpack"]["base.zip"];
-        let npmFiles = fixtures["monorepo/npm/jetpack"]["base.zip"];
+  describeScenario("monorepo", () => {
+    it("has same npm and yarn package contents", () => {
+      let yarnFiles = fixtures["monorepo/yarn/jetpack"]["base.zip"];
+      let npmFiles = fixtures["monorepo/npm/jetpack"]["base.zip"];
 
-        expect(yarnFiles).to.be.ok;
-        expect(npmFiles).to.be.ok;
+      expect(yarnFiles).to.be.ok;
+      expect(npmFiles).to.be.ok;
 
-        // Now, normalize file lists before comparing.
-        yarnFiles = yarnFiles.sort();
+      // Now, normalize file lists before comparing.
+      yarnFiles = yarnFiles.sort();
 
-        const NPM_NORMS = {
-          // Duplicated in yarn.
-          // eslint-disable-next-line max-len
-          "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/": null,
-          // Just differences in installation.
-          "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-          "functions/base/node_modules/send/node_modules/ms/":
-            "node_modules/debug/node_modules/ms/",
-          // Hoist everything to root (which is what yarn should do).
-          "functions/base/node_modules/": "node_modules/",
-          "lib/camel/node_modules/": "node_modules/"
-        };
-        npmFiles = npmFiles
-          .map((dep) => {
-            for (const norm of Object.keys(NPM_NORMS)) {
-              if (dep.startsWith(norm)) {
-                return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
-              }
+      const NPM_NORMS = {
+        // Duplicated in yarn.
+        // eslint-disable-next-line max-len
+        "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/": null,
+        // Just differences in installation.
+        "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
+        "functions/base/node_modules/send/node_modules/ms/":
+          "node_modules/debug/node_modules/ms/",
+        // Hoist everything to root (which is what yarn should do).
+        "functions/base/node_modules/": "node_modules/",
+        "lib/camel/node_modules/": "node_modules/"
+      };
+      npmFiles = npmFiles
+        .map((dep) => {
+          for (const norm of Object.keys(NPM_NORMS)) {
+            if (dep.startsWith(norm)) {
+              return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
             }
+          }
 
-            return dep;
-          })
-          .filter(Boolean)
-          .sort();
+          return dep;
+        })
+        .filter(Boolean)
+        .sort();
 
-        expect(yarnFiles).to.include.members([
-          "functions/base/src/base.js",
-          "lib/camel/src/camel.js",
-          "node_modules/camelcase/package.json",
-          "node_modules/ms/package.json"
-        ]);
-        expect(npmFiles).to.eql(yarnFiles);
-      });
+      expect(yarnFiles).to.include.members([
+        "functions/base/src/base.js",
+        "lib/camel/src/camel.js",
+        "node_modules/camelcase/package.json",
+        "node_modules/ms/package.json"
+      ]);
+      expect(npmFiles).to.eql(yarnFiles);
     });
-  }
+  });
 });
