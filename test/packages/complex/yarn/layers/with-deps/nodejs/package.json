@@ -1,0 +1,13 @@
+{
+  "name": "aws-lambda-serverless-reference-layers-figlet",
+  "version": "0.0.1",
+  "description": "Layers test",
+  "main": "index.js",
+  "license": "MIT",
+  "dependencies": {
+    "figlet": "^1.2.3"
+  },
+  "devDependencies": {
+    "uuid": "^3.3.2"
+  }
+}

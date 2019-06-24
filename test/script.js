@@ -80,13 +80,9 @@ const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
 const build = async () => {
   const clean = [
     "**",
-    "!functions/*/node_modules/**",
-    "!functions/*/package-lock.json",
-    "!lib/*/node_modules/**",
-    "!lib/*/package-lock.json",
-    "!node_modules/**",
-    "!package-lock.json",
-    "!lerna.json"
+    "!**/node_modules/**",
+    "!**/package-lock.json",
+    "!**/lerna.json"
   ];
   const patterns = [
     "package.json",
@@ -95,6 +91,8 @@ const build = async () => {
     "*.js",
     "functions/*/src/**",
     "functions/*/package.json",
+    "layers/*/*.js",
+    "layers/*/nodejs/package.json",
     "lib/*/src/**",
     "lib/*/package.json"
   ];

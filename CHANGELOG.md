@@ -1,6 +1,12 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Add support for Lambda Layers packaging in Jetpack.
+  [#42](https://github.com/FormidableLabs/serverless-jetpack/pull/42)
+* BUG: Properly exclude layers sources from normal function packages.
+
 ## 0.4.1
 
 * BUG: Publish missing `util` directory.

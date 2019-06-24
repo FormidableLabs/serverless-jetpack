@@ -8,9 +8,11 @@ Serverless Jetpack 🚀
 A faster JavaScript packager for [Serverless][] applications.
 
 - ⚡ Drop-in replacement for `serverless package|deploy`
+- 🖥 Lambda Functions packaging
+- 🗂️ Lambda Layers packaging
 - 🐉 Monorepo (`lerna`, `yarn workspace`) support
 - 📦 Per-function packaging
-- 🚀🚀🚀 Tunable, multi-cpu parallelization
+- 🔀 Tunable, multi-cpu parallelization
 
 ## Overview
 
@@ -78,14 +80,16 @@ Most Serverless framework projects should be able to use Jetpack without any ext
 
 * `base` (`string`): The base directory (relative to `servicePath` / CWD) at which dependencies may be discovered by Jetpack. This is useful in some bespoke monorepo scenarios where dependencies may be hoisted/flattened to a root `node_modules` directory that is the parent of the directory `serverless` is run from. (default: Serverless' `servicePath` / CWD).
     * _WARNING_: If you don't **know** that you need this option, you probably don't want to set it. Setting the base dependency root outside of Serverless' `servicePath` / current working directory (e.g., `..`) may have some unintended side effects. Most notably, any discovered `node_modules` dependencies will be flattened into the zip at the same level as `servicePath` / CWD. E.g., if dependencies were included by Jetpack at `node_modules/foo` and then `../node_modules/foo` they would be collapsed in the resulting zip file package.
+    * **Layers**: Layers are a bit of an odddity with built-in Serverless Framework packaging in that the current working directory is `layer.NAME.path` (and not `servicePath` like usual), yet things like `include|exclude` apply relatively to the layer `path`, not the `servicePath`. Jetpack has a similar choice and applies `base` applies to the root `servicePath` for everything (layers, functions, and service packaging), which seems to be the best approach given that monorepo consumers may well lay out projects like `functions/*` and `layers/*` and need dependency inference to get all the way to the root irrespective of a child layer `path`.
 * `roots` (`Array<string>`): A list of paths (relative to `servicePath` / CWD) at which there may additionally declared and/or installed `node_modules`. (default: [Serverless' `servicePath` / CWD]).
     * Setting a value here replaces the default `[servicePath]` with the new array, so if you want to additionally keep the `servicePath` in the roots array, set as: `[".", ADDITION_01, ADDITION_02, ...]`.
     * This typically occurs in a monorepo project, wherein dependencies may be located in e.g. `packages/{NAME}/node_modules` and/or hoisted to the `node_modules` at the project base. It is important to specify these additional dependency roots so that Jetpack can (1) find and include the right dependencies and (2) hone down these directories to just production dependencies when packaging. Otherwise, you risk having a slow `serverless package` execution and/or end up with additional/missing dependencies in your final application zip bundle.
     * You only need to declare roots of things that _aren't_ naturally inferred in a dependency traversal. E.g., if starting at `packages/{NAME}/package.json` causes a traversal down to `node_modules/something` then symlinked up to `lib/something-else/node_modules/even-more` these additional paths don't need to be separately declared because they're just part of the dependency traversal.
+    * **Layers**: Similar to `base`, both the project/service- and layer-level `roots` declarations will be relative to the project `servicePath` directory and _not_ the `layers.NAME.path` directory.
 * `concurrency` (`Number`): The number of independent package tasks (per function and service) to run off the main execution thread. If `1`, then run tasks serially in main thread. If `2+` run off main thread with `concurrency` number of workers. (default: `1`).
     * This option is most useful for Serverless projects that (1) have many individually packaged functions, and (2) large numbers of files and dependencies. E.g., start considering this option if your per-function packaging time takes more than 10 seconds and you have more than one service and/or function package.
 
-The following **function**-level configurations available via `functions.{FN_NAME}.jetpack`:
+The following **function** and **layer**-level configurations available via `functions.{FN_NAME}.jetpack` and  `layers.{LAYER_NAME}.jetpack`:
 
 * `roots` (`Array<string>`): This option **adds** more dependency roots to the service-level `roots` option.
 
@@ -136,6 +140,27 @@ custom:
 functions:
   base:
     # ...
+```
+
+**Layers**
+
+```yml
+# serverless.yml
+plugins:
+  - serverless-jetpack
+
+layers:
+  vendor:
+    # A typical pattern is `NAME/nodejs/node_modules` that expands to
+    # `/opt/nodejs/node_modules` which is included in `NODE_PATH` and available
+    # to running lambdas. Here, we use `jetpack.roots` to properly exclude
+    # `devDependencies` that built-in Serverless wouldn't.
+    path: layers/vendor
+    jetpack:
+      roots:
+        # Instruct Jetpack to review and exclude devDependencies originating
+        # from this `package.json` directory.
+        - "layers/vendor/nodejs"
 ```
 
 ## Command Line Interface
@@ -203,6 +228,13 @@ This ends up being way faster in most cases, and particularly when you have very
 #### Minor differences vs. Serverless globbing
 
 Our [benchmark correctness tests](./test/benchmark.js) highlight a number of various files not included by Jetpack that are included by `serverless` in packaging our benchmark scenarios. Some of these are things like `node_modules/.yarn-integrity` which Jetpack knowingly ignores because you shouldn't need it. All of the others we've discovered to date are instances in which `serverless` incorrectly includes `devDependencies`...
+
+#### Layers
+
+Jetpack supports `layer` packaging as close to `serverless` as it can. However, there are a couple of very wonky things with `serverless`' approach that you probably want to keep in mind:
+
+* Service level `package.include|exclude` patterns are applied at the `layers.NAME.path` level for a given layer. So, e.g., if you have a service-level `include` pattern of `"!*"` to remove `ROOT/foo.txt`, this will apply at a **different** root path from `layers.NAME.path` of like `ROOT/layers/NAME/foo.txt`.
+* As mentioned in our options configuration section above, Jetpack applies the `base` and `roots` options to the root project `servicePath` for dependency searching and not relatively to layer `path`s.
 
 #### Be careful with `include` configurations and `node_modules`
 

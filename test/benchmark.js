@@ -10,6 +10,7 @@ const path = require("path");
 const globby = require("globby");
 const AdmZip = require("adm-zip");
 
+const { TEST_SCENARIO } = process.env;
 const { MATRIX } = require("./script");
 const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => scenario !== "monorepo");
 
@@ -162,7 +163,12 @@ const SLS_FALSE_POSITIVES = {
 
     // devDependency
     // (`manual_test_websocket/scripts/serverless..yml`)
-    "node_modules/serverless-offline"
+    "node_modules/serverless-offline",
+
+    // Jetpack properly excludes with `roots` (not availabel in Serverless)
+    "nodejs/node_modules/.yarn-integrity",
+    "nodejs/node_modules/.bin/uuid",
+    "nodejs/node_modules/uuid"
   ]),
 
   "complex/npm": new Set([
@@ -170,7 +176,11 @@ const SLS_FALSE_POSITIVES = {
 
     // devDependency
     // (`manual_test_websocket/scripts/serverless..yml`)
-    "node_modules/serverless-offline"
+    "node_modules/serverless-offline",
+
+    // Jetpack properly excludes with `roots` (not availabel in Serverless)
+    "nodejs/node_modules/.bin/uuid",
+    "nodejs/node_modules/uuid"
   ]),
 
   "individually/yarn": new Set([
@@ -305,8 +315,14 @@ const SLS_FALSE_POSITIVES = {
 };
 
 // General version
-// eslint-disable-next-line no-magic-numbers
-const topLevel = (f) => f.split("/").slice(0, 2).join("/");
+const topLevel = (filePath) => {
+  const parts = filePath.split("/");
+  const nodeModulesIdx = parts.indexOf("node_modules");
+
+  // Get `node_modules` directory and entry after.
+  // eslint-disable-next-line no-magic-numbers
+  return parts.slice(0, nodeModulesIdx + 2).join("/");
+};
 
 // Applies to both plugin and baselines
 const keepMatchesAll = (f) => !PKG_IGNORE_ALL.has(topLevel(f));
@@ -321,6 +337,11 @@ const keepBaselineMatch = ({ scenario, mode }) => (f) => {
     ? !matches.has(f.replace(/\.cmd$/, "")) // match unix or windows script
     : !matches.has(topLevel(f));
 };
+
+const describeScenario = (scenario, callback) =>
+  !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(scenario)
+    ? describe(scenario, callback)
+    : describe.skip(scenario, callback);
 
 describe("benchmark", () => {
   let fixtures;
@@ -390,8 +411,7 @@ describe("benchmark", () => {
     });
   });
 
-
-  describe("monorepo", () => {
+  describeScenario("monorepo", () => {
     it("has same npm and yarn package contents", () => {
       let yarnFiles = fixtures["monorepo/yarn/jetpack"]["base.zip"];
       let npmFiles = fixtures["monorepo/npm/jetpack"]["base.zip"];
@@ -406,10 +426,10 @@ describe("benchmark", () => {
         // Duplicated in yarn.
         // eslint-disable-next-line max-len
         "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/": null,
-        "node_modules/.bin/mime": null,
         // Just differences in installation.
         "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-        "functions/base/node_modules/send/node_modules/ms/": "node_modules/debug/node_modules/ms/",
+        "functions/base/node_modules/send/node_modules/ms/":
+          "node_modules/debug/node_modules/ms/",
         // Hoist everything to root (which is what yarn should do).
         "functions/base/node_modules/": "node_modules/",
         "lib/camel/node_modules/": "node_modules/"
@@ -433,6 +453,29 @@ describe("benchmark", () => {
         "node_modules/camelcase/package.json",
         "node_modules/ms/package.json"
       ]);
+      expect(npmFiles).to.eql(yarnFiles);
+    });
+  });
+
+  describeScenario("complex", () => {
+    it("has same npm and yarn layer package contents", () => {
+      let yarnFiles = fixtures["complex/yarn/jetpack"]["with-deps-no-dev.zip"];
+      let npmFiles = fixtures["complex/npm/jetpack"]["with-deps-no-dev.zip"];
+
+      expect(yarnFiles).to.be.ok;
+      expect(npmFiles).to.be.ok;
+
+      yarnFiles = yarnFiles.sort();
+      npmFiles = npmFiles.sort();
+
+      expect(yarnFiles)
+        .to.include.members([
+          "nodejs/package.json",
+          "nodejs/node_modules/figlet/package.json"
+        ]).and
+        .to.not.include.members([
+          "nodejs/node_modules/uuid/package.json"
+        ]);
       expect(npmFiles).to.eql(yarnFiles);
     });
   });
