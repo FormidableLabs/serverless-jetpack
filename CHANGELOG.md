@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.5.0
 
 * Add support for Lambda Layers packaging in Jetpack.
   [#42](https://github.com/FormidableLabs/serverless-jetpack/pull/42)
