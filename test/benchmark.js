@@ -456,4 +456,27 @@ describe("benchmark", () => {
       expect(npmFiles).to.eql(yarnFiles);
     });
   });
+
+  describeScenario("complex", () => {
+    it("has same npm and yarn layer package contents", () => {
+      let yarnFiles = fixtures["complex/yarn/jetpack"]["with-deps-no-dev.zip"];
+      let npmFiles = fixtures["complex/npm/jetpack"]["with-deps-no-dev.zip"];
+
+      expect(yarnFiles).to.be.ok;
+      expect(npmFiles).to.be.ok;
+
+      yarnFiles = yarnFiles.sort();
+      npmFiles = npmFiles.sort();
+
+      expect(yarnFiles)
+        .to.include.members([
+          "nodejs/package.json",
+          "nodejs/node_modules/figlet/package.json"
+        ]).and
+        .to.not.include.members([
+          "nodejs/node_modules/uuid/package.json"
+        ]);
+      expect(npmFiles).to.eql(yarnFiles);
+    });
+  });
 });

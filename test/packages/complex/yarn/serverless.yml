@@ -3,6 +3,10 @@ service: serverless-jetpack-complex
 package:
   individually: ${file(./serverless.js):pkg.individually}
   excludeDevDependencies: ${file(./serverless.js):pkg.excludeDevDependencies}
+  include:
+    - "!**/.DS_Store"
+    - "!**/yarn.lock"
+    - "!**/package-lock.json"
 
 custom:
   region: ${opt:region, env:AWS_REGION}
