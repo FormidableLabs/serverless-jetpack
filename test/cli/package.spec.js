@@ -5,8 +5,8 @@ const { remove, stat } = require("fs-extra");
 const execa = require("execa");
 
 // Constants.
-// We're doing real builds, so these tests are **slow**...
-const TIMEOUT = 10000;
+// We're doing real builds, so these tests are **slow** (particularly on Win).
+const TIMEOUT = 20000;
 
 // Helpers.
 const exists = (filePath) => stat(filePath)
