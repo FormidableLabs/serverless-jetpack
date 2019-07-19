@@ -3,9 +3,13 @@ service: serverless-jetpack-monorepo
 package:
   individually: true
   include:
+    # General
     - "!**/.DS_Store"
     - "!**/yarn.lock"
     - "!**/package-lock.json"
+    # Functions (Use specific function includes)
+    - '!functions'
+    - '!functions/**'
 
 custom:
   region: ${opt:region, env:AWS_REGION}
@@ -36,3 +40,18 @@ functions:
     jetpack:
       roots:
         - functions/base
+    package:
+      include:
+        - 'functions/base/src/**'
+
+  another:
+    handler: functions/another/src/base.handler
+    events: # Use a generic proxy to allow Express app to route.
+      - http: ANY /another
+      - http: 'ANY /another/{proxy+}'
+    jetpack:
+      roots:
+        - functions/another
+    package:
+      include:
+        - 'functions/another/src/**'
