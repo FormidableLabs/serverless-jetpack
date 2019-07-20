@@ -104,7 +104,10 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
     throw new Error("No file matches include / exclude patterns");
   }
 
-  return filtered;
+  return {
+    included: filtered,
+    excluded: files.filter((f) => !filtered.includes(f))
+  };
 };
 
 const createZip = async ({ files, cwd, bundlePath }) => {
@@ -172,9 +175,20 @@ const createZip = async ({ files, cwd, bundlePath }) => {
  * @param {string}    opts.bundleName   output bundle name
  * @param {string[]}  opts.include      glob patterns to include
  * @param {string[]}  opts.exclude      glob patterns to exclude
+ * @param {Boolean}   opts.report       include extra report information?
  * @returns {Promise<Object>} Various information about the bundle
  */
-const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, exclude }) => {
+// eslint-disable-next-line max-statements
+const globAndZip = async ({
+  cwd,
+  servicePath,
+  base,
+  roots,
+  bundleName,
+  include,
+  exclude,
+  report
+}) => {
   const start = new Date();
 
   // Fully resolve paths.
@@ -225,22 +239,40 @@ const globAndZip = async ({ cwd, servicePath, base, roots, bundleName, include, 
     .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
 
   // Glob and filter all files in package.
-  const files = await resolveFilePathsFromPatterns(
+  const { included, excluded } = await resolveFilePathsFromPatterns(
     { cwd, servicePath, depInclude, include, exclude }
   );
 
   // Create package zip.
   await createZip({
-    files,
+    files: included,
     cwd,
     bundlePath
   });
 
-  return {
-    numFiles: files.length,
+  let results = {
+    numFiles: included.length,
     bundlePath,
     buildTime: new Date() - start
   };
+
+  // Report information.
+  if (report) {
+    results = {
+      ...results,
+      patterns: {
+        include,
+        depInclude,
+        exclude
+      },
+      files: {
+        included,
+        excluded
+      }
+    };
+  }
+
+  return results;
 };
 
 module.exports = {
