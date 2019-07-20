@@ -170,11 +170,11 @@ class Jetpack {
 
       ### Files: Included (${files.included.length})
 
-      ${files.included.map((p) => `- ${p}`).join("\n      ")}
+      ${files.included.sort().map((p) => `- ${p}`).join("\n      ")}
 
       ### Files: Excluded (${files.excluded.length})
 
-      ${files.excluded.map((p) => `- ${p}`).join("\n      ")}
+      ${files.excluded.sort().map((p) => `- ${p}`).join("\n      ")}
       `)
       .join("\n");
 
