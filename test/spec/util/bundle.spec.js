@@ -169,7 +169,36 @@ describe("util/bundle#resolveFilePathsFromPatterns", () => {
     ]);
   });
 
-  it("doesn't removes appropriate serverless.EXT config file", async () => {
+  it("should handle broad negative include and include re-adding in", async () => {
+    mock({
+      src: {
+        "index.js": "module.exports = 'index'",
+        "foo.js": "module.exports = 'index'",
+        nested: {
+          "index.js": "module.exports = 'index'",
+          nested: {
+            "index.js": "module.exports = 'index'"
+          }
+        }
+      }
+    });
+
+    expect(await compare({
+      pkgInclude: [
+        "!*/**"
+      ],
+      fnInclude: [
+        "src/index.js",
+        "src/nested/**"
+      ]
+    })).to.eql([
+      "src/index.js",
+      "src/nested/index.js",
+      "src/nested/nested/index.js"
+    ]);
+  });
+
+  it("removes appropriate serverless.EXT config file", async () => {
     mock({
       "serverless.js": "",
       "serverless.yml": "",

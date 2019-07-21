@@ -22,7 +22,7 @@ const exists = (filePath) => stat(filePath)
   });
 
 // Filter list of files like serverless.
-const filterFiles = ({ files, include, exclude }) => {
+const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
   const patterns = []
     // Create a list of patterns with (a) negated excludes, (b) includes.
     .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
@@ -44,6 +44,15 @@ const filterFiles = ({ files, include, exclude }) => {
     });
   });
 
+  // match dep includes, using the includes + negated excludes from above
+  depInclude.forEach((depPattern) => {
+    const includeFile = !depPattern.startsWith("!");
+    const positivePattern = includeFile ? depPattern : depPattern.slice(1);
+    nanomatch(files, positivePattern, { dot: true }).forEach((file) => {
+      filesMap[file] = includeFile;
+    });
+  });
+
   // Convert the state map of `true` into our final list of files.
   return Object.keys(filesMap).filter((f) => filesMap[f]);
 };
@@ -55,7 +64,13 @@ const filterFiles = ({ files, include, exclude }) => {
 //
 // See: `resolveFilePathsFromPatterns` in
 // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
-const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, include, exclude }) => {
+const resolveFilePathsFromPatterns = async ({
+  cwd,
+  servicePath,
+  include = [],
+  exclude,
+  depInclude = []
+}) => {
   // Start globbing like serverless does.
   // 1. Glob everything on disk using only _includes_ (except `node_modules`).
   //    This is loosely, what serverless would do with the difference that
@@ -66,10 +81,10 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
     // Remove all cwd-relative-root node_modules. (Specific `roots` can bring
     // back in, and at least monorepo scenario needs the exclude.)
     .concat(["!node_modules"])
-    // ... hone to the production node_modules
-    .concat(depInclude || [])
     // ... then normal include like serverless does.
-    .concat(include || []);
+    .concat(include || [])
+    // ... hone to the production node_modules
+    .concat(depInclude || []);
 
   const files = await globby(globInclude, {
     cwd,
@@ -99,7 +114,7 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   }
 
   // Filter as Serverless does.
-  const filtered = filterFiles({ files, exclude, include });
+  const filtered = filterFiles({ files, exclude, include, depInclude });
   if (!filtered.length) {
     throw new Error("No file matches include / exclude patterns");
   }
