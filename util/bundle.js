@@ -21,6 +21,15 @@ const exists = (filePath) => stat(filePath)
     throw err;
   });
 
+const matchPatternToFiles = (files, filesMap) => (pattern) => {
+  // Do a positive match, but track "keep" or "remove".
+  const includeFile = !pattern.startsWith("!");
+  const positivePattern = includeFile ? pattern : pattern.slice(1);
+  nanomatch(files, [positivePattern], { dot: true }).forEach((file) => {
+    filesMap[file] = includeFile;
+  });
+};
+
 // Filter list of files like serverless.
 const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
   const patterns = []
@@ -35,23 +44,10 @@ const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
   // Now, iterate all the patterns individually, tracking state like sls.
   // The _last_ "exclude" vs. "include" wins.
   const filesMap = files.reduce((memo, file) => ({ ...memo, [file]: true }), []);
-  patterns.forEach((pattern) => {
-    // Do a positive match, but track "keep" or "remove".
-    const includeFile = !pattern.startsWith("!");
-    const positivePattern = includeFile ? pattern : pattern.slice(1);
-    nanomatch(files, [positivePattern], { dot: true }).forEach((file) => {
-      filesMap[file] = includeFile;
-    });
-  });
+  patterns.forEach(matchPatternToFiles(files, filesMap));
 
-  // match dep includes, using the includes + negated excludes from above
-  depInclude.forEach((depPattern) => {
-    const includeFile = !depPattern.startsWith("!");
-    const positivePattern = includeFile ? depPattern : depPattern.slice(1);
-    nanomatch(files, positivePattern, { dot: true }).forEach((file) => {
-      filesMap[file] = includeFile;
-    });
-  });
+  // match dep includes after sls includes/excludes
+  depInclude.forEach(matchPatternToFiles(files, filesMap));
 
   // Convert the state map of `true` into our final list of files.
   return Object.keys(filesMap).filter((f) => filesMap[f]);
@@ -81,10 +77,10 @@ const resolveFilePathsFromPatterns = async ({
     // Remove all cwd-relative-root node_modules. (Specific `roots` can bring
     // back in, and at least monorepo scenario needs the exclude.)
     .concat(["!node_modules"])
-    // ... then normal include like serverless does.
-    .concat(include || [])
-    // ... hone to the production node_modules
-    .concat(depInclude || []);
+    // ... normal include like serverless does.
+    .concat(include)
+    // ... then add the production node_modules
+    .concat(depInclude);
 
   const files = await globby(globInclude, {
     cwd,
