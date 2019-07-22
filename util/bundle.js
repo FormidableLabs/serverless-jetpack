@@ -21,6 +21,8 @@ const exists = (filePath) => stat(filePath)
     throw err;
   });
 
+const isBinDep = (dep) => dep.indexOf(path.join("node_modules", ".bin")) !== -1;
+
 // Filter list of files like serverless.
 const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
   const patterns = []
@@ -52,7 +54,12 @@ const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
     // use same logic as above for negative includes
     const includeFile = !pattern.startsWith("!");
     const positivePattern = includeFile ? pattern : pattern.slice(1);
-    nanomatch(files, [positivePattern.concat("/**"), ...nodeModulePatterns], { dot: true }).forEach((file) => {
+    const isBin = isBinDep(positivePattern);
+    // if this dependency is in .bin, we don't need to glob
+    const finalPattern = isBin ? positivePattern : positivePattern.concat("/**");
+    // exclude all node_modules excludes from service/fn level, but match dependency files
+    const patternsToMatch = positivePattern ? [finalPattern, ...nodeModulePatterns] : [finalPattern];
+    nanomatch(files, patternsToMatch, { dot: true }).forEach((file) => {
       filesMap[file] = includeFile;
     });
   });
@@ -245,7 +252,7 @@ const globAndZip = async ({
             // Add excludes for node_modules in every discovered pattern dep dir.
             // This allows us to exclude devDependencies because **later** include
             // patterns should have all the production deps already and override.
-            .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
+            .map((dep) => !isBinDep(dep)
               ? [dep, `!${path.join(dep, "node_modules")}`]
               : [dep]
             )
