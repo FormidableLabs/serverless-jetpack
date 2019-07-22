@@ -21,15 +21,6 @@ const exists = (filePath) => stat(filePath)
     throw err;
   });
 
-const matchPatternToFiles = (files, filesMap) => (pattern) => {
-  // Do a positive match, but track "keep" or "remove".
-  const includeFile = !pattern.startsWith("!");
-  const positivePattern = includeFile ? pattern : pattern.slice(1);
-  nanomatch(files, [positivePattern], { dot: true }).forEach((file) => {
-    filesMap[file] = includeFile;
-  });
-};
-
 // Filter list of files like serverless.
 const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
   const patterns = []
@@ -44,10 +35,28 @@ const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
   // Now, iterate all the patterns individually, tracking state like sls.
   // The _last_ "exclude" vs. "include" wins.
   const filesMap = files.reduce((memo, file) => ({ ...memo, [file]: true }), []);
-  patterns.forEach(matchPatternToFiles(files, filesMap));
 
-  // match dep includes after sls includes/excludes
-  depInclude.forEach(matchPatternToFiles(files, filesMap));
+  patterns.forEach((pattern) => {
+    // Do a positive match, but track "keep" or "remove".
+    const includeFile = !pattern.startsWith("!");
+    const positivePattern = includeFile ? pattern : pattern.slice(1);
+    nanomatch(files, [positivePattern], { dot: true }).forEach((file) => {
+      filesMap[file] = includeFile;
+    });
+  });
+
+  // use any node_module includes/excludes when nanomatching
+  const nodeModulePatterns = patterns.filter((p) => (/.*\/?node_modules\/?.*/).test(p));
+  // match dep includes
+  depInclude.forEach((pattern) => {
+    // use same logic as above for negative includes
+    const includeFile = !pattern.startsWith("!");
+    const positivePattern = includeFile ? pattern : pattern.slice(1);
+    nanomatch(files, [positivePattern.concat("/**"), ...nodeModulePatterns], { dot: true }).forEach((file) => {
+      filesMap[file] = includeFile;
+    });
+  });
+
 
   // Convert the state map of `true` into our final list of files.
   return Object.keys(filesMap).filter((f) => filesMap[f]);
