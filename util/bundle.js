@@ -47,15 +47,21 @@ const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
     });
   });
 
-  // use any node_module includes/excludes when nanomatching
+  // use any node_module includes/excludes when matching on deps
   const nodeModulePatterns = patterns.filter((p) => (/.*\/?node_modules\/?.*/).test(p));
-  // match dep includes
+
+  // dep include patterns mostly look like:
+  // node_modules/foo
+  // !node_modules/foo/node_modules
+  // so we will use the same strategy as above for filtering with only positive patterns
+  // and update our state map accordingly
   depInclude.forEach((pattern) => {
-    // use same logic as above for negative includes
     const includeFile = !pattern.startsWith("!");
     const positivePattern = includeFile ? pattern : pattern.slice(1);
     const isBin = isBinDep(positivePattern);
-    // if this dependency is in .bin, we don't need to glob
+    // if this dependency is in .bin, we don't need to glob - otherwise we do
+    // because this will not match the files inside the dependency dir if they've
+    // already been excluded by a broad negative include or exclude, i.e. '!*/**'
     const finalPattern = isBin ? positivePattern : positivePattern.concat("/**");
     // exclude all node_modules excludes from service/fn level, but match dependency files
     const patternsToMatch = positivePattern ? [finalPattern, ...nodeModulePatterns] : [finalPattern];
