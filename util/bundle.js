@@ -20,8 +20,9 @@ const exists = (filePath) => stat(filePath)
     if (err.code === "ENOENT") { return false; }
     throw err;
   });
-
 const isBinDep = (dep) => dep.indexOf(path.join("node_modules", ".bin")) !== -1;
+// Convert the state map of `true` into our final list of files.
+const reduceFilesMap = (filesMap) => Object.keys(filesMap).filter((f) => filesMap[f]);
 
 // Filter list of files like serverless.
 const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
@@ -47,32 +48,39 @@ const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
     });
   });
 
-  // use any node_module includes/excludes when matching on deps
-  const nodeModulePatterns = patterns.filter((p) => (/.*\/?node_modules\/?.*/).test(p));
+  // detect dependencies that live within the file tree rather than at the root
+  // node_modules (for monorepos)
+  const nonRootDeps = depInclude.filter((dep) => (/^(?!!?node_modules).*\/node_modules/).test(dep));
 
-  // dep include patterns mostly look like:
-  // node_modules/foo
-  // !node_modules/foo/node_modules
-  // so we will use the same strategy as above for filtering with only positive patterns
-  // and update our state map accordingly
-  depInclude.forEach((pattern) => {
+  // no non-root deps detected, filesMap is ready
+  if (nonRootDeps.length === 0) {
+    return reduceFilesMap(filesMap);
+  }
+
+  // for non root deps, nanomatch with the directory the node_modules lives in as the root
+  nonRootDeps.forEach((pattern) => {
     const includeFile = !pattern.startsWith("!");
     const positivePattern = includeFile ? pattern : pattern.slice(1);
     const isBin = isBinDep(positivePattern);
+    // match dependencies in nested dirs as if they were located at the root node_modules
+    const rootMatch = includeFile && positivePattern.match(/(.*\/)node_modules\/.+/);
+    const cwd = rootMatch && rootMatch[1];
     // if this dependency is in .bin, we don't need to glob - otherwise we do
     // because this will not match the files inside the dependency dir if they've
     // already been excluded by a broad negative include or exclude, i.e. '!*/**'
-    const finalPattern = isBin ? positivePattern : positivePattern.concat("/**");
+    const finalPattern = isBin ? positivePattern : positivePattern.replace(cwd, "").concat("/**");
     // exclude all node_modules excludes from service/fn level, but match dependency files
-    const patternsToMatch = positivePattern ? [finalPattern, ...nodeModulePatterns] : [finalPattern];
-    nanomatch(files, patternsToMatch, { dot: true }).forEach((file) => {
-      filesMap[file] = includeFile;
+    const patternsToMatch = positivePattern ? [finalPattern, ...patterns] : [finalPattern];
+    nanomatch(
+      files.map((f) => f.replace(cwd, "")),
+      patternsToMatch,
+      { cwd, dot: true },
+    ).forEach((file) => {
+      filesMap[cwd ? cwd.concat(file) : file] = includeFile;
     });
   });
 
-
-  // Convert the state map of `true` into our final list of files.
-  return Object.keys(filesMap).filter((f) => filesMap[f]);
+  return reduceFilesMap(filesMap);
 };
 
 // Analogous file resolver to built-in serverless.
