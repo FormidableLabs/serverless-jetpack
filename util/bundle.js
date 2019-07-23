@@ -23,9 +23,14 @@ const exists = (filePath) => stat(filePath)
 const isBinDep = (dep) => dep.indexOf(path.join("node_modules", ".bin")) !== -1;
 // Convert the state map of `true` into our final list of files.
 const reduceFilesMap = (filesMap) => Object.keys(filesMap).filter((f) => filesMap[f]);
+// match dependency paths that are not at a root
+const matchWithRelativeRoots = (relativeRoots) => (dep) =>
+  new RegExp(`^(?!!?${
+    relativeRoots ? `(${relativeRoots.join("|")})?` : ""
+  }\/?node_modules).*\/node_modules`).test(dep);
 
 // Filter list of files like serverless.
-const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
+const filterFiles = ({ files, include, exclude, depInclude = [], relativeRoots }) => {
   const patterns = []
     // Create a list of patterns with (a) negated excludes, (b) includes.
     .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
@@ -50,7 +55,8 @@ const filterFiles = ({ files, include, exclude, depInclude = [] }) => {
 
   // detect dependencies that live within the file tree rather than at the root
   // node_modules (for monorepos)
-  const nonRootDeps = depInclude.filter((dep) => (/^(?!!?node_modules).*\/node_modules/).test(dep));
+  const nonRootDeps = depInclude
+    .filter(matchWithRelativeRoots(relativeRoots));
 
   // no non-root deps detected, filesMap is ready
   if (nonRootDeps.length === 0) {
@@ -95,7 +101,8 @@ const resolveFilePathsFromPatterns = async ({
   servicePath,
   include = [],
   exclude,
-  depInclude = []
+  depInclude = [],
+  relativeRoots
 }) => {
   // Start globbing like serverless does.
   // 1. Glob everything on disk using only _includes_ (except `node_modules`).
@@ -140,7 +147,7 @@ const resolveFilePathsFromPatterns = async ({
   }
 
   // Filter as Serverless does.
-  const filtered = filterFiles({ files, exclude, include, depInclude });
+  const filtered = filterFiles({ files, exclude, include, depInclude, relativeRoots });
   if (!filtered.length) {
     throw new Error("No file matches include / exclude patterns");
   }
@@ -231,7 +238,8 @@ const globAndZip = async ({
   report
 }) => {
   const start = new Date();
-
+  // build relative roots to successfully resolve layers in monorepos
+  const relativeRoots = roots ? roots.map((root) => root.replace(`${cwd}/`, "")) : null;
   // Fully resolve paths.
   cwd = path.resolve(servicePath, cwd);
   roots = roots ? roots.map((r) => path.resolve(servicePath, r)) : roots;
@@ -281,7 +289,7 @@ const globAndZip = async ({
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(
-    { cwd, servicePath, depInclude, include, exclude }
+    { cwd, servicePath, depInclude, include, exclude, relativeRoots }
   );
 
   // Create package zip.
