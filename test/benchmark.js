@@ -165,6 +165,9 @@ const SLS_FALSE_POSITIVES = {
     // (`manual_test_websocket/scripts/serverless..yml`)
     "node_modules/serverless-offline",
 
+    // $ yarn why uuid -> serverless, raven
+    "node_modules/uuid",
+
     // Jetpack properly excludes with `roots` (not availabel in Serverless)
     "nodejs/node_modules/.yarn-integrity",
     "nodejs/node_modules/.bin/uuid",
