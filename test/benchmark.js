@@ -165,6 +165,8 @@ const SLS_FALSE_POSITIVES = {
     // (`manual_test_websocket/scripts/serverless..yml`)
     "node_modules/serverless-offline",
 
+    // Only fails in `with-deps-root.zip` build with baseline improperly
+    // including.
     // $ yarn why uuid -> serverless, raven
     "node_modules/uuid",
 
@@ -407,8 +409,8 @@ describe("benchmark", () => {
             .filter(keepMatchesAll)
             .filter(keepBaselineMatch({ scenario, mode }));
 
-          expect(missingInBaseline, "extra files in jetpack").to.eql([]);
-          expect(missingInPlugin, "missing files in jetpack").to.eql([]);
+          expect(missingInBaseline, `extra files in jetpack for ${fileName}`).to.eql([]);
+          expect(missingInPlugin, `missing files in jetpack for ${fileName}`).to.eql([]);
         });
       });
     });
