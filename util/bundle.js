@@ -110,6 +110,48 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   };
 };
 
+const createDepInclude = async ({ cwd, rootPath, roots }) => {
+  // Dependency roots.
+  let depRoots = roots;
+  if (!depRoots) {
+    // Special case: Allow `{CWD}/package.json` to not exist. Any `roots` must.
+    const cwdPkgExists = await exists(path.join(cwd, "package.json"));
+    depRoots = cwdPkgExists ? [cwd] : [];
+  }
+
+  return Promise
+    // Find the production install paths
+    .all(depRoots
+      // Sort for proper glob order.
+      .sort()
+      // Do async + individual root stuff.
+      .map((curPath) => findProdInstalls({ rootPath, curPath })
+        .then((deps) => []
+          // Dependency root-level exclude (relative to dep root, not root-path + dep)
+          .concat([`!${path.relative(cwd, path.join(curPath, "node_modules"))}`])
+          // All other includes.
+          .concat(deps
+            // Relativize to root path for inspectdep results, the cwd for glob.
+            .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
+            // Sort for proper glob order.
+            .sort()
+            // Add excludes for node_modules in every discovered pattern dep dir.
+            // This allows us to exclude devDependencies because **later** include
+            // patterns should have all the production deps already and override.
+            .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
+              ? [dep, `!${path.join(dep, "node_modules")}`]
+              : [dep]
+            )
+            // Flatten the temp arrays we just introduced.
+            .reduce((m, a) => m.concat(a), [])
+          )
+        )
+      )
+    )
+    // Flatten to final list.
+    .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
+};
+
 const createZip = async ({ files, cwd, bundlePath }) => {
   // Use Serverless-analogous library + logic to create zipped artifact.
   const zip = archiver.create("zip");
@@ -178,7 +220,6 @@ const createZip = async ({ files, cwd, bundlePath }) => {
  * @param {Boolean}   opts.report       include extra report information?
  * @returns {Promise<Object>} Various information about the bundle
  */
-// eslint-disable-next-line max-statements
 const globAndZip = async ({
   cwd,
   servicePath,
@@ -197,46 +238,8 @@ const globAndZip = async ({
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
-  // Dependency roots.
-  let depRoots = roots;
-  if (!depRoots) {
-    // Special case: Allow `{CWD}/package.json` to not exist. Any `roots` must.
-    const cwdPkgExists = await exists(path.join(cwd, "package.json"));
-    depRoots = cwdPkgExists ? [cwd] : [];
-  }
-
   // Iterate all dependency roots to gather production dependencies.
-  const depInclude = await Promise
-    // Find the production install paths
-    .all(depRoots
-      // Sort for proper glob order.
-      .sort()
-      // Do async + individual root stuff.
-      .map((curPath) => findProdInstalls({ rootPath, curPath })
-        .then((deps) => []
-          // Dependency root-level exclude (relative to dep root, not root-path + dep)
-          .concat([`!${path.relative(cwd, path.join(curPath, "node_modules"))}`])
-          // All other includes.
-          .concat(deps
-            // Relativize to root path for inspectdep results, the cwd for glob.
-            .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
-            // Sort for proper glob order.
-            .sort()
-            // Add excludes for node_modules in every discovered pattern dep dir.
-            // This allows us to exclude devDependencies because **later** include
-            // patterns should have all the production deps already and override.
-            .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
-              ? [dep, `!${path.join(dep, "node_modules")}`]
-              : [dep]
-            )
-            // Flatten the temp arrays we just introduced.
-            .reduce((m, a) => m.concat(a), [])
-          )
-        )
-      )
-    )
-    // Flatten to final list.
-    .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
+  const depInclude = await createDepInclude({ cwd, rootPath, roots });
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(
