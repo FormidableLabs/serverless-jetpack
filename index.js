@@ -156,6 +156,8 @@ class Jetpack {
       .map(({ bundlePath, patterns, files }) => `
       ## ${bundlePath}
 
+      TODO: Reorganize this report by "actual globbing logic".
+
       ### Patterns: Include (Dependencies) (${patterns.depInclude.length})
 
       ${patterns.depInclude.map((p) => `- ${p}`).join("\n      ")}
