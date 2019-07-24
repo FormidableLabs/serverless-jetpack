@@ -8,8 +8,7 @@ package:
     - "!**/yarn.lock"
     - "!**/package-lock.json"
     # Functions (Use specific function includes)
-    - '!functions'
-    - '!functions/**'
+    - '!functions' # TODO: Add '!functions/**' back in ???
 
 custom:
   region: ${opt:region, env:AWS_REGION}
