@@ -459,6 +459,8 @@ describe("benchmark", () => {
         .filter(Boolean)
         .sort();
 
+      // TODO: Add exclusion test for some dev dependencies.
+
       expect(yarnFiles).to.include.members([
         "functions/base/src/base.js",
         "lib/camel/src/camel.js",
