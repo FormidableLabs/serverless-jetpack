@@ -461,6 +461,7 @@ describe("benchmark", () => {
 
       // TODO: Add exclusion test for some dev dependencies.
       // TODO: Verify `diff` is included.
+      // TODO: See if we can exclude `functions/base/node_modules/diff/README.md`
       // TODO: Verify `exclude-me.js` is excluded.
 
       expect(yarnFiles).to.include.members([

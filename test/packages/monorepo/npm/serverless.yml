@@ -7,6 +7,11 @@ package:
     - "!**/.DS_Store"
     - "!**/yarn.lock"
     - "!**/package-lock.json"
+    # Dependencies
+    - "!**/node_modules/{@*/*,*}/CHANGELOG.md"
+    - "!**/node_modules/{@*/*,*}/HISTORY.md"
+    - "!**/node_modules/{@*/*,*}/LICENSE"
+    - "!**/node_modules/{@*/*,*}/README.md"
     # Functions (Use specific function includes)
     # TODO: ORIG/REMOVE
     # - '!functions'
