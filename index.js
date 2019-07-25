@@ -152,33 +152,48 @@ class Jetpack {
 
   _report({ results }) {
     const INDENT = 6;
+    /* eslint-disable max-len*/
     const bundles = results
       .map(({ bundlePath, patterns, files }) => `
-      ## ${bundlePath}
+      ## ${path.basename(bundlePath)}
 
-      TODO: Reorganize this report by "actual globbing logic".
+      - Path: ${bundlePath}
 
-      ### Patterns: Include (Dependencies) (${patterns.depInclude.length})
+      ### Patterns: Include (Deps: \`${patterns.depInclude.length}\`, Config: \`${patterns.include.length}\`)
 
-      ${patterns.depInclude.map((p) => `- ${p}`).join("\n      ")}
+      \`\`\`yml
+      # Automatically added
+      - '**'
+      # Jetpack dependency additions
+      ${patterns.depInclude.map((p) => `- '${p}'`).join("\n      ")}
+      # Serverless \`package.include\` + \`function.{NAME}.include\` + internal extras
+      ${patterns.include.map((p) => `- '${p}'`).join("\n      ")}
+      \`\`\`
 
-      ### Patterns: Include (${patterns.include.length})
+      ### Patterns: Exclude (\`${patterns.exclude.length}\`)
 
-      ${patterns.include.map((p) => `- ${p}`).join("\n      ")}
+      \`\`\`yml
+      # Serverless \`package.exclude\` + \`function.{NAME}.exclude\` + internal extras
+      ${patterns.exclude.map((p) => `- '${p}'`).join("\n      ")}
+      \`\`\`
 
-      ### Patterns: Exclude (${patterns.exclude.length})
+      ### Files: Included (\`${files.included.length}\`)
 
-      ${patterns.exclude.map((p) => `- ${p}`).join("\n      ")}
-
-      ### Files: Included (${files.included.length})
+      These files were read off disk during the \`globby()\` phase and kept
+      during the \`nanomatch()\` phase using only "include" patterns.
 
       ${files.included.sort().map((p) => `- ${p}`).join("\n      ")}
 
-      ### Files: Excluded (${files.excluded.length})
+      ### Files: Excluded (\`${files.excluded.length}\`)
+
+      These files were read off disk during the \`globby()\` phase and removed
+      during the \`nanomatch()\` phase using the "exclude" patterns first and
+      "include" patterns after (to potentially re-add).
 
       ${files.excluded.sort().map((p) => `- ${p}`).join("\n      ")}
       `)
       .join("\n");
+    /* eslint-enable max-len*/
 
     this._log(dedent(`
       # Jetpack Bundle Report

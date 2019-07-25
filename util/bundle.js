@@ -238,6 +238,8 @@ const globAndZip = async ({
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
+  console.log("TODO HERE ROOTS", { roots });
+
   // Iterate all dependency roots to gather production dependencies.
   const depInclude = await createDepInclude({ cwd, rootPath, roots });
 
