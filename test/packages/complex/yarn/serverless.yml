@@ -13,14 +13,10 @@ package:
     - "!node_modules/aws-sdk/**"
     - "!**/node_modules/aws-sdk"
     - "!**/node_modules/aws-sdk/**"
-    - "!**/node_modules/*/CHANGELOG.md"
-    - "!**/node_modules/@*/*/CHANGELOG.md"
-    - "!**/node_modules/*/HISTORY.md"
-    - "!**/node_modules/@*/*/HISTORY.md"
-    - "!**/node_modules/*/LICENSE"
-    - "!**/node_modules/@*/*/LICENSE"
-    - "!**/node_modules/*/README.md"
-    - "!**/node_modules/@*/*/README.md"
+    - "!**/node_modules/{@*/*,*}/CHANGELOG.md"
+    - "!**/node_modules/{@*/*,*}/HISTORY.md"
+    - "!**/node_modules/{@*/*,*}/LICENSE"
+    - "!**/node_modules/{@*/*,*}/README.md"
 
 custom:
   region: ${opt:region, env:AWS_REGION}
