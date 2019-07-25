@@ -154,10 +154,12 @@ class Jetpack {
     const INDENT = 6;
     /* eslint-disable max-len*/
     const bundles = results
-      .map(({ bundlePath, patterns, files }) => `
+      .map(({ bundlePath, roots, patterns, files }) => `
       ## ${path.basename(bundlePath)}
 
       - Path: ${bundlePath}
+      - Roots: ${roots ? "" : "(None)"}
+      ${(roots || []).map((p) => `    - '${p}'`).join("\n      ")}
 
       ### Patterns: Include (Deps: \`${patterns.depInclude.length}\`, Config: \`${patterns.include.length}\`)
 
@@ -179,16 +181,9 @@ class Jetpack {
 
       ### Files: Included (\`${files.included.length}\`)
 
-      These files were read off disk during the \`globby()\` phase and kept
-      during the \`nanomatch()\` phase using only "include" patterns.
-
       ${files.included.sort().map((p) => `- ${p}`).join("\n      ")}
 
       ### Files: Excluded (\`${files.excluded.length}\`)
-
-      These files were read off disk during the \`globby()\` phase and removed
-      during the \`nanomatch()\` phase using the "exclude" patterns first and
-      "include" patterns after (to potentially re-add).
 
       ${files.excluded.sort().map((p) => `- ${p}`).join("\n      ")}
       `)
