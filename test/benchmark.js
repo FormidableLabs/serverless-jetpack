@@ -460,6 +460,8 @@ describe("benchmark", () => {
         .sort();
 
       // TODO: Add exclusion test for some dev dependencies.
+      // TODO: Verify `diff` is included.
+      // TODO: Verify `exclude-me.js` is excluded.
 
       expect(yarnFiles).to.include.members([
         "functions/base/src/base.js",
