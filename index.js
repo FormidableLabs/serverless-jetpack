@@ -167,6 +167,7 @@ class Jetpack {
       # Automatically added
       - '**'
       # Jetpack dependency additions
+      - '!node_modules'
       ${patterns.depInclude.map((p) => `- '${p}'`).join("\n      ")}
       # Serverless \`package.include\` + \`function.{NAME}.include\` + internal extras
       ${patterns.include.map((p) => `- '${p}'`).join("\n      ")}
