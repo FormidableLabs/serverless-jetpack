@@ -56,6 +56,10 @@ const filterFiles = ({ files, include, exclude }) => {
 // See: `resolveFilePathsFromPatterns` in
 // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
 const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, include, exclude }) => {
+  // ==========================================================================
+  // **Phase One** (`globby()`): Read files from disk into a list of files.
+  // ==========================================================================
+  //
   // Start globbing like serverless does.
   // 1. Glob everything on disk using only _includes_ (except `node_modules`).
   //    This is loosely, what serverless would do with the difference that
@@ -63,9 +67,6 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   //    excluded manually by `nanomatch` after. We get the same result here
   //    without reading from disk.
   const globInclude = ["**"]
-    // Remove all cwd-relative-root node_modules. (Specific `roots` can bring
-    // back in, and at least monorepo scenario needs the exclude.)
-    .concat(["!node_modules"])
     // ... hone to the production node_modules
     .concat(depInclude || [])
     // ... then normal include like serverless does.
@@ -79,6 +80,10 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
     nodir: true
   });
 
+  // ==========================================================================
+  // **Phase Two** (`nanomatch()`): Filter list of files.
+  // ==========================================================================
+  //
   // Find and exclude serverless config file. It _should_ be this function:
   // https://github.com/serverless/serverless/blob/79eff80cab58c8494dbb02d65e20d1920f1bfd6e/lib/utils/getServerlessConfigFile.js#L9-L34
   // but we instead just find and remove matched files from the glob results
@@ -119,6 +124,13 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
     depRoots = cwdPkgExists ? [cwd] : [];
   }
 
+  // Starting base of Jetpack patterns.
+  // Remove all cwd-relative-root node_modules. (Specific `roots` can bring
+  // back in, and at least monorepo scenario needs the exclude.)
+  const basePatterns = [
+    "!node_modules"
+  ];
+
   return Promise
     // Find the production install paths
     .all(depRoots
@@ -148,8 +160,8 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
         )
       )
     )
-    // Flatten to final list.
-    .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
+    // Flatten to final list with base default patterns applied.
+    .then((depsList) => depsList.reduce((m, a) => m.concat(a), basePatterns.slice(0)));
 };
 
 const createZip = async ({ files, cwd, bundlePath }) => {
