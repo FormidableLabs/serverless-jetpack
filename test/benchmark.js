@@ -492,5 +492,26 @@ describe("benchmark", () => {
         ]);
       expect(npmFiles).to.eql(yarnFiles);
     });
+
+    it("excludes aws-sdk and other patterns from node modules", () => {
+      // Regex for expected exclusions in node_modules.
+      // These patterns in `serverless.yml` currently happen in `include`
+      // and we want to make sure they still hold true across refactoring.
+      const EXPECT_EXCLUDED = /(aws-sdk|README\.md$|LICENSE$)/;
+
+      [
+        "complex/yarn/jetpack",
+        "complex/yarn/baseline",
+        "complex/npm/jetpack",
+        "complex/npm/baseline"
+      ].forEach((fixture) => {
+        Object.keys(fixtures[fixture]).forEach((zipName) => {
+          const files = fixtures[fixture][zipName];
+          const badPatterns = files.filter((f) => EXPECT_EXCLUDED.test(f));
+
+          expect(badPatterns, `failed to exclude files in ${fixture}/${zipName}`).to.eql([]);
+        });
+      });
+    });
   });
 });
