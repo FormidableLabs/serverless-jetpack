@@ -59,19 +59,19 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   // ==========================================================================
   // **Phase One** (`globby()`): Read files from disk into a list of files.
   // ==========================================================================
-  //
-  // Start globbing like serverless does.
-  // 1. Glob everything on disk using only _includes_ (except `node_modules`).
-  //    This is loosely, what serverless would do with the difference that
-  //    **everything** in `node_modules` is globbed first and then files
-  //    excluded manually by `nanomatch` after. We get the same result here
-  //    without reading from disk.
+
+  // Glob everything on disk using only _includes_ (except `node_modules`).
+  // This is loosely, what serverless would do with the difference that
+  // **everything** in `node_modules` is globbed first and then files
+  // excluded manually by `nanomatch` after. We get the same result here
+  // without reading from disk.
   const globInclude = ["**"]
     // ... hone to the production node_modules
     .concat(depInclude || [])
     // ... then normal include like serverless does.
     .concat(include || []);
 
+  // Read files from disk matching include patterns.
   const files = await globby(globInclude, {
     cwd,
     dot: true,
@@ -83,7 +83,7 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   // ==========================================================================
   // **Phase Two** (`nanomatch()`): Filter list of files.
   // ==========================================================================
-  //
+
   // Find and exclude serverless config file. It _should_ be this function:
   // https://github.com/serverless/serverless/blob/79eff80cab58c8494dbb02d65e20d1920f1bfd6e/lib/utils/getServerlessConfigFile.js#L9-L34
   // but we instead just find and remove matched files from the glob results
@@ -103,7 +103,7 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
     exclude.push(cfgToRemove);
   }
 
-  // Filter as Serverless does.
+  // Filter list of files like Serverless does.
   const filtered = filterFiles({ files, exclude, include });
   if (!filtered.length) {
     throw new Error("No file matches include / exclude patterns");
