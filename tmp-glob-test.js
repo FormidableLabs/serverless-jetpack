@@ -21,14 +21,24 @@ const patterns = [
   "functions/base/node_modules/diff",
   "!functions/base/node_modules/diff/node_modules",
 
-  // User configured
-  "!functions", // <=== THE PROBLEM
-  "!functions/**", // <=== THE PROBLEM
+  "!**/.DS_Store",
+  "!**/yarn.lock",
+  "!**/package-lock.json",
+  "!**/node_modules/{@*/*,*}/CHANGELOG.md",
+  "!**/node_modules/{@*/*,*}/HISTORY.md",
+  "!**/node_modules/{@*/*,*}/LICENSE",
+  "!**/node_modules/{@*/*,*}/README.md",
+  // WEIRD: Removes `functions/base/node_modules/diff/` **only** if
+  // `process.cwd() === cwd` in actual practice!!!
+  "!functions",
+  // PROBABLY REMOVE: Removes `functions/base/node_modules/diff/` categorically
+  // "!functions/**",
   "functions/base/src/**",
   "!functions/**/exclude-me.js"
 ];
 
 const files = [
+  "functions/base/package.json",
   "functions/base/src/base.js",
   "functions/base/src/exclude-me.js",
   "functions/base/node_modules/diff/lib/index.js",
