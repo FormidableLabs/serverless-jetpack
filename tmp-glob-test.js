@@ -15,12 +15,13 @@ const nanomatch = require("nanomatch");
 
 const cwd = path.resolve(__dirname, "test/packages/monorepo/yarn");
 
-const patterns = [
+let patterns = [
   // Jetpack included
   "!functions/base/node_modules",
   "functions/base/node_modules/diff",
   "!functions/base/node_modules/diff/node_modules",
 
+  // Normal sls include
   "!**/.DS_Store",
   "!**/yarn.lock",
   "!**/package-lock.json",
@@ -33,6 +34,30 @@ const patterns = [
   "!functions",
   // PROBABLY REMOVE: Removes `functions/base/node_modules/diff/` categorically
   // "!functions/**",
+  "functions/base/src/**",
+  "!functions/**/exclude-me.js"
+];
+
+// Preinclude simulation
+patterns = [
+  // PREINCLUDE
+  "!functions",
+  "!functions/**",
+
+  // Jetpack included
+  "!functions/base/node_modules",
+  "functions/base/node_modules/diff",
+  "!functions/base/node_modules/diff/node_modules",
+
+  // Normal sls include
+  "!**/.DS_Store",
+  "!**/yarn.lock",
+  "!**/package-lock.json",
+  "!**/node_modules/{@*/*,*}/CHANGELOG.md",
+  "!**/node_modules/{@*/*,*}/HISTORY.md",
+  "!**/node_modules/{@*/*,*}/LICENSE",
+  "!**/node_modules/{@*/*,*}/README.md",
+
   "functions/base/src/**",
   "!functions/**/exclude-me.js"
 ];

@@ -1,6 +1,10 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Add `jetpack package --report` option for patterns and files report.
+
 ## 0.5.0
 
 * Add support for Lambda Layers packaging in Jetpack.
