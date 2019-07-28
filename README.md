@@ -68,7 +68,7 @@ functions:
       # service-level exclude/include fields.
       include:
         - "src/**"
-        - "!**/node_modules/aws-sdk" # Faster way to exclude
+        - "!**/node_modules/aws-sdk/**" # Faster way to exclude
         - "package.json"
 ```
 
@@ -86,12 +86,14 @@ Most Serverless framework projects should be able to use Jetpack without any ext
     * This typically occurs in a monorepo project, wherein dependencies may be located in e.g. `packages/{NAME}/node_modules` and/or hoisted to the `node_modules` at the project base. It is important to specify these additional dependency roots so that Jetpack can (1) find and include the right dependencies and (2) hone down these directories to just production dependencies when packaging. Otherwise, you risk having a slow `serverless package` execution and/or end up with additional/missing dependencies in your final application zip bundle.
     * You only need to declare roots of things that _aren't_ naturally inferred in a dependency traversal. E.g., if starting at `packages/{NAME}/package.json` causes a traversal down to `node_modules/something` then symlinked up to `lib/something-else/node_modules/even-more` these additional paths don't need to be separately declared because they're just part of the dependency traversal.
     * **Layers**: Similar to `base`, both the project/service- and layer-level `roots` declarations will be relative to the project `servicePath` directory and _not_ the `layers.NAME.path` directory.
+* `preInclude` (`Array<string>`): A list of glob patterns to be added _before_ Jetpack's dependency pattern inclusion and Serverless' built-in service-level and then function-level `package.include`s. This option most typically comes up in a monorepo scenario where you want a broad base exclusion like `!functions/**` or `!packages/**` at the service level and then inclusions in later functions.
 * `concurrency` (`Number`): The number of independent package tasks (per function and service) to run off the main execution thread. If `1`, then run tasks serially in main thread. If `2+` run off main thread with `concurrency` number of workers. (default: `1`).
     * This option is most useful for Serverless projects that (1) have many individually packaged functions, and (2) large numbers of files and dependencies. E.g., start considering this option if your per-function packaging time takes more than 10 seconds and you have more than one service and/or function package.
 
 The following **function** and **layer**-level configurations available via `functions.{FN_NAME}.jetpack` and  `layers.{LAYER_NAME}.jetpack`:
 
 * `roots` (`Array<string>`): This option **adds** more dependency roots to the service-level `roots` option.
+* `preInclude` (`Array<string>`): This option **adds** more glob patterns to the service-level `preInclude` option.
 
 Here are some example configurations:
 
@@ -264,11 +266,12 @@ Thus, the **best practice** here when crafting service or function `include` con
 ```yml
 # Good. Remove dependency provided by lambda from zip
 exclude:
-  - "**/node_modules/aws-sdk"
+  - "**/node_modules/aws-sdk/**"
 
 # Better! Never even read the files from disk during globbing in the first place!
 include:
   - "!**/node_modules/aws-sdk"
+  - "!**/node_modules/aws-sdk/**"
 ```
 
 ## Benchmarks

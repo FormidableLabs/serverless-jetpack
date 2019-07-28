@@ -3,6 +3,7 @@ Changes
 
 ## UNRELEASED
 
+* Add custom option `preInclude` for better monorepo/workspaces support.
 * Add `jetpack package --report` option for patterns and files report.
 
 ## 0.5.0
