@@ -16,6 +16,9 @@ const nanomatch = require("nanomatch");
 const cwd = path.resolve(__dirname, "test/packages/monorepo/yarn");
 
 let patterns = [
+  // Built-in starting point.
+  "**",
+
   // Jetpack included
   "!functions/base/node_modules",
   "functions/base/node_modules/diff",
@@ -40,6 +43,9 @@ let patterns = [
 
 // Preinclude simulation
 patterns = [
+  // Built-in starting point.
+  "**",
+
   // PREINCLUDE
   "!functions",
   "!functions/**",
@@ -111,6 +117,7 @@ const main = async () => {
   const matchedFiles = await fileMatch();
   return {
     fileMatch: matchedFiles,
+    // This one simulates output of sls with jetpack.
     patternMatchLimited: await patternMatch(matchedFiles.included),
     patternMatch: await patternMatch()
   };
