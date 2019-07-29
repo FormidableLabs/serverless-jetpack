@@ -285,6 +285,23 @@ Let's start with how `include|exclude` work for both Serverless built-in packagi
     - `**/node_modules/aws-sdk`: No effect, because directory-only application.
     - `**/node_modules/aws-sdk/**`: During `nanomatch()` this will exclude.
 
+We can look at this from a different perspective -- how Serverless and Jetpack apply patterns in both disk read and filtering operations:
+
+1. **Disk read phase** with `globby()`. Assemble patterns in order from below and then return a list of files matching the total patterns.
+
+    1. Start at `**` (everything).
+    2. (_Jetpack only_) Add in service and function-level `jetpack.preInclude` patterns.
+    3. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
+    4. Add in service and function-level `package.include` patterns.
+
+2. **File filtering phase** with `nanomatch()`. Once we have a list of files read from disk, we apply patterns in order as follows to decide whether to include them (last postitive match wins).
+
+    1. Start with service and function-level `package.exclude` patterns.
+    2. (_Serverless only_) Add in dynamic patterns to `exclude` development `node_modules`
+    3. (_Jetpack only_) Add in service and function-level `jetpack.preInclude` patterns.
+    4. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
+    5. Add in service and function-level `package.include` patterns.
+
 So, in either case if you were to add something like:
 
 ```yml
