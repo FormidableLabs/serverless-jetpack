@@ -144,6 +144,41 @@ functions:
     # ...
 ```
 
+**With custom pre-includes**
+
+```yml
+# 1. `preInclude` comes first after internal `**` pattern.
+custom:
+  jetpack:
+    preInclude:
+      - "!**" # Start with absolutely nothing (typical in monorepo scenario)
+
+# 2. Jetpack then dynamically adds in production dependency glob patterns.
+
+# 3. Then, we apply the normal serverless `include`s.
+package:
+  indvidually: true
+  include:
+    - "!**/node_modules/aws-sdk"
+    - "!**/node_modules/aws-sdk/**"
+
+plugins:
+  - serverless-jetpack
+
+functions:
+  base:
+    # ...
+  another:
+    jetpack:
+      roots:
+        - "packages/another"
+      preInclude:
+        # Tip: Could then have a service-level `include` negate subfiles.
+        - "packages/another/dist/**"
+    include:
+      - "packages/another/src/**"
+```
+
 **Layers**
 
 ```yml
