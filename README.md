@@ -159,7 +159,6 @@ custom:
 package:
   individually: true
   include:
-    - "!**/node_modules/aws-sdk"
     - "!**/node_modules/aws-sdk/**"
 
 plugins:
@@ -277,16 +276,6 @@ Jetpack supports `layer` packaging as close to `serverless` as it can. However, 
 
 Let's start with how `include|exclude` work for both Serverless built-in packaging and Jetpack:
 
-- `include`: Used in `globby()` disk reads files into a list and `nanomatch()` pattern matching to decide what to keep.
-    - `!**/node_modules/aws-sdk`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will **never** even be read from disk. This is faster. During later `nanomatch()` this has no effect, because it won't match an actual file.
-    - `!**/node_modules/aws-sdk/**`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will read from disk, but then individual files excluded from the list. This is slower. During later `nanomatch()` this will potentially re-exclude.
-
-- `exclude`: Only used in `nanomatch()` pattern matching to decide which files in a list to keep.
-    - `**/node_modules/aws-sdk`: No effect, because directory-only application.
-    - `**/node_modules/aws-sdk/**`: During `nanomatch()` this will exclude.
-
-We can look at this from a different perspective -- how Serverless and Jetpack apply patterns in both disk read and filtering operations:
-
 1. **Disk read phase** with `globby()`. Assemble patterns in order from below and then return a list of files matching the total patterns.
 
     1. Start at `**` (everything).
@@ -302,7 +291,9 @@ We can look at this from a different perspective -- how Serverless and Jetpack a
     4. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
     5. Add in service and function-level `package.include` patterns.
 
-So, in either case if you were to add something like:
+The practical takeaway here is the it is typically faster to prefer `include` exclusions like `!foo/**` than to use `exclude` patterns like `foo/**` because the former avoids a lot of unneeded disk I/O.
+
+Let's consider a pattern like this:
 
 ```yml
 include:
@@ -322,7 +313,6 @@ exclude:
 
 # Better! Never even read the files from disk during globbing in the first place!
 include:
-  - "!**/node_modules/aws-sdk"
   - "!**/node_modules/aws-sdk/**"
 ```
 
