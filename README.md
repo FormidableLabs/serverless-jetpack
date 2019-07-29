@@ -157,7 +157,7 @@ custom:
 
 # 3. Then, we apply the normal serverless `include`s.
 package:
-  indvidually: true
+  individually: true
   include:
     - "!**/node_modules/aws-sdk"
     - "!**/node_modules/aws-sdk/**"
