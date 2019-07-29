@@ -8,7 +8,7 @@ Serverless Jetpack 🚀
 A faster JavaScript packager for [Serverless][] applications.
 
 - ⚡ Drop-in replacement for `serverless package|deploy`
-- 📦 Lambda Functions packaging
+- 💻 Lambda Functions packaging
 - 🍰 Lambda Layers packaging
 - 🐉 Monorepo (`lerna`, `yarn workspace`) support
 - 📦 Per-function packaging
