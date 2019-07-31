@@ -53,5 +53,5 @@ functions:
         - "!**/node_modules/.yarn-integrity"
         - "!**/node_modules/.cache/**"
         # Re-exclude
-        - "!node_modules/**/LICENSE"
+        - "!**/node_modules/**/LICENSE"
         - "package.json"

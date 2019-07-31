@@ -6,6 +6,7 @@ Changes
 * README: Fix incorrect language about `foo` vs `foo/**`. See [`fast-glob` notes](https://github.com/mrmlnc/fast-glob#how-to-exclude-directory-from-reading).
 * Add custom option `preInclude` for better monorepo/workspaces support.
 * Add `jetpack package --report` option for patterns and files report.
+* Refactor internal pattern matching in `nanomatch()` phase.
 
 ## 0.5.0
 

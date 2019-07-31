@@ -9,7 +9,6 @@ package:
     - "!**/yarn.lock"
     - "!**/package-lock.json"
     # Dependencies
-    - "!node_modules/aws-sdk/**"
     - "!**/node_modules/aws-sdk/**"
     - "!**/node_modules/{@*/*,*}/CHANGELOG.md"
     - "!**/node_modules/{@*/*,*}/HISTORY.md"

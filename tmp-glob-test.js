@@ -47,16 +47,11 @@ patterns = [
   "**",
 
   // PREINCLUDE
-  "!functions",
   "!functions/**",
 
   // Jetpack included
-  "!functions/base/node_modules",
-  "functions/base/node_modules/diff",
-  "!functions/base/node_modules/diff/node_modules",
-
-  // TEMP TODO REMOVE
-  "!functions/base/node_modules/diff{,/**}",
+  "!functions/base/node_modules/**",
+  "!functions/base/node_modules/diff/node_modules/**",
 
   // Normal sls include
   "!**/.DS_Store",
