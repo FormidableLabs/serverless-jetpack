@@ -22,10 +22,14 @@ const exists = (filePath) => stat(filePath)
   });
 
 // Filter list of files like serverless.
-const filterFiles = ({ files, include, exclude }) => {
+const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
   const patterns = []
-    // Create a list of patterns with (a) negated excludes, (b) includes.
+    // Jetpack: Start with our custom config + dynamic includes
+    .concat(preInclude || [])
+    .concat(depInclude || [])
+    // Serverless: insert built-in excludes
     .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
+    // Serverless: and finish with built-in includes
     .concat(include || [])
     // Follow sls here: globby returns forward slash only, so mutate patterns
     // always be forward.
@@ -55,7 +59,14 @@ const filterFiles = ({ files, include, exclude }) => {
 //
 // See: `resolveFilePathsFromPatterns` in
 // https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/packageService.js#L212-L254
-const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, include, exclude }) => {
+const resolveFilePathsFromPatterns = async ({
+  cwd,
+  servicePath,
+  preInclude,
+  depInclude,
+  include,
+  exclude
+}) => {
   // ==========================================================================
   // **Phase One** (`globby()`): Read files from disk into a list of files.
   // ==========================================================================
@@ -66,6 +77,8 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   // excluded manually by `nanomatch` after. We get the same result here
   // without reading from disk.
   const globInclude = ["**"]
+    // Start with Jetpack custom preInclude
+    .concat(preInclude || [])
     // ... hone to the production node_modules
     .concat(depInclude || [])
     // ... then normal include like serverless does.
@@ -104,7 +117,7 @@ const resolveFilePathsFromPatterns = async ({ cwd, servicePath, depInclude, incl
   }
 
   // Filter list of files like Serverless does.
-  const filtered = filterFiles({ files, exclude, include });
+  const filtered = filterFiles({ files, preInclude, depInclude, include, exclude });
   if (!filtered.length) {
     throw new Error("No file matches include / exclude patterns");
   }
@@ -128,7 +141,7 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
   // Remove all cwd-relative-root node_modules. (Specific `roots` can bring
   // back in, and at least monorepo scenario needs the exclude.)
   const basePatterns = [
-    "!node_modules"
+    "!node_modules/**"
   ];
 
   return Promise
@@ -140,7 +153,7 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
       .map((curPath) => findProdInstalls({ rootPath, curPath })
         .then((deps) => []
           // Dependency root-level exclude (relative to dep root, not root-path + dep)
-          .concat([`!${path.relative(cwd, path.join(curPath, "node_modules"))}`])
+          .concat([`!${path.relative(cwd, path.join(curPath, "node_modules", "**"))}`])
           // All other includes.
           .concat(deps
             // Relativize to root path for inspectdep results, the cwd for glob.
@@ -229,6 +242,7 @@ const createZip = async ({ files, cwd, bundlePath }) => {
  * @param {string}    opts.base         optional base directory (relative to `servicePath`)
  * @param {string[]}  opts.roots        optional dependency roots (relative to `servicePath`)
  * @param {string}    opts.bundleName   output bundle name
+ * @param {string[]}  opts.preInclude   glob patterns to include first
  * @param {string[]}  opts.include      glob patterns to include
  * @param {string[]}  opts.exclude      glob patterns to exclude
  * @param {Boolean}   opts.report       include extra report information?
@@ -240,6 +254,7 @@ const globAndZip = async ({
   base,
   roots,
   bundleName,
+  preInclude,
   include,
   exclude,
   report
@@ -257,7 +272,7 @@ const globAndZip = async ({
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(
-    { cwd, servicePath, depInclude, include, exclude }
+    { cwd, servicePath, preInclude, depInclude, include, exclude }
   );
 
   // Create package zip.
@@ -279,6 +294,7 @@ const globAndZip = async ({
       ...results,
       roots,
       patterns: {
+        preInclude,
         include,
         depInclude,
         exclude

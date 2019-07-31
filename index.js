@@ -166,29 +166,31 @@ class Jetpack {
       - Roots: ${roots ? "" : "(None)"}
       ${(roots || []).map((p) => `    - '${p}'`).join("\n      ")}
 
-      ### Patterns: Include (Deps: \`${patterns.depInclude.length}\`, Config: \`${patterns.include.length}\`)
+      ### Patterns: Include
 
       \`\`\`yml
       # Automatically added
       - '**'
-      # Jetpack dependency additions
+      # Jetpack (\`${patterns.preInclude.length}\`): \`custom.jetpack.preInclude\` + \`function.{NAME}.jetpack.preInclude\`
+      ${patterns.preInclude.map((p) => `- '${p}'`).join("\n      ")}
+      # Jetpack (\`${patterns.depInclude.length}\`): dynamic dependency additions
       ${patterns.depInclude.map((p) => `- '${p}'`).join("\n      ")}
-      # Serverless \`package.include\` + \`function.{NAME}.include\` + internal extras
+      # Serverless (\`${patterns.include.length}\`): \`package.include\` + \`function.{NAME}.package.include\` + internal extras
       ${patterns.include.map((p) => `- '${p}'`).join("\n      ")}
       \`\`\`
 
-      ### Patterns: Exclude (\`${patterns.exclude.length}\`)
+      ### Patterns: Exclude
 
       \`\`\`yml
-      # Serverless \`package.exclude\` + \`function.{NAME}.exclude\` + internal extras
+      # Serverless (\`${patterns.exclude.length}\`): \`package.exclude\` + \`function.{NAME}.exclude\` + internal extras
       ${patterns.exclude.map((p) => `- '${p}'`).join("\n      ")}
       \`\`\`
 
-      ### Files: Included (\`${files.included.length}\`)
+      ### Files (\`${files.included.length}\`): Included
 
       ${files.included.sort().map((p) => `- ${p}`).join("\n      ")}
 
-      ### Files: Excluded (\`${files.excluded.length}\`)
+      ### Files (\`${files.excluded.length}\`): Excluded
 
       ${files.excluded.sort().map((p) => `- ${p}`).join("\n      ")}
       `)
@@ -282,12 +284,12 @@ class Jetpack {
     const layerPath = (layerObject || {}).path;
     const cwd = layerPath ? path.relative(servicePath, layerPath) : servicePath;
 
-    const { base, roots } = this._extraOptions({ functionObject, layerObject });
+    const { base, roots, preInclude } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
 
     const buildFn = worker ? worker.globAndZip : globAndZip;
     const results = await buildFn(
-      { cwd, servicePath, base, roots, bundleName, include, exclude, report }
+      { cwd, servicePath, base, roots, bundleName, preInclude, include, exclude, report }
     );
 
     const { numFiles, bundlePath } = results;

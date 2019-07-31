@@ -252,7 +252,7 @@ This is potentially slow if `node_modules` contains a lot of ultimately removed 
 Jetpack, by contrast does the following:
 
 1. Efficiently infer production dependencies from disk without globbing, and without reading any `devDependencies`.
-2. Glob files from disk with a root `**` (all files), `!node_modules` (exclude all by default), `node_modules/PROD_DEP_01, node_modules/PROD_DEP_02, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
+2. Glob files from disk with a root `**` (all files), `!node_modules/**` (exclude all by default), `node_modules/PROD_DEP_01/**, node_modules/PROD_DEP_02/**, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
 3. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
 This ends up being way faster in most cases, and particularly when you have very large `devDependencies`. It is worth pointing out the minor implication that:
@@ -285,10 +285,10 @@ Let's start with how `include|exclude` work for both Serverless built-in packagi
 
 2. **File filtering phase** with `nanomatch()`. Once we have a list of files read from disk, we apply patterns in order as follows to decide whether to include them (last postitive match wins).
 
-    1. Start with service and function-level `package.exclude` patterns.
-    2. (_Serverless only_) Add in dynamic patterns to `exclude` development `node_modules`
-    3. (_Jetpack only_) Add in service and function-level `jetpack.preInclude` patterns.
-    4. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
+    1. (_Jetpack only_) Add in service and function-level `jetpack.preInclude` patterns.
+    2. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
+    3. Add in service and function-level `package.exclude` patterns.
+    4. (_Serverless only_) Add in dynamic patterns to `exclude` development `node_modules`
     5. Add in service and function-level `package.include` patterns.
 
 The practical takeaway here is the it is typically faster to prefer `include` exclusions like `!foo/**` than to use `exclude` patterns like `foo/**` because the former avoids a lot of unneeded disk I/O.
