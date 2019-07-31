@@ -147,12 +147,14 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
             .map((dep) => path.relative(cwd, path.join(rootPath, dep)))
             // Sort for proper glob order.
             .sort()
-            // Add excludes for node_modules in every discovered pattern dep dir.
-            // This allows us to exclude devDependencies because **later** include
-            // patterns should have all the production deps already and override.
+            // 1. Convert to `PATH/**` glob.
+            // 2. Add excludes for node_modules in every discovered pattern dep
+            //    dir. This allows us to exclude devDependencies because
+            //    **later** include patterns should have all the production deps
+            //    already and override.
             .map((dep) => dep.indexOf(path.join("node_modules", ".bin")) === -1
-              ? [dep, `!${path.join(dep, "node_modules")}`]
-              : [dep]
+              ? [path.join(dep, "**"), `!${path.join(dep, "node_modules", "**")}`]
+              : [dep] // **don't** glob bin path (`ENOTDIR: not a directory`)
             )
             // Flatten the temp arrays we just introduced.
             .reduce((m, a) => m.concat(a), [])

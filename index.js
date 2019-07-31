@@ -109,6 +109,7 @@ class Jetpack {
     const defaults = {
       base: ".",
       roots: null,
+      preInclude: [],
       concurrency: 1
     };
 
@@ -126,13 +127,17 @@ class Jetpack {
     }
 
     const opts = Object.assign({}, this._serviceOptions);
-    const fnRoots = ((functionObject || {}).jetpack || {}).roots;
-    const layerRoots = ((layerObject || {}).jetpack || {}).roots;
-    if (fnRoots || layerRoots) {
+
+    const fnOpts = (functionObject || {}).jetpack || {};
+    const layerOpts = (layerObject || {}).jetpack || {};
+
+    if (fnOpts.roots || layerOpts.roots) {
       opts.roots = (opts.roots || [])
-        .concat(fnRoots || [])
-        .concat(layerRoots || []);
+        .concat(fnOpts.roots || [])
+        .concat(layerOpts.roots || []);
     }
+
+    opts.preInclude = opts.preInclude.concat(fnOpts.preInclude || []);
 
     return opts;
   }
