@@ -417,9 +417,7 @@ describe("benchmark", () => {
   });
 
   describeScenario("monorepo", () => {
-    // TODO: FIX -- `functions/base/node_modules` is completely excluded by `!function`
-    // regex.
-    it.skip("has same npm and yarn package contents for base.zip", () => {
+    it("has same npm and yarn package contents for base.zip", () => {
       let yarnFiles = fixtures["monorepo/yarn/jetpack"]["base.zip"];
       let npmFiles = fixtures["monorepo/npm/jetpack"]["base.zip"];
 
@@ -434,10 +432,11 @@ describe("benchmark", () => {
       const NESTED_DIFF = "functions/base/node_modules/diff/";
 
       const NPM_NORMS = {
-        // Duplicated in yarn.
-        // eslint-disable-next-line max-len
-        "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/": null,
         // Just differences in installation.
+        "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/":
+          "node_modules/camelcase/",
+        "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
+          "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
         "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
         "functions/base/node_modules/send/node_modules/ms/":
           "node_modules/debug/node_modules/ms/",
@@ -459,21 +458,31 @@ describe("benchmark", () => {
         .filter(Boolean)
         .sort();
 
-      // TODO: Add exclusion test for some dev dependencies.
-      // TODO: Verify `diff` is included.
-      // TODO: See if we can exclude `functions/base/node_modules/diff/README.md`
-      // TODO: Verify `exclude-me.js` is excluded.
-
-      expect(yarnFiles).to.include.members([
+      [
         "functions/base/src/base.js",
-        "lib/camel/src/camel.js",
+        "functions/base/node_modules/diff/package.json",
+        "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
         "node_modules/camelcase/package.json",
         "node_modules/ms/package.json"
-      ]);
+      ].forEach((f) => {
+        expect(yarnFiles).to.include(f);
+      });
+
+      [
+        "functions/base/src/exclude-me.js",
+        "functions/base/node_modules/diff/README.md",
+        "functions/base/node_modules/uuid/package.json",
+        "node_modules/uuid/package.json"
+      ].forEach((f) => {
+        expect(yarnFiles).to.not.include(f);
+      });
+
       expect(npmFiles).to.eql(yarnFiles);
     });
 
-    it("has same npm and yarn package contents for another.zip"); // TODO: IMPLEMENT
+    // TODO_HERE
+    // TODO: IMPLEMENT
+    it("has same npm and yarn package contents for another.zip");
   });
 
   describeScenario("complex", () => {

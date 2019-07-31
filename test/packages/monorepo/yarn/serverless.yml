@@ -1,5 +1,12 @@
 service: serverless-jetpack-monorepo
 
+custom:
+  region: ${opt:region, env:AWS_REGION}
+  stage: ${opt:stage, env:STAGE}
+  jetpack:
+    preInclude:
+      - "!**" # Start with no directories.
+
 package:
   individually: true
   include:
@@ -12,16 +19,6 @@ package:
     - "!**/node_modules/{@*/*,*}/HISTORY.md"
     - "!**/node_modules/{@*/*,*}/LICENSE"
     - "!**/node_modules/{@*/*,*}/README.md"
-    # Functions (Use specific function includes)
-    # TODO: ORIG/REMOVE
-    # - '!functions'
-    # - '!functions/**'
-    # TODO: EXPERIMENT
-    - '!functions'
-
-custom:
-  region: ${opt:region, env:AWS_REGION}
-  stage: ${opt:stage, env:STAGE}
 
 plugins:
   localPath: ../../../plugins
@@ -50,8 +47,8 @@ functions:
         - functions/base
     package:
       include:
-        - 'functions/base/src/**'
-        - '!functions/**/exclude-me.js'
+        - "functions/base/src/**"
+        - "!functions/**/exclude-me.js"
 
   another:
     handler: functions/another/src/base.handler
@@ -63,5 +60,5 @@ functions:
         - functions/another
     package:
       include:
-        - 'functions/another/src/**'
-        - '!functions/**/exclude-me.js'
+        - "functions/another/src/**"
+        - "!functions/**/exclude-me.js"

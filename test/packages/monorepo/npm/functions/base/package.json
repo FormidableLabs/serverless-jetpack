@@ -10,5 +10,8 @@
     "express": "^4.16.4",
     "serverless-http": "^1.9.0",
     "serverless-jetpack-monorepo-lib-camel": "^0.0.1"
+  },
+  "devDependencies": {
+    "uuid": "^3.3.2"
   }
 }
