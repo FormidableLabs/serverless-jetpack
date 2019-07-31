@@ -471,6 +471,8 @@ describe("benchmark", () => {
       [
         "functions/base/src/exclude-me.js",
         "functions/base/node_modules/diff/README.md",
+        "node_modules/diff/package.json",
+        "node_modules/diff/README.md",
         "functions/base/node_modules/uuid/package.json",
         "node_modules/uuid/package.json"
       ].forEach((f) => {
@@ -480,9 +482,66 @@ describe("benchmark", () => {
       expect(npmFiles).to.eql(yarnFiles);
     });
 
-    // TODO_HERE
-    // TODO: IMPLEMENT
-    it("has same npm and yarn package contents for another.zip");
+    it("has same npm and yarn package contents for another.zip", () => {
+      let yarnFiles = fixtures["monorepo/yarn/jetpack"]["another.zip"];
+      let npmFiles = fixtures["monorepo/npm/jetpack"]["another.zip"];
+
+      expect(yarnFiles).to.be.ok;
+      expect(npmFiles).to.be.ok;
+
+      // Now, normalize file lists before comparing.
+      yarnFiles = yarnFiles.sort();
+
+      const NPM_NORMS = {
+        // Just differences in installation.
+        // eslint-disable-next-line max-len
+        "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/":
+          "node_modules/camelcase/",
+        "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
+          "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
+        "functions/another/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
+        "functions/another/node_modules/send/node_modules/ms/":
+          "node_modules/debug/node_modules/ms/",
+        // Hoist everything to root (which is what yarn should do) includeing `diff`.
+        "functions/another/node_modules/": "node_modules/",
+        "lib/camel/node_modules/": "node_modules/"
+      };
+      npmFiles = npmFiles
+        .map((dep) => {
+          for (const norm of Object.keys(NPM_NORMS)) {
+            if (dep.startsWith(norm)) {
+              return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
+            }
+          }
+
+          return dep;
+        })
+        .filter(Boolean)
+        .sort();
+
+      [
+        "functions/another/src/base.js",
+        "node_modules/diff/package.json",
+        "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
+        "node_modules/camelcase/package.json",
+        "node_modules/ms/package.json"
+      ].forEach((f) => {
+        expect(yarnFiles).to.include(f);
+      });
+
+      [
+        "functions/another/src/exclude-me.js",
+        "functions/another/node_modules/diff/package.json",
+        "functions/another/node_modules/diff/README.md",
+        "node_modules/diff/README.md",
+        "functions/base/node_modules/uuid/package.json",
+        "node_modules/uuid/package.json"
+      ].forEach((f) => {
+        expect(yarnFiles).to.not.include(f);
+      });
+
+      expect(npmFiles).to.eql(yarnFiles);
+    });
   });
 
   describeScenario("complex", () => {
