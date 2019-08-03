@@ -36,6 +36,9 @@ test/packages/
 ├── individually
 │   ├── npm
 │   └── yarn
+├── monorepo
+│   ├── npm
+│   └── yarn
 ├── simple
 │   ├── npm
 │   └── yarn

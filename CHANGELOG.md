@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.6.0
 
 * README: Fix incorrect language about `foo` vs `foo/**`. See [`fast-glob` notes](https://github.com/mrmlnc/fast-glob#how-to-exclude-directory-from-reading).
 * Add custom option `preInclude` for better monorepo/workspaces support.
