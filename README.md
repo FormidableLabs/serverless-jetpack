@@ -8,8 +8,8 @@ Serverless Jetpack 🚀
 A faster JavaScript packager for [Serverless][] applications.
 
 - ⚡ Drop-in replacement for `serverless package|deploy`
-- 🖥 Lambda Functions packaging
-- 🗂️ Lambda Layers packaging
+- 💻 Lambda Functions packaging
+- 🍰 Lambda Layers packaging
 - 🐉 Monorepo (`lerna`, `yarn workspace`) support
 - 📦 Per-function packaging
 - 🔀 Tunable, multi-cpu parallelization
@@ -68,7 +68,7 @@ functions:
       # service-level exclude/include fields.
       include:
         - "src/**"
-        - "!**/node_modules/aws-sdk" # Faster way to exclude
+        - "!**/node_modules/aws-sdk/**" # Faster way to exclude
         - "package.json"
 ```
 
@@ -86,12 +86,14 @@ Most Serverless framework projects should be able to use Jetpack without any ext
     * This typically occurs in a monorepo project, wherein dependencies may be located in e.g. `packages/{NAME}/node_modules` and/or hoisted to the `node_modules` at the project base. It is important to specify these additional dependency roots so that Jetpack can (1) find and include the right dependencies and (2) hone down these directories to just production dependencies when packaging. Otherwise, you risk having a slow `serverless package` execution and/or end up with additional/missing dependencies in your final application zip bundle.
     * You only need to declare roots of things that _aren't_ naturally inferred in a dependency traversal. E.g., if starting at `packages/{NAME}/package.json` causes a traversal down to `node_modules/something` then symlinked up to `lib/something-else/node_modules/even-more` these additional paths don't need to be separately declared because they're just part of the dependency traversal.
     * **Layers**: Similar to `base`, both the project/service- and layer-level `roots` declarations will be relative to the project `servicePath` directory and _not_ the `layers.NAME.path` directory.
+* `preInclude` (`Array<string>`): A list of glob patterns to be added _before_ Jetpack's dependency pattern inclusion and Serverless' built-in service-level and then function-level `package.include`s. This option most typically comes up in a monorepo scenario where you want a broad base exclusion like `!functions/**` or `!packages/**` at the service level and then inclusions in later functions.
 * `concurrency` (`Number`): The number of independent package tasks (per function and service) to run off the main execution thread. If `1`, then run tasks serially in main thread. If `2+` run off main thread with `concurrency` number of workers. (default: `1`).
     * This option is most useful for Serverless projects that (1) have many individually packaged functions, and (2) large numbers of files and dependencies. E.g., start considering this option if your per-function packaging time takes more than 10 seconds and you have more than one service and/or function package.
 
 The following **function** and **layer**-level configurations available via `functions.{FN_NAME}.jetpack` and  `layers.{LAYER_NAME}.jetpack`:
 
 * `roots` (`Array<string>`): This option **adds** more dependency roots to the service-level `roots` option.
+* `preInclude` (`Array<string>`): This option **adds** more glob patterns to the service-level `preInclude` option.
 
 Here are some example configurations:
 
@@ -140,6 +142,40 @@ custom:
 functions:
   base:
     # ...
+```
+
+**With custom pre-includes**
+
+```yml
+# 1. `preInclude` comes first after internal `**` pattern.
+custom:
+  jetpack:
+    preInclude:
+      - "!**" # Start with absolutely nothing (typical in monorepo scenario)
+
+# 2. Jetpack then dynamically adds in production dependency glob patterns.
+
+# 3. Then, we apply the normal serverless `include`s.
+package:
+  individually: true
+  include:
+    - "!**/node_modules/aws-sdk/**"
+
+plugins:
+  - serverless-jetpack
+
+functions:
+  base:
+    # ...
+  another:
+    jetpack:
+      roots:
+        - "packages/another"
+      preInclude:
+        # Tip: Could then have a service-level `include` negate subfiles.
+        - "packages/another/dist/**"
+    include:
+      - "packages/another/src/**"
 ```
 
 **Layers**
@@ -216,7 +252,7 @@ This is potentially slow if `node_modules` contains a lot of ultimately removed 
 Jetpack, by contrast does the following:
 
 1. Efficiently infer production dependencies from disk without globbing, and without reading any `devDependencies`.
-2. Glob files from disk with a root `**` (all files), `!node_modules` (exclude all by default), `node_modules/PROD_DEP_01, node_modules/PROD_DEP_02, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
+2. Glob files from disk with a root `**` (all files), `!node_modules/**` (exclude all by default), `node_modules/PROD_DEP_01/**, node_modules/PROD_DEP_02/**, ...` (add in specific directories of production dependencies), and then the normal `include` patterns. This small nuance of limiting the `node_modules` globbing to **just** production dependencies gives us an impressive speedup.
 3. Apply service + function `exclude`, then `include` patterns in order to decide what is included in the package zip file.
 
 This ends up being way faster in most cases, and particularly when you have very large `devDependencies`. It is worth pointing out the minor implication that:
@@ -240,15 +276,24 @@ Jetpack supports `layer` packaging as close to `serverless` as it can. However, 
 
 Let's start with how `include|exclude` work for both Serverless built-in packaging and Jetpack:
 
-- `include`: Used in `globby()` disk reads files into a list and `nanomatch()` pattern matching to decide what to keep.
-    - `!**/node_modules/aws-sdk`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will **never** even be read from disk. This is faster. During later `nanomatch()` this has no effect, because it won't match an actual file.
-    - `!**/node_modules/aws-sdk/**`: During `globby()` on-disk reading, the `node_modules/aws-sdk` directory will read from disk, but then individual files excluded from the list. This is slower. During later `nanomatch()` this will potentially re-exclude.
+1. **Disk read phase** with `globby()`. Assemble patterns in order from below and then return a list of files matching the total patterns.
 
-- `exclude`: Only used in `nanomatch()` pattern matching to decide which files in a list to keep.
-    - `**/node_modules/aws-sdk`: No effect, because directory-only application.
-    - `**/node_modules/aws-sdk/**`: During `nanomatch()` this will exclude.
+    1. Start at `**` (everything).
+    2. (_Jetpack only_) Add in service and function-level `jetpack.preInclude` patterns.
+    3. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
+    4. Add in service and function-level `package.include` patterns.
 
-So, in either case if you were to add something like:
+2. **File filtering phase** with `nanomatch()`. Once we have a list of files read from disk, we apply patterns in order as follows to decide whether to include them (last postitive match wins).
+
+    1. (_Jetpack only_) Add in service and function-level `jetpack.preInclude` patterns.
+    2. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
+    3. Add in service and function-level `package.exclude` patterns.
+    4. (_Serverless only_) Add in dynamic patterns to `exclude` development `node_modules`
+    5. Add in service and function-level `package.include` patterns.
+
+The practical takeaway here is the it is typically faster to prefer `include` exclusions like `!foo/**` than to use `exclude` patterns like `foo/**` because the former avoids a lot of unneeded disk I/O.
+
+Let's consider a pattern like this:
 
 ```yml
 include:
@@ -264,11 +309,11 @@ Thus, the **best practice** here when crafting service or function `include` con
 ```yml
 # Good. Remove dependency provided by lambda from zip
 exclude:
-  - "**/node_modules/aws-sdk"
+  - "**/node_modules/aws-sdk/**"
 
 # Better! Never even read the files from disk during globbing in the first place!
 include:
-  - "!**/node_modules/aws-sdk"
+  - "!**/node_modules/aws-sdk/**"
 ```
 
 ## Benchmarks

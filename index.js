@@ -19,6 +19,11 @@ const union = (arr1, arr2) => {
   return arr1.concat(arr2.filter((o) => !set1.has(o)));
 };
 
+const dedent = (str, num) => str
+  .split("\n")
+  .map((l) => l.substring(num))
+  .join("\n");
+
 /**
  * Package Serverless applications manually.
  *
@@ -67,6 +72,10 @@ class Jetpack {
               "function": {
                 usage: "Function name. Packages a single function (see 'deploy function')",
                 shortcut: "f"
+              },
+              report: {
+                usage: "Generate full bundle report",
+                shortcut: "r"
               }
             }
           }
@@ -100,6 +109,7 @@ class Jetpack {
     const defaults = {
       base: ".",
       roots: null,
+      preInclude: [],
       concurrency: 1
     };
 
@@ -117,13 +127,17 @@ class Jetpack {
     }
 
     const opts = Object.assign({}, this._serviceOptions);
-    const fnRoots = ((functionObject || {}).jetpack || {}).roots;
-    const layerRoots = ((layerObject || {}).jetpack || {}).roots;
-    if (fnRoots || layerRoots) {
+
+    const fnOpts = (functionObject || {}).jetpack || {};
+    const layerOpts = (layerObject || {}).jetpack || {};
+
+    if (fnOpts.roots || layerOpts.roots) {
       opts.roots = (opts.roots || [])
-        .concat(fnRoots || [])
-        .concat(layerRoots || []);
+        .concat(fnOpts.roots || [])
+        .concat(layerOpts.roots || []);
     }
+
+    opts.preInclude = opts.preInclude.concat(fnOpts.preInclude || []);
 
     return opts;
   }
@@ -139,6 +153,54 @@ class Jetpack {
       .map((layerObj) => `${layerObj.path}/**`);
 
     return this.__layerExcludes;
+  }
+
+  _report({ results }) {
+    const INDENT = 6;
+    /* eslint-disable max-len*/
+    const bundles = results
+      .map(({ bundlePath, roots, patterns, files }) => `
+      ## ${path.basename(bundlePath)}
+
+      - Path: ${bundlePath}
+      - Roots: ${roots ? "" : "(None)"}
+      ${(roots || []).map((p) => `    - '${p}'`).join("\n      ")}
+
+      ### Patterns: Include
+
+      \`\`\`yml
+      # Automatically added
+      - '**'
+      # Jetpack (\`${patterns.preInclude.length}\`): \`custom.jetpack.preInclude\` + \`function.{NAME}.jetpack.preInclude\`
+      ${patterns.preInclude.map((p) => `- '${p}'`).join("\n      ")}
+      # Jetpack (\`${patterns.depInclude.length}\`): dynamic dependency additions
+      ${patterns.depInclude.map((p) => `- '${p}'`).join("\n      ")}
+      # Serverless (\`${patterns.include.length}\`): \`package.include\` + \`function.{NAME}.package.include\` + internal extras
+      ${patterns.include.map((p) => `- '${p}'`).join("\n      ")}
+      \`\`\`
+
+      ### Patterns: Exclude
+
+      \`\`\`yml
+      # Serverless (\`${patterns.exclude.length}\`): \`package.exclude\` + \`function.{NAME}.exclude\` + internal extras
+      ${patterns.exclude.map((p) => `- '${p}'`).join("\n      ")}
+      \`\`\`
+
+      ### Files (\`${files.included.length}\`): Included
+
+      ${files.included.sort().map((p) => `- ${p}`).join("\n      ")}
+
+      ### Files (\`${files.excluded.length}\`): Excluded
+
+      ${files.excluded.sort().map((p) => `- ${p}`).join("\n      ")}
+      `)
+      .join("\n");
+    /* eslint-enable max-len*/
+
+    this._log(dedent(`
+      # Jetpack Bundle Report
+      ${bundles}
+    `, INDENT));
   }
 
   // eslint-disable-next-line complexity,max-statements
@@ -216,28 +278,29 @@ class Jetpack {
     };
   }
 
-  async globAndZip({ bundleName, functionObject, layerObject, worker }) {
+  async globAndZip({ bundleName, functionObject, layerObject, worker, report }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const layerPath = (layerObject || {}).path;
     const cwd = layerPath ? path.relative(servicePath, layerPath) : servicePath;
 
-    const { base, roots } = this._extraOptions({ functionObject, layerObject });
+    const { base, roots, preInclude } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
 
     const buildFn = worker ? worker.globAndZip : globAndZip;
-    const { numFiles, bundlePath, buildTime } = await buildFn(
-      { cwd, servicePath, base, roots, bundleName, include, exclude }
+    const results = await buildFn(
+      { cwd, servicePath, base, roots, bundleName, preInclude, include, exclude, report }
     );
 
+    const { numFiles, bundlePath } = results;
     this._logDebug(
       `Zipped ${numFiles} sources from ${cwd} to artifact location: ${bundlePath}`
     );
 
-    return { numFiles, bundlePath, buildTime };
+    return results;
   }
 
-  async packageFunction({ functionName, functionObject, worker }) {
+  async packageFunction({ functionName, functionObject, worker, report }) {
     // Mimic built-in serverless naming.
     // **Note**: We _do_ append ".serverless" in path skipping serverless'
     // internal copying logic.
@@ -245,16 +308,18 @@ class Jetpack {
 
     // Package.
     this._logDebug(`Start packaging function: ${bundleName}`);
-    const { buildTime } = await this.globAndZip({ bundleName, functionObject, worker });
+    const results = await this.globAndZip({ bundleName, functionObject, worker, report });
+    const { buildTime } = results;
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
     functionObject.package.artifact = bundleName;
 
     this._log(`Packaged function: ${bundleName} (${toSecs(buildTime)}s)`);
+    return { packageType: "function", ...results };
   }
 
-  async packageService({ worker }) {
+  async packageService({ worker, report }) {
     const { service } = this.serverless;
     const serviceName = service.service;
     const servicePackage = service.package;
@@ -264,26 +329,30 @@ class Jetpack {
 
     // Package.
     this._logDebug(`Start packaging service: ${bundleName}`);
-    const { buildTime } = await this.globAndZip({ bundleName, worker });
+    const results = await this.globAndZip({ bundleName, worker, report });
+    const { buildTime } = results;
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
 
     this._log(`Packaged service: ${bundleName} (${toSecs(buildTime)}s)`);
+    return { packageType: "service", ...results };
   }
 
-  async packageLayer({ layerName, layerObject, worker }) {
+  async packageLayer({ layerName, layerObject, worker, report }) {
     const bundleName = path.join(SLS_TMP_DIR, `${layerName}.zip`);
 
     // Package.
     this._logDebug(`Start packaging layer: ${bundleName}`);
-    const { buildTime } = await this.globAndZip({ bundleName, layerObject, worker });
+    const results = await this.globAndZip({ bundleName, layerObject, worker, report });
+    const { buildTime } = results;
 
     // Mutate serverless configuration to use our artifacts.
     layerObject.package = layerObject.package || {};
     layerObject.package.artifact = bundleName;
 
     this._log(`Packaged layer: ${bundleName} (${toSecs(buildTime)}s)`);
+    return { packageType: "layer", ...results };
   }
 
   // eslint-disable-next-line max-statements,complexity
@@ -291,6 +360,8 @@ class Jetpack {
     const { service } = this.serverless;
     const servicePackage = service.package;
     const { concurrency } = this._serviceOptions;
+    const options = this.options || {};
+    const report = !!options.report;
 
     let tasks = [];
     let worker;
@@ -299,7 +370,7 @@ class Jetpack {
     // Lambdas
     // ------------------------------------------------------------------------
     // Check if we have a single function limitation from `deploy -f name`.
-    const singleFunctionName = (this.options || {}).function;
+    const singleFunctionName = options.function;
     if (singleFunctionName) {
       this._logDebug(`Packaging only for function: ${singleFunctionName}`);
     }
@@ -330,7 +401,7 @@ class Jetpack {
     );
     const numFns = fnsPkgsToPackage.length;
     tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () =>
-      this.packageFunction({ ...obj, worker })
+      this.packageFunction({ ...obj, worker, report })
     ));
 
     // We recreate the logic from `packager#packageService` for deciding whether
@@ -344,7 +415,7 @@ class Jetpack {
 
     // Package entire service if applicable.
     if (shouldPackageService) {
-      tasks.push(() => this.packageService({ worker }));
+      tasks.push(() => this.packageService({ worker, report }));
     } else if (!numFns) {
       // Detect if we did nothing...
       this._logDebug("No matching service or functions to package.");
@@ -376,7 +447,7 @@ class Jetpack {
       const layersPkgsToPackage = layersPkgs.filter((obj) => !(obj.disable || obj.artifact));
       numLayers = layersPkgsToPackage.length;
       tasks = tasks.concat(layersPkgsToPackage.map((obj) => () =>
-        this.packageLayer({ ...obj, worker })
+        this.packageLayer({ ...obj, worker, report })
       ));
     }
 
@@ -385,18 +456,27 @@ class Jetpack {
       `Packaging ${numFns} functions, ${shouldPackageService ? 1 : 0} services, and `
       + `${numLayers} layers with concurrency ${concurrency}`
     );
+
+    let results;
     if (concurrency > 1) {
       // Run concurrently.
       worker = new Worker(require.resolve("./util/bundle"), {
         numWorkers: concurrency
       });
-      await Promise.all(tasks.map((fn) => fn()));
+      results = await Promise.all(tasks.map((fn) => fn()));
       worker.end();
     } else {
       // Run serially in-band.
       const limit = pLimit(1);
-      await Promise.all(tasks.map(limit));
+      results = await Promise.all(tasks.map(limit));
     }
+
+    // Report.
+    if (report) {
+      this._report({ results });
+    }
+
+    return results;
   }
 }
 

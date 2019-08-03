@@ -33,7 +33,10 @@ const pluginAdapter = async ({ plugin, pkgExclude, pkgInclude, fnExclude, fnIncl
     }
   });
 
-  return await resolveFilePathsFromPatterns({ cwd: servicePath, servicePath, include, exclude });
+  const { included } = await resolveFilePathsFromPatterns(
+    { cwd: servicePath, servicePath, include, exclude }
+  );
+  return included;
 };
 
 const slsAdapter = async ({ sls, pkgExclude, pkgInclude, fnExclude, fnInclude }) => {
