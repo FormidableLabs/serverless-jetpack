@@ -21,10 +21,9 @@ package:
     - "!**/node_modules/{@*/*,*}/README.md"
 
 plugins:
-  localPath: ../../../plugins
   modules:
     - serverless-offline
-    - wrapper
+    - ../../../plugins/wrapper
 
 provider:
   name: aws

@@ -10,11 +10,10 @@ custom:
   webpack: ${file(./serverless.js):webpack}
 
 plugins:
-  localPath: ../../../plugins
   modules:
     - serverless-webpack
     - serverless-offline
-    - wrapper
+    - ../../../plugins/wrapper
 
 provider:
   name: aws
