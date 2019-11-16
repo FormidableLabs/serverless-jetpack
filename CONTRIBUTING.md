@@ -30,6 +30,9 @@ test/packages/
 ├── complex
 │   ├── npm
 │   └── yarn
+├── dashboard
+│   ├── npm
+│   └── yarn
 ├── huge
 │   ├── npm
 │   └── yarn

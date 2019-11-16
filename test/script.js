@@ -37,6 +37,7 @@ const CONFIGS = [
 
 const SCENARIOS = [
   "simple",
+  "dashboard",
   "complex",
   "individually",
   "monorepo",

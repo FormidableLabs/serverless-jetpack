@@ -100,6 +100,9 @@ describe("util/bundle#resolveFilePathsFromPatterns", () => {
       config: {
         servicePath: ""
       },
+      processedInput: {
+        options: {}
+      },
       classes: {
         Error
       },

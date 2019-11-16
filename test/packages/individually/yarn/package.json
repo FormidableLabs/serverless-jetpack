@@ -10,7 +10,7 @@
     "serverless-http": "^1.9.0"
   },
   "devDependencies": {
-    "serverless": "^1.41.1",
+    "serverless": "^1.57.0",
     "serverless-offline": "^4.2.1"
   }
 }
