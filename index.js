@@ -84,6 +84,43 @@ class Jetpack {
     };
 
     this.hooks = {
+      // Hack: Mutate serverless-jetpack to **last** in plugin line for critical
+      // package hook.
+      // TODO: TICKET NUMBER AND EXPLANATION.
+      "before:package:initialize": () => {
+        // TODO: DOESNT WORK -- TOO LATE
+        // const KEY = "before:package:createDeploymentArtifacts";
+        // // TODO: May also need "before:deploy:function:packageFunction"
+        // const { hooks } = this.serverless.pluginManager;
+        // const jetpacks = hooks[KEY].filter(({ pluginName }) => pluginName === "Jetpack");
+        // if (jetpacks.length !== 1) {
+        //   throw new Error(
+        //     `Expected exactly 1 instance of serverless-jetpack hooks. Found ${jetpacks.length}`
+        //   );
+        // }
+        // const jetpack = jetpacks[0];
+
+        // this._log(`Moving jetpack package hooks to end of hooks list for ${KEY}`);
+        // hooks[KEY] = hooks[KEY]
+        //   .filter(({ pluginName }) => pluginName !== "Jetpack")
+        //   .concat(jetpack);
+
+        // TODO: DOESNT WORK -- TOO LATE
+        // const jetpacks = this.serverless.pluginManager.plugins.filter((p) => p instanceof Jetpack);
+        // if (jetpacks.length !== 1) {
+        //   throw new Error(
+        //     `Expected exactly 1 instance of serverless-jetpack. Found ${jetpacks.length}`
+        //   );
+        // }
+        // const jetpack = jetpacks[0];
+
+        // this._log(`Moving jetpack plugin to end of plugins list`);
+        // this.serverless.pluginManager.plugins = this.serverless.pluginManager.plugins
+        //   .filter((p) => p !== jetpack)
+        //   .concat(jetpack);
+        // console.log("TODO HERE PLUGINS", this.serverless.pluginManager)
+        console.log("TODO REMOVE")
+      },
       "before:package:createDeploymentArtifacts": this.package.bind(this),
       "before:package:function:package": this.package.bind(this),
       "jetpack:package:package": this.package.bind(this)
@@ -357,6 +394,15 @@ class Jetpack {
 
   // eslint-disable-next-line max-statements,complexity
   async package() {
+    // TODO: HACK FOR ENT PLUGIN.
+    const { plugins } = this.serverless.pluginManager;
+    const sfePlugins = plugins.filter((p) => p.constructor.name === "ServerlessEnterprisePlugin");
+    if (sfePlugins.length === 1) {
+      const sfePlugin = sfePlugins[0];
+      console.log("TODO MANUAL ENTERPRISE INVOKE", { sfePlugin })
+      await sfePlugin.route('before:package:createDeploymentArtifacts').bind(sfePlugin)();
+    }
+
     const { service } = this.serverless;
     const servicePackage = service.package;
     const { concurrency } = this._serviceOptions;

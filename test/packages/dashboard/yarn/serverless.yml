@@ -13,6 +13,7 @@ custom:
 plugins:
   modules:
     - serverless-offline
+    - ../../../plugins/echo
     - ../../../plugins/wrapper
 
 provider:
