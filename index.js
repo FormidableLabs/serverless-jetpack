@@ -400,7 +400,11 @@ class Jetpack {
     if (sfePlugins.length === 1) {
       const sfePlugin = sfePlugins[0];
       console.log("TODO MANUAL ENTERPRISE INVOKE", { sfePlugin })
-      await sfePlugin.route('before:package:createDeploymentArtifacts').bind(sfePlugin)();
+      // We're interested in `before:package:createDeploymentArtifacts`, but
+      // this is the simple thing (`createAndSetDeploymentUid`, `wrap`) that is
+      // all that we want. At the present there shouldn't be any harm in calling
+      // multiple times to generate outputs.
+      await sfePlugin.route('before:deploy:function:packageFunction').bind(sfePlugin)();
     }
 
     const { service } = this.serverless;
