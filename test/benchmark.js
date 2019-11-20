@@ -11,8 +11,18 @@ const globby = require("globby");
 const AdmZip = require("adm-zip");
 
 const { TEST_SCENARIO } = process.env;
+const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
 const { MATRIX } = require("./script");
-const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => scenario !== "monorepo");
+const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => {
+  if (scenario === "monorepo") {
+    return false;
+  }
+  // SFE-only scenarios.
+  if (scenario === "dashboard" && !IS_SLS_ENTERPRISE) {
+    return false;
+  }
+  return true;
+});
 
 // Filter known false positives.
 //
@@ -139,6 +149,17 @@ const SLS_FALSE_POSITIVES_WIN_HUGE = [
 // a lot of `jest` dependencies are `devDependencies` when installing with
 // `yarn` (although `npm` looks correct).
 const SLS_FALSE_POSITIVES = {
+  "dashboard/yarn": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // Hoisted to `node_modules/.bin/mime`
+    "node_modules/send/node_modules/.bin/mime"
+  ]),
+
+  "dashboard/npm": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE
+  ]),
+
   "simple/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 

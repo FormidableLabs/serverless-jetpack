@@ -17,6 +17,7 @@ const { TEST_MODE, TEST_SCENARIO, TEST_PARALLEL } = process.env;
 const IS_PARALLEL = TEST_PARALLEL === "true";
 const IS_WIN = process.platform === "win32";
 const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
+const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
 
 /**
  * Test script helper.
@@ -37,7 +38,7 @@ const CONFIGS = [
 
 const SCENARIOS = [
   "simple",
-  // TODO: FIGURE OUT HOW TO ENABLE "dashboard",
+  "dashboard",
   "complex",
   "individually",
   "monorepo",
@@ -57,6 +58,12 @@ const TIMING_SCENARIOS = new Set([
 // Some scenarios are only feasible in Jetpack
 const JETPACK_ONLY_SCENARIOS = new Set([
   "monorepo"
+]);
+
+// Some scenarios allow failures in executing `serverless`
+// (Due to AWS creds we're not going to provide).
+const ALLOW_FAILURE_SCENARIOS = new Set([
+  "dashboard"
 ]);
 
 const MATRIX = SCENARIOS
@@ -143,11 +150,22 @@ const install = async () => {
   }
 };
 
+const _logTask = (obj) => (msg) => log(chalk `{green ${msg}}: ${JSON.stringify(obj)}`);
+
 // eslint-disable-next-line max-statements
 const benchmark = async () => {
   const HEADER = ["Scenario", "Mode", "Type", "Time", "vs Base"].map((t) => gray(t));
   const timedData = [HEADER];
   const otherData = [HEADER];
+
+  const matrix = MATRIX.filter(({ scenario }) => {
+    if (scenario === "dashboard" && !IS_SLS_ENTERPRISE) {
+      _logTask({ scenario })("[task:skipping:scenario]");
+      return false;
+    }
+
+    return true;
+  });
 
   const archiveRoot = path.join(__dirname, "../.test-zips");
   await fs.mkdirp(archiveRoot);
@@ -156,16 +174,15 @@ const benchmark = async () => {
   h2(chalk `Packaging Scenarios`);
   const queues = {};
   const results = {};
-  await Promise.all(MATRIX
+  await Promise.all(matrix
     .map(({ scenario, mode }) => {
       // Environment for combination.
       const cwd = path.resolve(`test/packages/${scenario}/${mode}`);
+      const logTask = _logTask({ scenario, mode });
 
       // Use only _one_ concurrency = 1 queue if not parallel.
       const key = IS_PARALLEL ? `${scenario}/${mode}` : "all";
       queues[key] = queues[key] || new PQueue({ concurrency: 1 });
-      const logTask = (msg) =>
-        log(chalk `{green ${msg}}: ${JSON.stringify({ scenario, mode })}`);
 
       logTask("[task:queued]");
       // eslint-disable-next-line max-statements
@@ -176,12 +193,20 @@ const benchmark = async () => {
         const runPackage = async (opts) => {
           const start = Date.now();
 
-          await execa(SLS_CMD, ["package"], {
-            cwd,
-            stdio: "inherit",
-            env: ENV,
-            ...opts
-          });
+          try {
+            await execa(SLS_CMD, ["package"], {
+              cwd,
+              stdio: "inherit",
+              env: ENV,
+              ...opts
+            });
+          } catch (err) {
+            if (ALLOW_FAILURE_SCENARIOS.has(scenario)) {
+              logTask("[task:end:allowed-failure");
+            } else {
+              throw err;
+            }
+          }
 
           return Date.now() - start;
         };
@@ -246,14 +271,14 @@ const benchmark = async () => {
   log(chalk `* {gray npm}:  \`${(await execMode("npm", ["--version"])).stdout}\``);
 
   // Recreate results in starting order.
-  const timedRows = MATRIX
+  const timedRows = matrix
     .filter(({ scenario }) => TIMING_SCENARIOS.has(scenario))
     .map(({ scenario, mode }) => results[`${scenario}/${mode}`])
     .reduce((m, a) => m.concat(a), []);
   h2(chalk `Benchmark: {gray Timed Packages}`);
   log(table(timedData.concat(timedRows), TABLE_OPTS));
 
-  const otherRows = MATRIX
+  const otherRows = matrix
     .filter(({ scenario }) => !TIMING_SCENARIOS.has(scenario))
     .map(({ scenario, mode }) => results[`${scenario}/${mode}`])
     .reduce((m, a) => m.concat(a), []);
