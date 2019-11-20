@@ -84,43 +84,6 @@ class Jetpack {
     };
 
     this.hooks = {
-      // Hack: Mutate serverless-jetpack to **last** in plugin line for critical
-      // package hook.
-      // TODO: TICKET NUMBER AND EXPLANATION.
-      "before:package:initialize": () => {
-        // TODO: DOESNT WORK -- TOO LATE
-        // const KEY = "before:package:createDeploymentArtifacts";
-        // // TODO: May also need "before:deploy:function:packageFunction"
-        // const { hooks } = this.serverless.pluginManager;
-        // const jetpacks = hooks[KEY].filter(({ pluginName }) => pluginName === "Jetpack");
-        // if (jetpacks.length !== 1) {
-        //   throw new Error(
-        //     `Expected exactly 1 instance of serverless-jetpack hooks. Found ${jetpacks.length}`
-        //   );
-        // }
-        // const jetpack = jetpacks[0];
-
-        // this._log(`Moving jetpack package hooks to end of hooks list for ${KEY}`);
-        // hooks[KEY] = hooks[KEY]
-        //   .filter(({ pluginName }) => pluginName !== "Jetpack")
-        //   .concat(jetpack);
-
-        // TODO: DOESNT WORK -- TOO LATE
-        // const jetpacks = this.serverless.pluginManager.plugins.filter((p) => p instanceof Jetpack);
-        // if (jetpacks.length !== 1) {
-        //   throw new Error(
-        //     `Expected exactly 1 instance of serverless-jetpack. Found ${jetpacks.length}`
-        //   );
-        // }
-        // const jetpack = jetpacks[0];
-
-        // this._log(`Moving jetpack plugin to end of plugins list`);
-        // this.serverless.pluginManager.plugins = this.serverless.pluginManager.plugins
-        //   .filter((p) => p !== jetpack)
-        //   .concat(jetpack);
-        // console.log("TODO HERE PLUGINS", this.serverless.pluginManager)
-        console.log("TODO REMOVE");
-      },
       "before:package:createDeploymentArtifacts": this.package.bind(this),
       "before:package:function:package": this.package.bind(this),
       "jetpack:package:package": this.package.bind(this)
@@ -427,23 +390,49 @@ class Jetpack {
    * there's nothing in the lifecycle hook we've chosen,
    * `before:deploy:function:packageFunction`, that's currently problematic.
    * See: https://github.com/serverless/enterprise-plugin/blob/23e509af8484b3ce8389f01c4e288a6af55d476c/lib/plugin.js#L263-L266
+   *
+   * @returns {Promise<undefined>} Empty promise
    */
   async patchesForEnterprise() {
     const { plugins } = this.serverless.pluginManager;
 
-    // TODO DETECT APP TENANT ETC LIKE SFE
-
-    // Check that we actually have exactly one enterprise plugin.
+    // Check that we actually have exactly one enterprise plugin and it loosely
+    // looks applicable to us.
     const sfePlugins = plugins.filter((p) => p.constructor.name === "ServerlessEnterprisePlugin");
     if (sfePlugins.length !== 1) {
+      this._logDebug("ServerlessEnterprisePlugin not found. Skipping patch.");
       return;
     }
 
-    // We're interested in `before:package:createDeploymentArtifacts`, but
-    // this is the simple thing (`createAndSetDeploymentUid`, `wrap`) that is
-    // all that we want. At the present there shouldn't be any harm in calling
-    // multiple times to generate outputs.
     const sfePlugin = sfePlugins[0];
+    if (!sfePlugin.route) {
+      this._logDebug("ServerlessEnterprisePlugin exist, but without `route()`. Skipping patch.");
+      return;
+    }
+
+    // **WARNING - BRITTLE**: Use internal details of the SFE plugin to
+    // determine if it is active. If not, short-circuit.
+    //
+    // As a least bad detection, we infer that any artifact creation means
+    // the full SFE plugin is active and running.
+    //
+    // An alternative means of detecting active includes:
+    // - `Object.keys(sfePlugin.sfeEnabledHooks).length > 1`
+    const sfeActive = !!sfePlugin.hooks["before:package:createDeploymentArtifacts"];
+    if (!sfeActive) {
+      this._logDebug("ServerlessEnterprisePlugin not active. Skipping patch.");
+      return;
+    }
+
+    // If we've reached this point, we need to create the `s_<NAME>.js` wrapper
+    // files, and we'll attempt to do so in the least bad hackish way we can...
+    //
+    // Although the active SFE hook we're interested in is
+    // `before:package:createDeploymentArtifacts`, we instead invoke the
+    // `before:deploy:function:packageFunction` because it only presently
+    // contains calls to createAndSetDeploymentUid`, `wrap` which create the
+    // desired `s_<NAME>.js` files. These calls are presently OK to call twice
+    // which happens due to the normal SFE lifecycle (as discussed above).
     await sfePlugin.route("before:deploy:function:packageFunction")();
   }
 
