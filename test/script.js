@@ -37,7 +37,7 @@ const CONFIGS = [
 
 const SCENARIOS = [
   "simple",
-  "dashboard",
+  // TODO: FIGURE OUT HOW TO ENABLE "dashboard",
   "complex",
   "individually",
   "monorepo",

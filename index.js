@@ -406,7 +406,7 @@ class Jetpack {
 
     const sfePlugin = sfePlugins[0];
     if (!sfePlugin.route) {
-      this._logDebug("ServerlessEnterprisePlugin exist, but without `route()`. Skipping patch.");
+      this._logDebug("ServerlessEnterprisePlugin exists, but without `route()`. Skipping patch.");
       return;
     }
 
