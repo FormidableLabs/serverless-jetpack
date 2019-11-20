@@ -1,6 +1,13 @@
 Changes
 =======
 
+## UNRELEASED
+
+* BUG: Hack a fix to generate wrapper files like `ServerlessEnterprisePlugin` does.
+  [#67](https://github.com/FormidableLabs/serverless-jetpack/pull/67)
+* Infra: Add node13 to Travis CI matrix. Bump Appveyor to node10.
+* Deps: Update to `serverless@^1.57.0` in all scenarios. Refactor local path plugins to use new syntax.
+
 ## 0.6.0
 
 * README: Fix incorrect language about `foo` vs `foo/**`. See [`fast-glob` notes](https://github.com/mrmlnc/fast-glob#how-to-exclude-directory-from-reading).

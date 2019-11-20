@@ -1,6 +1,6 @@
 service: serverless-jetpack-dashboard
 app: serverless-jetpack-dashboard-app
-tenant: serverlessjetpack # Our project Serverless Enterrpise account.
+tenant: serverlessjetpack # Our project Serverless Enterprise account.
 
 package:
   individually: ${file(./serverless.js):pkg.individually}
