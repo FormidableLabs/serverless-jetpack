@@ -119,7 +119,7 @@ class Jetpack {
         //   .filter((p) => p !== jetpack)
         //   .concat(jetpack);
         // console.log("TODO HERE PLUGINS", this.serverless.pluginManager)
-        console.log("TODO REMOVE")
+        console.log("TODO REMOVE");
       },
       "before:package:createDeploymentArtifacts": this.package.bind(this),
       "before:package:function:package": this.package.bind(this),
@@ -392,21 +392,63 @@ class Jetpack {
     return { packageType: "layer", ...results };
   }
 
-  // eslint-disable-next-line max-statements,complexity
-  async package() {
-    // TODO: HACK FOR ENT PLUGIN.
+  /**
+   * The `ServerlessEnterprisePlugin` awkwardly wreaks havoc with alternative
+   * packaging.
+   *
+   * `serverless` special cases it and ensures it's _always_ the last plugin.
+   * This means that our plugin order ends up looking like:
+   *
+   * - ...
+   * - 'Package',
+   * - ...
+   * - 'Jetpack',
+   * - 'ServerlessEnterprisePlugin'
+   *
+   * Unfortunately, the plugin hooks end up like this:
+   *
+   * - `Jetpack:before:package:createDeploymentArtifacts`:
+   *   Bundles all files, creating artifact to avoid `Package` doing it.
+   * - `ServerlessEnterprisePlugin:before:package:createDeploymentArtifacts`:
+   *   Creates the `s_<NAME>.js` wrapper files.
+   * - `Package:package:createDeploymentArtifacts`:
+   *   Creates artifacts if don't already exist.
+   *
+   * So this means that Jetpack if Jetpack stays with
+   * `before:package:createDeploymentArtifacts` it misses the `s_<NAME>.js`
+   * wrapper files. _But_, if Jetpack hooks to
+   * `package:createDeploymentArtifacts` then `Package` will actually perform
+   * real packaging and it's too late.
+   *
+   * To get around this awkward situation, we invoke a special lifecycle hook
+   * directly in `ServerlessEnterprisePlugin` which only gathers metadata and
+   * creates the needed `s_<NAME>.js` wrapper files. These steps are duplicated
+   * by `ServerlessEnterprisePlugin` immediately after, but at the present
+   * there's nothing in the lifecycle hook we've chosen,
+   * `before:deploy:function:packageFunction`, that's currently problematic.
+   * See: https://github.com/serverless/enterprise-plugin/blob/23e509af8484b3ce8389f01c4e288a6af55d476c/lib/plugin.js#L263-L266
+   */
+  async patchesForEnterprise() {
     const { plugins } = this.serverless.pluginManager;
+
+    // TODO DETECT APP TENANT ETC LIKE SFE
+
+    // Check that we actually have exactly one enterprise plugin.
     const sfePlugins = plugins.filter((p) => p.constructor.name === "ServerlessEnterprisePlugin");
-    if (sfePlugins.length === 1) {
-      const sfePlugin = sfePlugins[0];
-      console.log("TODO MANUAL ENTERPRISE INVOKE", { sfePlugin })
-      // We're interested in `before:package:createDeploymentArtifacts`, but
-      // this is the simple thing (`createAndSetDeploymentUid`, `wrap`) that is
-      // all that we want. At the present there shouldn't be any harm in calling
-      // multiple times to generate outputs.
-      await sfePlugin.route('before:deploy:function:packageFunction').bind(sfePlugin)();
+    if (sfePlugins.length !== 1) {
+      return;
     }
 
+    // We're interested in `before:package:createDeploymentArtifacts`, but
+    // this is the simple thing (`createAndSetDeploymentUid`, `wrap`) that is
+    // all that we want. At the present there shouldn't be any harm in calling
+    // multiple times to generate outputs.
+    const sfePlugin = sfePlugins[0];
+    await sfePlugin.route("before:deploy:function:packageFunction")();
+  }
+
+  // eslint-disable-next-line max-statements,complexity
+  async package() {
     const { service } = this.serverless;
     const servicePackage = service.package;
     const { concurrency } = this._serviceOptions;
@@ -415,6 +457,11 @@ class Jetpack {
 
     let tasks = [];
     let worker;
+
+    // ------------------------------------------------------------------------
+    // Hacks and patches
+    // ------------------------------------------------------------------------
+    await this.patchesForEnterprise();
 
     // ------------------------------------------------------------------------
     // Lambdas
