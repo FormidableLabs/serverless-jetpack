@@ -33,6 +33,8 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/esparse",
   // yarn why esvalidate -> esprima serverless#js-yaml
   "node_modules/.bin/esvalidate",
+  // yarn why @serverless/cli -> serverless#@serverless#cli
+  "node_modules/.bin/components",
   // yarn why flat -> serverless#@serverless#enterprise-plugin
   "node_modules/.bin/flat",
   // yarn why is-ci -> serverless#update-notifier
