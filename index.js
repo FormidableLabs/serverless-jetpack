@@ -375,13 +375,15 @@ class Jetpack {
    * - `ServerlessEnterprisePlugin:before:package:createDeploymentArtifacts`:
    *   Creates the `s_<NAME>.js` wrapper files.
    * - `Package:package:createDeploymentArtifacts`:
-   *   Creates artifacts if don't already exist.
+   *   Creates any artifacts that don't already exist.
    *
-   * So this means that Jetpack if Jetpack stays with
-   * `before:package:createDeploymentArtifacts` it misses the `s_<NAME>.js`
-   * wrapper files. _But_, if Jetpack hooks to
-   * `package:createDeploymentArtifacts` then `Package` will actually perform
-   * real packaging and it's too late.
+   * This means that Jetpack can't easily get both the SFE wrappers and still
+   * control packaging:
+   *
+   * - If Jetpack stays with `before:package:createDeploymentArtifacts`
+   *   it misses the `s_<NAME>.js` wrapper files.
+   * - _But_, if Jetpack hooks to `package:createDeploymentArtifacts` then
+   *  `Package` will actually perform real packaging and it's too late.
    *
    * To get around this awkward situation, we invoke a special lifecycle hook
    * directly in `ServerlessEnterprisePlugin` which only gathers metadata and
