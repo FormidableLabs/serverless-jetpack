@@ -43,6 +43,8 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/esparse",
   // yarn why esvalidate -> esprima serverless#js-yaml
   "node_modules/.bin/esvalidate",
+  // yarn why find-requires -> serverless#ncjsm
+  "node_modules/.bin/find-requires",
   // yarn why @serverless/cli -> serverless#@serverless#cli
   "node_modules/.bin/components",
   // yarn why flat -> serverless#@serverless#enterprise-plugin
@@ -55,6 +57,8 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/json-refs",
   // yarn why mkdirp -> serverless
   "node_modules/.bin/mkdirp",
+  // yarn why prettyoutput -> serverless#@serverless#cli
+  "node_modules/.bin/prettyoutput",
   // yarn why raven -> serverless
   "node_modules/.bin/raven",
   // yarn why rc -> serverless
@@ -382,7 +386,7 @@ const keepBaselineMatch = ({ scenario, mode }) => (f) => {
 
   // Exact match for .bin, top-level for everything else.
   return f.indexOf("node_modules/.bin/") !== -1
-    ? !matches.has(f.replace(/\.cmd$/, "")) // match unix or windows script
+    ? !matches.has(f.replace(/\.(cmd|ps1)$/, "")) // match unix or windows script
     : !matches.has(topLevel(f));
 };
 
