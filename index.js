@@ -116,7 +116,7 @@ class Jetpack {
     // delayed until the `initialize` lifecycle, then patched in last. This
     // ensures that Jetpack's hooks run absolutely last for these events. This
     // is still a bit hacky, but not nearly as invasive as some of the other
-    // approaches we considered. H/T to `medikoo` for the strategy:
+    // approaches we considered. H/T to `@medikoo` for the strategy:
     // https://github.com/FormidableLabs/serverless-jetpack/pull/68#issuecomment-556987101
     const delayedHooks = {
       "before:package:createDeploymentArtifacts": this.package.bind(this),

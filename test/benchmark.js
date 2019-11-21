@@ -87,7 +87,12 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/which",
   // yarn why yamljs -> serverless#@serverless#enterprise-plugin
   "node_modules/.bin/yaml2json",
-  "node_modules/.bin/json2yaml"
+  "node_modules/.bin/json2yaml",
+
+  // Not exactly sure why, but consistently getting:
+  // `node_modules/bin/<NAME>.ps1` extras. Just ignore.
+  "node_modules/.bin/mime",
+  "node_modules/.bin/loose-envify"
 ];
 
 // ... and the huge scenario has even more false positives
@@ -197,7 +202,7 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why uuid -> serverless, raven
     "node_modules/uuid",
 
-    // Jetpack properly excludes with `roots` (not availabel in Serverless)
+    // Jetpack properly excludes with `roots` (not available in Serverless)
     "nodejs/node_modules/.yarn-integrity",
     "nodejs/node_modules/.bin/uuid",
     "nodejs/node_modules/uuid"
@@ -210,7 +215,7 @@ const SLS_FALSE_POSITIVES = {
     // (`manual_test_websocket/scripts/serverless..yml`)
     "node_modules/serverless-offline",
 
-    // Jetpack properly excludes with `roots` (not availabel in Serverless)
+    // Jetpack properly excludes with `roots` (not available in Serverless)
     "nodejs/node_modules/.bin/uuid",
     "nodejs/node_modules/uuid"
   ]),
@@ -264,7 +269,7 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
     "node_modules/.bin/watch",
 
-    // Hoisted to `node_moduels/.bin/loose-envify`
+    // Hoisted to `node_modules/.bin/loose-envify`
     "node_modules/react-dom/node_modules/.bin/loose-envify",
     "node_modules/react-dom/node_modules/prop-types/node_modules/.bin/loose-envify",
     "node_modules/react/node_modules/.bin/loose-envify",
