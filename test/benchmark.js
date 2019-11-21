@@ -11,8 +11,18 @@ const globby = require("globby");
 const AdmZip = require("adm-zip");
 
 const { TEST_SCENARIO } = process.env;
+const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
 const { MATRIX } = require("./script");
-const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => scenario !== "monorepo");
+const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => {
+  if (scenario === "monorepo") {
+    return false;
+  }
+  // SFE-only scenarios.
+  if (scenario === "dashboard" && !IS_SLS_ENTERPRISE) {
+    return false;
+  }
+  return true;
+});
 
 // Filter known false positives.
 //
@@ -33,6 +43,10 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/esparse",
   // yarn why esvalidate -> esprima serverless#js-yaml
   "node_modules/.bin/esvalidate",
+  // yarn why find-requires -> serverless#ncjsm
+  "node_modules/.bin/find-requires",
+  // yarn why @serverless/cli -> serverless#@serverless#cli
+  "node_modules/.bin/components",
   // yarn why flat -> serverless#@serverless#enterprise-plugin
   "node_modules/.bin/flat",
   // yarn why is-ci -> serverless#update-notifier
@@ -43,6 +57,8 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/json-refs",
   // yarn why mkdirp -> serverless
   "node_modules/.bin/mkdirp",
+  // yarn why prettyoutput -> serverless#@serverless#cli
+  "node_modules/.bin/prettyoutput",
   // yarn why raven -> serverless
   "node_modules/.bin/raven",
   // yarn why rc -> serverless
@@ -71,7 +87,12 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/which",
   // yarn why yamljs -> serverless#@serverless#enterprise-plugin
   "node_modules/.bin/yaml2json",
-  "node_modules/.bin/json2yaml"
+  "node_modules/.bin/json2yaml",
+
+  // Not exactly sure why, but consistently getting:
+  // `node_modules/bin/<NAME>.ps1` extras. Just ignore.
+  "node_modules/.bin/mime",
+  "node_modules/.bin/loose-envify"
 ];
 
 // ... and the huge scenario has even more false positives
@@ -137,6 +158,17 @@ const SLS_FALSE_POSITIVES_WIN_HUGE = [
 // a lot of `jest` dependencies are `devDependencies` when installing with
 // `yarn` (although `npm` looks correct).
 const SLS_FALSE_POSITIVES = {
+  "dashboard/yarn": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // Hoisted to `node_modules/.bin/mime`
+    "node_modules/send/node_modules/.bin/mime"
+  ]),
+
+  "dashboard/npm": new Set([
+    ...SLS_FALSE_POSITIVES_WIN_BASE
+  ]),
+
   "simple/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
@@ -170,7 +202,7 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why uuid -> serverless, raven
     "node_modules/uuid",
 
-    // Jetpack properly excludes with `roots` (not availabel in Serverless)
+    // Jetpack properly excludes with `roots` (not available in Serverless)
     "nodejs/node_modules/.yarn-integrity",
     "nodejs/node_modules/.bin/uuid",
     "nodejs/node_modules/uuid"
@@ -183,7 +215,7 @@ const SLS_FALSE_POSITIVES = {
     // (`manual_test_websocket/scripts/serverless..yml`)
     "node_modules/serverless-offline",
 
-    // Jetpack properly excludes with `roots` (not availabel in Serverless)
+    // Jetpack properly excludes with `roots` (not available in Serverless)
     "nodejs/node_modules/.bin/uuid",
     "nodejs/node_modules/uuid"
   ]),
@@ -237,7 +269,7 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
     "node_modules/.bin/watch",
 
-    // Hoisted to `node_moduels/.bin/loose-envify`
+    // Hoisted to `node_modules/.bin/loose-envify`
     "node_modules/react-dom/node_modules/.bin/loose-envify",
     "node_modules/react-dom/node_modules/prop-types/node_modules/.bin/loose-envify",
     "node_modules/react/node_modules/.bin/loose-envify",
@@ -251,10 +283,18 @@ const SLS_FALSE_POSITIVES = {
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
     "node_modules/abbrev",
 
+    // $ yarn why are-we-there-yet
+    // - "fsevents#node-pre-gyp#npmlog"
+    "node_modules/are-we-there-yet",
+
     // $ yarn why console-control-strings
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npmlog" depends on it
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npmlog#gauge"
     "node_modules/console-control-strings",
+
+    // $ yarn why delegates
+    // - "fsevents#node-pre-gyp#npmlog#are-we-there-yet"
+    "node_modules/delegates",
 
     // $ yarn why detect-libc
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp" depends on it.
@@ -263,6 +303,14 @@ const SLS_FALSE_POSITIVES = {
     //  $ yarn why fs-minipass
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#tar"
     "node_modules/fs-minipass",
+
+    // $ yarn why gauge
+    // - "fsevents#node-pre-gyp#npmlog"
+    "node_modules/gauge",
+
+    // $ yarn why has-unicode
+    // - "fsevents#node-pre-gyp#npmlog#gauge"
+    "node_modules/has-unicode",
 
     // $ yarn why ignore-walk
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npm-packlist"
@@ -304,6 +352,10 @@ const SLS_FALSE_POSITIVES = {
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
     "node_modules/npm-packlist",
 
+    // $ yarn why npmlog
+    // - "fsevents#node-pre-gyp"
+    "node_modules/npmlog",
+
     // $ yarn why osenv
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
     "node_modules/osenv",
@@ -339,7 +391,7 @@ const keepBaselineMatch = ({ scenario, mode }) => (f) => {
 
   // Exact match for .bin, top-level for everything else.
   return f.indexOf("node_modules/.bin/") !== -1
-    ? !matches.has(f.replace(/\.cmd$/, "")) // match unix or windows script
+    ? !matches.has(f.replace(/\.(cmd|ps1)$/, "")) // match unix or windows script
     : !matches.has(topLevel(f));
 };
 

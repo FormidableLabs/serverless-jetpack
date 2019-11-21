@@ -9,10 +9,9 @@ custom:
   stage: ${opt:stage, env:STAGE}
 
 plugins:
-  localPath: ../../../plugins
   modules:
     - serverless-offline
-    - wrapper
+    - ../../../plugins/wrapper
 
 provider:
   name: aws

@@ -30,6 +30,9 @@ test/packages/
 ├── complex
 │   ├── npm
 │   └── yarn
+├── dashboard
+│   ├── npm
+│   └── yarn
 ├── huge
 │   ├── npm
 │   └── yarn
@@ -113,6 +116,13 @@ $ yarn test:cli
 ```sh
 $ yarn benchmark
 $ yarn benchmark:test
+```
+
+*Serverless Enterprise*: Unfortunately, these tests require a login account and special `SERVERLESS_ACCESS_KEY` environment variable. The Jetpack project has two active tokens for `localdev` and `ci`. You can enable these and our `dashboard` tests with something like:
+
+```sh
+$ SERVERLESS_ACCESS_KEY="<INSERT_HERE>" yarn benchmark
+$ SERVERLESS_ACCESS_KEY="<INSERT_HERE>" yarn benchmark:test
 ```
 
 ## Before submitting a PR...
