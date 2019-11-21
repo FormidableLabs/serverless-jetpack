@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.7.0
 
 * BUG: Hack a fix to generate wrapper files like `ServerlessEnterprisePlugin` does.
   [#67](https://github.com/FormidableLabs/serverless-jetpack/pull/67)
