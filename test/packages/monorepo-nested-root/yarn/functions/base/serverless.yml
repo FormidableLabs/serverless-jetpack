@@ -1,0 +1,44 @@
+service: serverless-jetpack-monorepo-nested-root
+
+custom:
+  region: ${opt:region, env:AWS_REGION}
+  stage: ${opt:stage, env:STAGE}
+  jetpack:
+    base: ../..
+    preInclude:
+      - "!**" # Start with no directories.
+
+package:
+  individually: true
+  include:
+    # Dependencies
+    - "!**/node_modules/{@*/*,*}/CHANGELOG.md"
+    - "!**/node_modules/{@*/*,*}/HISTORY.md"
+    - "!**/node_modules/{@*/*,*}/LICENSE"
+    - "!**/node_modules/{@*/*,*}/README.md"
+
+plugins:
+  modules:
+    - serverless-offline
+    - ../../../../../plugins/wrapper
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  region: ${self:custom.region}
+  stage: ${self:custom.stage}
+  environment:
+    STAGE: ${self:custom.stage}
+  timeout: 30 # seconds (`300` max)
+  memorySize: 128 # MB value (`1024` default)
+
+functions:
+  base:
+    handler: functions/base/src/base.handler
+    events: # Use a generic proxy to allow Express app to route.
+      - http: ANY /base
+      - http: 'ANY /base/{proxy+}'
+    package:
+      include:
+        - "functions/base/src/**"
+        - "!functions/**/exclude-me.js"
