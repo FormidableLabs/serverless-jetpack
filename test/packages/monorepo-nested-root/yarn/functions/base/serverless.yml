@@ -12,10 +12,10 @@ package:
   individually: true
   include:
     # Dependencies
-    - "!**/node_modules/{@*/*,*}/CHANGELOG.md"
-    - "!**/node_modules/{@*/*,*}/HISTORY.md"
-    - "!**/node_modules/{@*/*,*}/LICENSE"
-    - "!**/node_modules/{@*/*,*}/README.md"
+    - "!{../../,}{**/,}node_modules/{@*/*,*}/CHANGELOG.md"
+    - "!{../../,}{**/,}node_modules/{@*/*,*}/HISTORY.md"
+    - "!{../../,}{**/,}node_modules/{@*/*,*}/LICENSE"
+    - "!{../../,}{**/,}node_modules/{@*/*,*}/README.md"
 
 plugins:
   modules:
