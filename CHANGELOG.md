@@ -1,6 +1,13 @@
 Changes
 =======
 
+## UNRELEASED
+
+
+**Test**
+
+* Add `monorepo-nested-root` test scenario.
+
 ## 0.7.0
 
 * BUG: Hack a fix to generate wrapper files like `ServerlessEnterprisePlugin` does.

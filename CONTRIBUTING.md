@@ -42,6 +42,9 @@ test/packages/
 ├── monorepo
 │   ├── npm
 │   └── yarn
+├── monorepo-nested-root
+│   ├── npm
+│   └── yarn
 ├── simple
 │   ├── npm
 │   └── yarn

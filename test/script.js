@@ -42,6 +42,7 @@ const SCENARIOS = [
   "complex",
   "individually",
   "monorepo",
+  "monorepo-nested-root",
   "webpack",
   "huge"
 ]
@@ -57,7 +58,8 @@ const TIMING_SCENARIOS = new Set([
 
 // Some scenarios are only feasible in Jetpack
 const JETPACK_ONLY_SCENARIOS = new Set([
-  "monorepo"
+  "monorepo",
+  "monorepo-nested-root"
 ]);
 
 // Some scenarios allow failures in executing `serverless`

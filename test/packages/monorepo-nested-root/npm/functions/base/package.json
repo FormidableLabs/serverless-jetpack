@@ -1,0 +1,17 @@
+{
+  "name": "serverless-jetpack-monorepo-nested-root-fn-base",
+  "version": "0.0.1",
+  "description": "An example sls monorepo application.",
+  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
+  "author": "Ryan Roemer <ryan.roemer@formidable.com>",
+  "license": "MIT",
+  "dependencies": {
+    "diff": "^4.0.1",
+    "express": "^4.16.4",
+    "serverless-http": "^1.9.0",
+    "serverless-jetpack-monorepo-nested-root-lib-camel": "^0.0.1"
+  },
+  "devDependencies": {
+    "uuid": "^3.3.2"
+  }
+}

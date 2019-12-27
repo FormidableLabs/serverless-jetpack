@@ -14,7 +14,7 @@ const { TEST_SCENARIO } = process.env;
 const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
 const { MATRIX } = require("./script");
 const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => {
-  if (scenario === "monorepo") {
+  if (["monorepo", "monorepo-nested-root"].includes(scenario)) {
     return false;
   }
   // SFE-only scenarios.
@@ -594,6 +594,11 @@ describe("benchmark", () => {
 
       expect(npmFiles).to.eql(yarnFiles);
     });
+  });
+
+
+  describeScenario("monorepo-nested-roots", () => {
+    it("TODO ADD TESTS FOR monorepo-nested-roots");
   });
 
   describeScenario("complex", () => {
