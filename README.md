@@ -139,6 +139,25 @@ custom:
     # Search for hoisted dependencies to one parent above normal.
     base: ".."
 
+package:
+  # ...
+  include:
+    # **NOTE**: The include patterns now change to allow the underlying
+    # globbing libraries to reach below the working directory to our base,
+    # so patterns should be of the format:
+    # - "!{BASE/,}{**/,}NORMAL_PATTERN"
+    # - "!{BASE/,}{**/,}node_modules/aws-sdk/**"
+    # - "!{BASE/,}{**/,}node_modules/{@*/*,*}/README.md"
+    #
+    # ... here with a BASE of `..` that means:
+    # General
+    - "!{../,}{**/,}.DS_Store"
+    - "!{../,}{**/,}.vscode/**"
+    # Dependencies
+    - "!{../,}{**/,}node_modules/aws-sdk/**"
+    - "!{../,}{**/,}node_modules/{@*/*,*}/CHANGELOG.md"
+    - "!{../,}{**/,}node_modules/{@*/*,*}/README.md"
+
 functions:
   base:
     # ...
