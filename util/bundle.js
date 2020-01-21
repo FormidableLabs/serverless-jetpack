@@ -212,6 +212,8 @@ const createZip = async ({ files, cwd, bundlePath }) => {
           //
           // TODO - IDEA: Do a promise queue of reading files in _in order_
           // and then append them as we go, but in a defined order.
+          // - https://github.com/sindresorhus/p-limit
+          // - https://www.npmjs.com/package/p-queue
           zip.file(path.join(cwd, name), {
             name,
             // TODO: HERE -- not enough. Still getting deploys...
