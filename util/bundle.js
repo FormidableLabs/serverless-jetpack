@@ -11,6 +11,7 @@ const nanomatch = require("nanomatch");
 const { findProdInstalls } = require("inspectdep");
 
 const IS_WIN = process.platform === "win32";
+const EPOCH = new Date(0);
 
 // File helpers
 const stat = promisify(fs.stat);
@@ -199,9 +200,25 @@ const createZip = async ({ files, cwd, bundlePath }) => {
       // (setting file times to epoch, chmod-ing things, etc.) that we don't do
       // here.
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
-      files.forEach((name) => {
-        zip.file(path.join(cwd, name), { name });
-      });
+      files
+        // Sort for deterministic addition to zip file.
+        .sort()
+        // Add each to zip file.
+        .forEach((name) => {
+          // TODO: HERE -- Looks like `zip.file` can be lazy and out-of-order.
+          // Want to switch to `.append()`, but you have to have the file buffer
+          // and not just a name, which means we have to get contents ourself
+          // like serverless does.
+          //
+          // TODO - IDEA: Do a promise queue of reading files in _in order_
+          // and then append them as we go, but in a defined order.
+          zip.file(path.join(cwd, name), {
+            name,
+            // TODO: HERE -- not enough. Still getting deploys...
+            // TODO: Add a `throw` in `nm/sls` after check for deploy hash.
+            date: EPOCH
+          });
+        });
 
       zip.finalize();
     });
