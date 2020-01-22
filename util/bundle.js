@@ -186,6 +186,10 @@ const createZip = async ({ files, cwd, bundlePath }) => {
   files.sort();
 
   // Get all contents.
+  //
+  // TODO(75): Review if this is too memmory-intensive or not performant and
+  // consider a more concurrency-optimized solution.
+  // https://github.com/FormidableLabs/serverless-jetpack/issues/75
   const fileObjs = await Promise.all(files.map(
     (name) => Promise.all([
       readFile(path.join(cwd, name)),
@@ -214,19 +218,18 @@ const createZip = async ({ files, cwd, bundlePath }) => {
       // Serverless framework packages up files individually with various tweaks
       // (setting file times to epoch, chmod-ing things, etc.) that we don't do
       // here.
+      //
+      // We do _some_ of these, including:
+      // - Nuke `mtime` and set it to epoch date.
+      // - Sort and append files in sorted order.
+      //
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
-      // TODO: Update above comment.
-
       fileObjs.forEach(({ name, data, stat: { mode } }) => {
-        // TODO: HERE -- Looks like `zip.file` can be lazy and out-of-order.
-        // Want to switch to `.append()`, but you have to have the file buffer
-        // and not just a name, which means we have to get contents ourself
-        // like serverless does.
+        // We originally did `zip.file` which is more I/O efficient, but doesn't
+        // guarantee order. So we manually read files above in one fell swoop
+        // into memory to insert in deterministic order.
         //
-        // TODO - IDEA:/TICKET Do a promise queue of reading files in _in order_
-        // and then append them as we go, but in a defined order.
-        // - https://github.com/sindresorhus/p-limit
-        // - https://www.npmjs.com/package/p-queue
+        // https://github.com/FormidableLabs/serverless-jetpack/issues/7
         zip.append(data, {
           name,
           mode,
