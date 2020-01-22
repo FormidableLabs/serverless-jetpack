@@ -14,13 +14,14 @@ const IS_WIN = process.platform === "win32";
 const EPOCH = new Date(0);
 
 // File helpers
-const stat = promisify(fs.stat);
-const exists = (filePath) => stat(filePath)
+const readStat = promisify(fs.stat);
+const exists = (filePath) => readStat(filePath)
   .then(() => true)
   .catch((err) => {
     if (err.code === "ENOENT") { return false; }
     throw err;
   });
+const readFile = promisify(fs.readFile);
 
 // Filter list of files like serverless.
 const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
@@ -181,10 +182,24 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
 };
 
 const createZip = async ({ files, cwd, bundlePath }) => {
+  // Sort by name (mutating) to make deterministic.
+  files.sort();
+
+  // Get all contents.
+  const fileObjs = await Promise.all(files.map(
+    (name) => Promise.all([
+      readFile(path.join(cwd, name)),
+      readStat(path.join(cwd, name))
+    ])
+      .then(([data, stat]) => ({ name, data, stat }))
+  ));
+
   // Use Serverless-analogous library + logic to create zipped artifact.
   const zip = archiver.create("zip");
 
   // Ensure full path to bundle exists before opening stream.
+  // **Note**: Make sure all `fs`-related work (like file reading above) is done
+  // before opening calling `fs.createWriteStream`.
   await makeDir(path.dirname(bundlePath));
   const output = fs.createWriteStream(bundlePath);
 
@@ -200,27 +215,24 @@ const createZip = async ({ files, cwd, bundlePath }) => {
       // (setting file times to epoch, chmod-ing things, etc.) that we don't do
       // here.
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
-      files
-        // Sort for deterministic addition to zip file.
-        .sort()
-        // Add each to zip file.
-        .forEach((name) => {
-          // TODO: HERE -- Looks like `zip.file` can be lazy and out-of-order.
-          // Want to switch to `.append()`, but you have to have the file buffer
-          // and not just a name, which means we have to get contents ourself
-          // like serverless does.
-          //
-          // TODO - IDEA: Do a promise queue of reading files in _in order_
-          // and then append them as we go, but in a defined order.
-          // - https://github.com/sindresorhus/p-limit
-          // - https://www.npmjs.com/package/p-queue
-          zip.file(path.join(cwd, name), {
-            name,
-            // TODO: HERE -- not enough. Still getting deploys...
-            // TODO: Add a `throw` in `nm/sls` after check for deploy hash.
-            date: EPOCH
-          });
+      // TODO: Update above comment.
+
+      fileObjs.forEach(({ name, data, stat: { mode } }) => {
+        // TODO: HERE -- Looks like `zip.file` can be lazy and out-of-order.
+        // Want to switch to `.append()`, but you have to have the file buffer
+        // and not just a name, which means we have to get contents ourself
+        // like serverless does.
+        //
+        // TODO - IDEA:/TICKET Do a promise queue of reading files in _in order_
+        // and then append them as we go, but in a defined order.
+        // - https://github.com/sindresorhus/p-limit
+        // - https://www.npmjs.com/package/p-queue
+        zip.append(data, {
+          name,
+          mode,
+          date: EPOCH
         });
+      });
 
       zip.finalize();
     });
