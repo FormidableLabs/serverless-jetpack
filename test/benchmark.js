@@ -484,11 +484,20 @@ describe("benchmark", () => {
       expect(yarnFiles).to.be.ok;
       expect(npmFiles).to.be.ok;
 
+      // Ignore some packages that have double vs. single flattened installation.
+      const IGNORE_PKGS = [
+        "node_modules/http-errors/",
+        "node_modules/safe-buffer/"
+      ];
+
       // Now, normalize file lists before comparing.
-      yarnFiles = yarnFiles.sort();
+      yarnFiles = yarnFiles
+        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
+        .sort();
 
       // This diff dependency is expected to **stay** in place because we test
-      // forcing versions to prevent flattening.
+      // forcing versions to prevent flattening by pinning
+      // `another/package.json` to `"diff": "^3.5.0`
       const NESTED_DIFF = "functions/base/node_modules/diff/";
 
       const NPM_NORMS = {
@@ -499,12 +508,12 @@ describe("benchmark", () => {
           "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
         "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
         "functions/base/node_modules/ms/": "node_modules/debug/node_modules/ms/",
-        // Hoist everything to root (which is what yarn should do), except for
-        // `/diff/` which we've engineered to stay in place...
+        // Hoist everything to root (which is what yarn should do).
         "functions/base/node_modules/": "node_modules/",
         "lib/camel/node_modules/": "node_modules/"
       };
       npmFiles = npmFiles
+        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
         .map((dep) => {
           for (const norm of Object.keys(NPM_NORMS)) {
             if (dep.startsWith(norm) && !dep.startsWith(NESTED_DIFF)) {
@@ -521,8 +530,7 @@ describe("benchmark", () => {
         "functions/base/src/base.js",
         "functions/base/node_modules/diff/package.json",
         "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
-        "node_modules/camelcase/package.json",
-        "node_modules/ms/package.json"
+        "node_modules/camelcase/package.json"
       ].forEach((f) => {
         expect(yarnFiles).to.include(f);
       });
