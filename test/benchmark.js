@@ -258,6 +258,8 @@ const SLS_FALSE_POSITIVES = {
     "node_modules/.bin/needle",
     // $ yarn why node-pre-gyp -> jest#jest-cli#@jest/core#jest-haste-map#fsevents
     "node_modules/.bin/node-pre-gyp",
+    // Likely dev dep.
+    "node_modules/.bin/node-which",
     // $ yarn why nopt -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
     "node_modules/.bin/nopt",
     // $ yarn why raven -> serverless
@@ -348,6 +350,9 @@ const SLS_FALSE_POSITIVES = {
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npm-packlist"
     "node_modules/npm-bundled",
 
+    // Part of node-pre-gyp
+    "node_modules/npm-normalize-package-bin",
+
     // $ yarn why npm-packlist
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
     "node_modules/npm-packlist",
@@ -359,6 +364,9 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why osenv
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
     "node_modules/osenv",
+
+    // Likely dev dep.
+    "node_modules/prop-types/node_modules/.bin/loose-envify",
 
     // $ yarn why tar
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
