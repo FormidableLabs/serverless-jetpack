@@ -18,6 +18,6 @@
   "devDependencies": {
     "lerna": "^3.14.1",
     "serverless": "^1.57.0",
-    "serverless-offline": "^4.2.1"
+    "serverless-offline": "^5.12.1"
   }
 }
