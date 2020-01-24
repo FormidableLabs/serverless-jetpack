@@ -498,8 +498,7 @@ describe("benchmark", () => {
         "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
           "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
         "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-        "functions/base/node_modules/send/node_modules/ms/":
-          "node_modules/debug/node_modules/ms/",
+        "functions/base/node_modules/ms/": "node_modules/debug/node_modules/ms/",
         // Hoist everything to root (which is what yarn should do), except for
         // `/diff/` which we've engineered to stay in place...
         "functions/base/node_modules/": "node_modules/",
@@ -549,8 +548,16 @@ describe("benchmark", () => {
       expect(yarnFiles).to.be.ok;
       expect(npmFiles).to.be.ok;
 
+      // Ignore some packages that have double vs. single flattened installation.
+      const IGNORE_PKGS = [
+        "node_modules/http-errors/",
+        "node_modules/safe-buffer/"
+      ];
+
       // Now, normalize file lists before comparing.
-      yarnFiles = yarnFiles.sort();
+      yarnFiles = yarnFiles
+        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
+        .sort();
 
       const NPM_NORMS = {
         // Just differences in installation.
@@ -560,13 +567,13 @@ describe("benchmark", () => {
         "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
           "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
         "functions/another/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-        "functions/another/node_modules/send/node_modules/ms/":
-          "node_modules/debug/node_modules/ms/",
+        "functions/another/node_modules/ms/": "node_modules/debug/node_modules/ms/",
         // Hoist everything to root (which is what yarn should do) includeing `diff`.
         "functions/another/node_modules/": "node_modules/",
         "lib/camel/node_modules/": "node_modules/"
       };
       npmFiles = npmFiles
+        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
         .map((dep) => {
           for (const norm of Object.keys(NPM_NORMS)) {
             if (dep.startsWith(norm)) {
@@ -583,8 +590,7 @@ describe("benchmark", () => {
         "functions/another/src/base.js",
         "node_modules/diff/package.json",
         "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
-        "node_modules/camelcase/package.json",
-        "node_modules/ms/package.json"
+        "node_modules/camelcase/package.json"
       ].forEach((f) => {
         expect(yarnFiles).to.include(f);
       });
