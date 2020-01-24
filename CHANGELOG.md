@@ -1,6 +1,11 @@
 Changes
 =======
 
+## 0.8.0
+
+* Feature: Make builds deterministic like `serverless` to avoid unneeded re-deploys.
+  [#7](https://github.com/FormidableLabs/serverless-jetpack/pull/7)
+
 ## 0.7.0
 
 * BUG: Hack a fix to generate wrapper files like `ServerlessEnterprisePlugin` does.
