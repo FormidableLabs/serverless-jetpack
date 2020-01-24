@@ -11,15 +11,17 @@ const nanomatch = require("nanomatch");
 const { findProdInstalls } = require("inspectdep");
 
 const IS_WIN = process.platform === "win32";
+const EPOCH = new Date(0);
 
 // File helpers
-const stat = promisify(fs.stat);
-const exists = (filePath) => stat(filePath)
+const readStat = promisify(fs.stat);
+const exists = (filePath) => readStat(filePath)
   .then(() => true)
   .catch((err) => {
     if (err.code === "ENOENT") { return false; }
     throw err;
   });
+const readFile = promisify(fs.readFile);
 
 // Filter list of files like serverless.
 const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
@@ -180,10 +182,28 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
 };
 
 const createZip = async ({ files, cwd, bundlePath }) => {
+  // Sort by name (mutating) to make deterministic.
+  files.sort();
+
+  // Get all contents.
+  //
+  // TODO(75): Review if this is too memmory-intensive or not performant and
+  // consider a more concurrency-optimized solution.
+  // https://github.com/FormidableLabs/serverless-jetpack/issues/75
+  const fileObjs = await Promise.all(files.map(
+    (name) => Promise.all([
+      readFile(path.join(cwd, name)),
+      readStat(path.join(cwd, name))
+    ])
+      .then(([data, stat]) => ({ name, data, stat }))
+  ));
+
   // Use Serverless-analogous library + logic to create zipped artifact.
   const zip = archiver.create("zip");
 
   // Ensure full path to bundle exists before opening stream.
+  // **Note**: Make sure all `fs`-related work (like file reading above) is done
+  // before opening calling `fs.createWriteStream`.
   await makeDir(path.dirname(bundlePath));
   const output = fs.createWriteStream(bundlePath);
 
@@ -198,9 +218,23 @@ const createZip = async ({ files, cwd, bundlePath }) => {
       // Serverless framework packages up files individually with various tweaks
       // (setting file times to epoch, chmod-ing things, etc.) that we don't do
       // here.
+      //
+      // We do _some_ of these, including:
+      // - Nuke `mtime` and set it to epoch date.
+      // - Sort and append files in sorted order.
+      //
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
-      files.forEach((name) => {
-        zip.file(path.join(cwd, name), { name });
+      fileObjs.forEach(({ name, data, stat: { mode } }) => {
+        // We originally did `zip.file` which is more I/O efficient, but doesn't
+        // guarantee order. So we manually read files above in one fell swoop
+        // into memory to insert in deterministic order.
+        //
+        // https://github.com/FormidableLabs/serverless-jetpack/issues/7
+        zip.append(data, {
+          name,
+          mode,
+          date: EPOCH
+        });
       });
 
       zip.finalize();
