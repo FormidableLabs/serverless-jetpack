@@ -86,22 +86,14 @@ const resolveFilePathsFromPatterns = async ({
     // ... then normal include like serverless does.
     .concat(include || []);
 
-  // Decide if using stats option or not.
-  //
-  // In tests, `mock-fs` requires it _and_ it changes the signature of the
-  // method, so capture it here with FAST_GLOB_STATS.
-  // https://github.com/FormidableLabs/serverless-jetpack/issues/56
-  const stats = process.env.FAST_GLOB_STATS === "true";
-
   // Read files from disk matching include patterns.
-  const files = (await globby(globInclude, {
+  const files = await globby(globInclude, {
     cwd,
     dot: true,
     silent: true,
     follow: true,
-    nodir: true,
-    stats
-  })).map((obj) => stats ? obj.path : obj);
+    nodir: true
+  });
 
   // ==========================================================================
   // **Phase Two** (`nanomatch()`): Filter list of files.
