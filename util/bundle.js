@@ -92,7 +92,8 @@ const resolveFilePathsFromPatterns = async ({
   // method, so capture it here with FAST_GLOB_STATS.
   // https://github.com/FormidableLabs/serverless-jetpack/issues/56
   //
-  // Separately, seems that AppVeyor is getting no file matches without stats.
+  // Separately, seems that AppVeyor is getting no file matches without stats
+  // and running really, really slowly.
   // https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack/builds/30348328?fullLog=true
   const stats = IS_WIN || process.env.FAST_GLOB_STATS === "true";
 
