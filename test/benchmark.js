@@ -89,6 +89,14 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/yaml2json",
   "node_modules/.bin/json2yaml",
 
+  // Even more .bin's...
+  "node_modules/.bin/autoprefixer",
+  "node_modules/.bin/css-blank-pseudo",
+  "node_modules/.bin/css-has-pseudo",
+  "node_modules/.bin/css-prefers-color-scheme",
+  "node_modules/.bin/cssesc",
+  "node_modules/.bin/msgpack",
+
   // Not exactly sure why, but consistently getting:
   // `node_modules/bin/<NAME>.ps1` extras. Just ignore.
   "node_modules/.bin/mime",
