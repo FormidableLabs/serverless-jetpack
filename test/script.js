@@ -3,7 +3,7 @@
 const os = require("os");
 const path = require("path");
 const { log } = console;
-const { default: PQueue } = require("p-queue");
+const { "default": PQueue } = require("p-queue");
 const chalk = require("chalk");
 const { gray } = chalk;
 const execa = require("execa");
