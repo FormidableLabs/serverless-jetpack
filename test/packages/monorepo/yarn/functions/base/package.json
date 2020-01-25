@@ -6,9 +6,9 @@
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "dependencies": {
-    "diff": "^4.0.1",
+    "diff": "^4.0.2",
     "express": "^4.16.4",
-    "serverless-http": "^1.9.0",
+    "serverless-http": "^2.3.0",
     "serverless-jetpack-monorepo-lib-camel": "^0.0.1"
   },
   "devDependencies": {

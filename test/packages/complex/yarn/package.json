@@ -8,11 +8,11 @@
   "dependencies": {
     "aws-sdk": "^2.499.0",
     "express": "^4.16.4",
-    "serverless-http": "^1.9.0"
+    "serverless-http": "^2.3.0"
   },
   "devDependencies": {
     "serverless": "^1.57.0",
-    "serverless-offline": "^4.2.1"
+    "serverless-offline": "^5.12.1"
   },
   "scripts": {
     "postinstall": "node postinstall.js"

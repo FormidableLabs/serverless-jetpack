@@ -9,6 +9,10 @@ package:
     - "!**/yarn.lock"
     - "!**/package-lock.json"
     # Dependencies
+    # uuid is a potentially flattened dep of `aws-sdk` that we don't need
+    # to provide because `aws-sdk` will have it internally in Lambda
+    - "!**/node_modules/.bin/uuid"
+    - "!**/node_modules/uuid/**"
     - "!**/node_modules/aws-sdk/**"
     - "!**/node_modules/{@*/*,*}/CHANGELOG.md"
     - "!**/node_modules/{@*/*,*}/HISTORY.md"

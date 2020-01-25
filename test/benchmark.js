@@ -89,6 +89,14 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/yaml2json",
   "node_modules/.bin/json2yaml",
 
+  // Even more .bin's...
+  "node_modules/.bin/autoprefixer",
+  "node_modules/.bin/css-blank-pseudo",
+  "node_modules/.bin/css-has-pseudo",
+  "node_modules/.bin/css-prefers-color-scheme",
+  "node_modules/.bin/cssesc",
+  "node_modules/.bin/msgpack",
+
   // Not exactly sure why, but consistently getting:
   // `node_modules/bin/<NAME>.ps1` extras. Just ignore.
   "node_modules/.bin/mime",
@@ -258,6 +266,8 @@ const SLS_FALSE_POSITIVES = {
     "node_modules/.bin/needle",
     // $ yarn why node-pre-gyp -> jest#jest-cli#@jest/core#jest-haste-map#fsevents
     "node_modules/.bin/node-pre-gyp",
+    // Likely dev dep.
+    "node_modules/.bin/node-which",
     // $ yarn why nopt -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
     "node_modules/.bin/nopt",
     // $ yarn why raven -> serverless
@@ -348,6 +358,9 @@ const SLS_FALSE_POSITIVES = {
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npm-packlist"
     "node_modules/npm-bundled",
 
+    // Part of node-pre-gyp
+    "node_modules/npm-normalize-package-bin",
+
     // $ yarn why npm-packlist
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
     "node_modules/npm-packlist",
@@ -359,6 +372,9 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why osenv
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
     "node_modules/osenv",
+
+    // Likely dev dep.
+    "node_modules/prop-types/node_modules/.bin/loose-envify",
 
     // $ yarn why tar
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
@@ -476,11 +492,20 @@ describe("benchmark", () => {
       expect(yarnFiles).to.be.ok;
       expect(npmFiles).to.be.ok;
 
+      // Ignore some packages that have double vs. single flattened installation.
+      const IGNORE_PKGS = [
+        "node_modules/http-errors/",
+        "node_modules/safe-buffer/"
+      ];
+
       // Now, normalize file lists before comparing.
-      yarnFiles = yarnFiles.sort();
+      yarnFiles = yarnFiles
+        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
+        .sort();
 
       // This diff dependency is expected to **stay** in place because we test
-      // forcing versions to prevent flattening.
+      // forcing versions to prevent flattening by pinning
+      // `another/package.json` to `"diff": "^3.5.0`
       const NESTED_DIFF = "functions/base/node_modules/diff/";
 
       const NPM_NORMS = {
@@ -490,14 +515,13 @@ describe("benchmark", () => {
         "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
           "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
         "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-        "functions/base/node_modules/send/node_modules/ms/":
-          "node_modules/debug/node_modules/ms/",
-        // Hoist everything to root (which is what yarn should do), except for
-        // `/diff/` which we've engineered to stay in place...
+        "functions/base/node_modules/ms/": "node_modules/debug/node_modules/ms/",
+        // Hoist everything to root (which is what yarn should do).
         "functions/base/node_modules/": "node_modules/",
         "lib/camel/node_modules/": "node_modules/"
       };
       npmFiles = npmFiles
+        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
         .map((dep) => {
           for (const norm of Object.keys(NPM_NORMS)) {
             if (dep.startsWith(norm) && !dep.startsWith(NESTED_DIFF)) {
@@ -514,8 +538,7 @@ describe("benchmark", () => {
         "functions/base/src/base.js",
         "functions/base/node_modules/diff/package.json",
         "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
-        "node_modules/camelcase/package.json",
-        "node_modules/ms/package.json"
+        "node_modules/camelcase/package.json"
       ].forEach((f) => {
         expect(yarnFiles).to.include(f);
       });
@@ -541,8 +564,16 @@ describe("benchmark", () => {
       expect(yarnFiles).to.be.ok;
       expect(npmFiles).to.be.ok;
 
+      // Ignore some packages that have double vs. single flattened installation.
+      const IGNORE_PKGS = [
+        "node_modules/http-errors/",
+        "node_modules/safe-buffer/"
+      ];
+
       // Now, normalize file lists before comparing.
-      yarnFiles = yarnFiles.sort();
+      yarnFiles = yarnFiles
+        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
+        .sort();
 
       const NPM_NORMS = {
         // Just differences in installation.
@@ -552,13 +583,13 @@ describe("benchmark", () => {
         "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
           "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
         "functions/another/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-        "functions/another/node_modules/send/node_modules/ms/":
-          "node_modules/debug/node_modules/ms/",
+        "functions/another/node_modules/ms/": "node_modules/debug/node_modules/ms/",
         // Hoist everything to root (which is what yarn should do) includeing `diff`.
         "functions/another/node_modules/": "node_modules/",
         "lib/camel/node_modules/": "node_modules/"
       };
       npmFiles = npmFiles
+        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
         .map((dep) => {
           for (const norm of Object.keys(NPM_NORMS)) {
             if (dep.startsWith(norm)) {
@@ -575,8 +606,7 @@ describe("benchmark", () => {
         "functions/another/src/base.js",
         "node_modules/diff/package.json",
         "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
-        "node_modules/camelcase/package.json",
-        "node_modules/ms/package.json"
+        "node_modules/camelcase/package.json"
       ].forEach((f) => {
         expect(yarnFiles).to.include(f);
       });
