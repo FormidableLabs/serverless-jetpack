@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "archiver": "^3.1.1",
-    "globby": "^9.2.0",
+    "globby": "^11.0.0",
     "inspectdep": "^0.2.0",
     "jest-worker": "^25.1.0",
     "make-dir": "^3.0.0",

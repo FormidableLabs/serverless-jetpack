@@ -1,6 +1,11 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Upgrade production dependencies (`globby`, `jest-worker`, and other minor/patches).
+  [#80](https://github.com/FormidableLabs/serverless-jetpack/pull/80)
+
 ## 0.8.0
 
 * Feature: Make builds deterministic like `serverless` to avoid unneeded re-deploys.

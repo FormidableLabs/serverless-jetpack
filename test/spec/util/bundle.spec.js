@@ -7,6 +7,13 @@
 
 const mock = require("mock-fs");
 
+// Convert globby to old-node compatible calls for testing only.
+//
+// Our tracking ticket: https://github.com/FormidableLabs/serverless-jetpack/issues/56
+// See: https://github.com/tschaub/mock-fs/issues/272
+// Waiting on https://github.com/tschaub/mock-fs/pull/287 release
+process.env.FAST_GLOB_STATS = "true";
+
 const Jetpack = require("../../..");
 const { resolveFilePathsFromPatterns } = require("../../../util/bundle");
 const packageService = require("serverless/lib/plugins/package/lib/packageService");
