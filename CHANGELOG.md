@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.8.1
 
 * Upgrade production dependencies (`jest-worker`, and other minor/patches).
   [#80](https://github.com/FormidableLabs/serverless-jetpack/pull/80)
