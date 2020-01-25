@@ -25,8 +25,8 @@ install:
 script:
   - yarn --version
   - yarn run check
-  - yarn test:cli
   - yarn benchmark:build
   - yarn benchmark:install
+  - yarn test:cli
   - TEST_PARALLEL=true yarn benchmark
   - yarn benchmark:test
