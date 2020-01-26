@@ -3,18 +3,28 @@ version: 2.1
 orbs:
   node: circleci/node@1.1
 
+build: &build
+  steps:
+    - checkout
+
+    - node/with-cache:
+        steps:
+          - run: yarn install --frozen-lockfile
+
+    - run: node --version
+    - run: pwd
+
 jobs:
-  build:
+  build-node-10:
     executor:
       name: node/default
       tag: '10'
 
-    steps:
-      - checkout
+    <<: *build
 
-      - node/with-cache:
-          steps:
-            - run: yarn install --frozen-lockfile
-
-      - run: node --version
-      - run: pwd
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test
