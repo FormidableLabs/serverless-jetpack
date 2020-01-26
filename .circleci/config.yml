@@ -21,7 +21,7 @@ build: &build
         paths:
         # Root
         - ~/project/node_modules
-        # Fixtures: regenerate with:
+        # Fixtures: We have to custom list each fixture directory. Suggestion:
         # ```
         # $ find test/packages/*/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
         # ```
@@ -47,12 +47,10 @@ build: &build
     - run: node -e 'const { arch, env } = process; console.log(JSON.stringify({ arch, env }, null, 2));'
 
     # Build
-    # TODO: REENABLE.
-    # - run: yarn run check
-    # TODO REMOVE - run: yarn benchmark:install
-    # - run: yarn test:cli
-    # - run: yarn benchmark --parallel
-    # - run: yarn benchmark:test
+    - run: yarn run check
+    - run: yarn test:cli
+    - run: yarn benchmark --parallel
+    - run: yarn benchmark:test
 
 jobs:
   build-linux-node-10:
