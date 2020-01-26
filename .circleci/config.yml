@@ -16,15 +16,13 @@ build: &build
 
 jobs:
   build-node-10:
+    <<: *build
     executor:
       name: node/default
       tag: '10'
 
-    <<: *build
-
 workflows:
   version: 2
-  build_and_test:
+  builds:
     jobs:
-      - build
-      - test
+      - build-node-10
