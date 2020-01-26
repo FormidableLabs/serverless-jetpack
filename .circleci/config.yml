@@ -21,8 +21,22 @@ jobs:
       name: node/default
       tag: '10'
 
+  build-node-12:
+    <<: *build
+    executor:
+      name: node/default
+      tag: '12'
+
+  build-node-13:
+    <<: *build
+    executor:
+      name: node/default
+      tag: '13'
+
 workflows:
   version: 2
   builds:
     jobs:
       - build-node-10
+      - build-node-12
+      - build-node-13
