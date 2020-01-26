@@ -11,15 +11,16 @@ build: &build
     - node/with-cache:
         steps:
           - run: yarn install --frozen-lockfile
+          - run: yarn benchmark:install
 
+    # Info
     - run: node --version
     - run: yarn --version
     - run: npm --version
     - run: node -e 'const { arch, env } = process; console.log(JSON.stringify({ arch, env }, null, 2));'
-    - run: yarn --version
+
+    # BUild
     - run: yarn run check
-    - run: yarn benchmark:build
-    - run: yarn benchmark:install
     - run: yarn test:cli
     - run: yarn benchmark --parallel
     - run: yarn benchmark:test
@@ -43,7 +44,7 @@ jobs:
       name: node/default
       tag: '13'
 
-  build-win-TODO-VERSION:
+  build-win-node-stable:
     <<: *build
     executor:
       name: win/default
@@ -55,4 +56,4 @@ workflows:
       - build-linux-node-10
       - build-linux-node-12
       - build-linux-node-13
-      - build-win-TODO-VERSION
+      - build-win-node-stable
