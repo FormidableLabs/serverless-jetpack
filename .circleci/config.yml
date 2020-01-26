@@ -11,7 +11,6 @@ build: &build
     - node/with-cache:
         steps:
           - run: yarn install --frozen-lockfile
-          - run: yarn benchmark:install
 
     # Info
     - run: node --version
@@ -21,6 +20,7 @@ build: &build
 
     # BUild
     - run: yarn run check
+    - run: yarn benchmark:install
     - run: yarn test:cli
     - run: yarn benchmark --parallel
     - run: yarn benchmark:test
