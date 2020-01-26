@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   node: circleci/node@1.1
+  win: circleci/windows@2.2.0
 
 build: &build
   steps:
@@ -12,31 +13,39 @@ build: &build
           - run: yarn install --frozen-lockfile
 
     - run: node --version
-    - run: pwd
+    - run: yarn --version
+    - run: npm --version
+    - run: node -e 'const { arch, env } = process; console.log(JSON.stringify({ arch, env }, null, 2));'
 
 jobs:
-  build-node-10:
+  build-linux-node-10:
     <<: *build
     executor:
       name: node/default
       tag: '10'
 
-  build-node-12:
+  build-linux-node-12:
     <<: *build
     executor:
       name: node/default
       tag: '12'
 
-  build-node-13:
+  build-linux-node-13:
     <<: *build
     executor:
       name: node/default
       tag: '13'
 
+  build-win-TODO-VERSION:
+    <<: *build
+    executor:
+      name: win/default
+
 workflows:
   version: 2
   builds:
     jobs:
-      - build-node-10
-      - build-node-12
-      - build-node-13
+      - build-linux-node-10
+      - build-linux-node-12
+      - build-linux-node-13
+      - build-win-TODO-VERSION
