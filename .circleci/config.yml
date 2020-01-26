@@ -4,26 +4,20 @@ orbs:
   node: circleci/node@1.1
   win: circleci/windows@2.2.0
 
-parameters:
-  cache-version:
-    default: v1
-    type: string
-
 build: &build
   steps:
     - checkout
 
     # Custom caching for dependencies for `test/packages/*/*/node_modules`.
     - restore_cache:
-      keys:
-      - node-deps-<<parameters.cache-version>>-{{ .Branch }}-{{ checksum "yarn.lock" }}
+        key: node-deps-v1-{{ arch }}-{{ checksum "yarn.lock" }}
 
     - run: yarn install --frozen-lockfile
 
     - save_cache:
-      key: node-deps-<<parameters.cache-version>>-{{ .Branch }}-{{ checksum "yarn.lock" }}
-      paths:
-      - ~/project/node_modules
+        key: node-deps-v1-{{ arch }}-{{ checksum "yarn.lock" }}
+        paths:
+        - ~/project/node_modules
 
     # Info
     - run: node --version
