@@ -9,15 +9,36 @@ build: &build
     - checkout
 
     # Custom caching for dependencies for `test/packages/*/*/node_modules`.
+    - run: yarn concat-locks
     - restore_cache:
-        key: node-deps-v1-{{ arch }}-{{ checksum "yarn.lock" }}
+        key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
 
     - run: yarn install --frozen-lockfile
+    - run: yarn benchmark:install
 
     - save_cache:
-        key: node-deps-v1-{{ arch }}-{{ checksum "yarn.lock" }}
+        key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
         paths:
+        # Root
         - ~/project/node_modules
+        # Fixtures: regenerate with:
+        # ```
+        # $ find test/packages/*/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
+        # ```
+        - ~/project/test/packages/complex/npm/node_modules
+        - ~/project/test/packages/complex/yarn/node_modules
+        - ~/project/test/packages/dashboard/npm/node_modules
+        - ~/project/test/packages/dashboard/yarn/node_modules
+        - ~/project/test/packages/huge/npm/node_modules
+        - ~/project/test/packages/huge/yarn/node_modules
+        - ~/project/test/packages/individually/npm/node_modules
+        - ~/project/test/packages/individually/yarn/node_modules
+        - ~/project/test/packages/monorepo/npm/node_modules
+        - ~/project/test/packages/monorepo/yarn/node_modules
+        - ~/project/test/packages/simple/npm/node_modules
+        - ~/project/test/packages/simple/yarn/node_modules
+        - ~/project/test/packages/webpack/npm/node_modules
+        - ~/project/test/packages/webpack/yarn/node_modules
 
     # Info
     - run: node --version
@@ -28,7 +49,7 @@ build: &build
     # Build
     # TODO: REENABLE.
     # - run: yarn run check
-    # - run: yarn benchmark:install
+    # TODO REMOVE - run: yarn benchmark:install
     # - run: yarn test:cli
     # - run: yarn benchmark --parallel
     # - run: yarn benchmark:test

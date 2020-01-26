@@ -28,6 +28,7 @@
     "test:spec": "mocha test/spec",
     "lint": "eslint .",
     "test": "yarn test:spec",
+    "concat-locks": "node scripts/concat-locks.js",
     "check:git-dirty": "test -z \"$(git status --porcelain)\" || (echo \"ERROR: Found git dirty files:\n$(git status --porcelain)\" && exit 1)",
     "check": "yarn lint && yarn test:spec"
   },
