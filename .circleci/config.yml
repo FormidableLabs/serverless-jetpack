@@ -16,6 +16,13 @@ build: &build
     - run: yarn --version
     - run: npm --version
     - run: node -e 'const { arch, env } = process; console.log(JSON.stringify({ arch, env }, null, 2));'
+    - run: yarn --version
+    - run: yarn run check
+    - run: yarn benchmark:build
+    - run: yarn benchmark:install
+    - run: yarn test:cli
+    - run: yarn benchmark --parallel
+    - run: yarn benchmark:test
 
 jobs:
   build-linux-node-10:

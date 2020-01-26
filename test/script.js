@@ -14,7 +14,7 @@ const strip = require("strip-ansi");
 const del = require("del");
 
 const { TEST_MODE, TEST_SCENARIO, TEST_PARALLEL } = process.env;
-const IS_PARALLEL = TEST_PARALLEL === "true";
+let IS_PARALLEL = TEST_PARALLEL === "true";
 const IS_WIN = process.platform === "win32";
 const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
@@ -307,6 +307,9 @@ module.exports = {
 };
 
 if (require.main === module) {
+  // Allow CLI setting for parallel.
+  IS_PARALLEL = IS_PARALLEL || process.argv.includes("--parallel");
+
   main().catch((err) => {
     log(err);
     process.exit(1); // eslint-disable-line no-process-exit
