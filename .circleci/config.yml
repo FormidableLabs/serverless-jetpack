@@ -8,13 +8,22 @@ build: &build
   steps:
     - checkout
 
-    # Custom caching for dependencies for `test/packages/*/*/node_modules`.
+    # Custom caching for dependencies for the root project and lots of nested
+    # ones in `test/packages/*/*/node_modules`. Especially on windows, this
+    # bespoke packaging approach can be super, duper slow.
+    #
+    # We first concatenate all `yarn.lock` and `package-lock.json` files into
+    # a single file, and then hash that as part of the cache key. We then store
+    # all the various `node_modules` directories everywhere in the cache.
     - run: yarn concat-locks
     - restore_cache:
         key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
 
+    # Always do the `yarn install`, even if have `node_modules` from cache.
     - run: yarn install --frozen-lockfile
-    - run: yarn benchmark:install
+    # Detect if `test/packages/*/*/node_modules` exists in any form and skip
+    # installs on a per-directory basis.
+    - run: yarn benchmark:install --skip-if-exists
 
     - save_cache:
         key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
@@ -49,7 +58,8 @@ build: &build
     # Build
     - run: yarn run check
     - run: yarn test:cli
-    - run: yarn benchmark --parallel
+    # TODO: TEST THIS ENABLED AGAIN - run: yarn benchmark --parallel
+    - run: yarn benchmark
     - run: yarn benchmark:test
 
 jobs:

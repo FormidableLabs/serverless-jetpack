@@ -1,21 +1,15 @@
 "use strict";
 
 const path = require("path");
-const { remove, stat } = require("fs-extra");
+const { remove } = require("fs-extra");
 const execa = require("execa");
+const { exists } = require("../../util/bundle");
 
 // Constants.
 // We're doing real builds, so these tests are **slow** (particularly on Win).
 const TIMEOUT = 60000;
 
 // Helpers.
-const exists = (filePath) => stat(filePath)
-  .then(() => true)
-  .catch((err) => {
-    if (err.code === "ENOENT") { return false; }
-    throw err;
-  });
-
 const IS_WIN = process.platform === "win32";
 const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 const sls = (args, opts) => execa(SLS_CMD, args, {

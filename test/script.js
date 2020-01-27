@@ -12,6 +12,7 @@ const fs = require("fs-extra");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
 const del = require("del");
+const { exists } = require("../util/bundle");
 
 const { TEST_MODE, TEST_SCENARIO, TEST_PARALLEL } = process.env;
 let IS_PARALLEL = TEST_PARALLEL === "true";
@@ -130,12 +131,18 @@ const build = async () => {
   }
 };
 
-const install = async () => {
+const install = async ({ skipIfExists }) => {
   for (const { scenario, mode } of MATRIX) {
+    const cwd = path.resolve(`test/packages/${scenario}/${mode}`);
     const execOpts = {
-      cwd: path.resolve(`test/packages/${scenario}/${mode}`),
+      cwd,
       stdio: "inherit"
     };
+
+    if (skipIfExists && await exists(path.resolve(cwd, "node_modules"))) {
+      log(chalk `{cyan ${scenario}/${mode}}: Found existing node_modules. {yellow Skipping}`);
+      continue;
+    }
 
     log(chalk `{cyan ${scenario}/${mode}}: Installing`);
     await execMode(mode, ["install", "--no-progress"], execOpts);
@@ -294,12 +301,17 @@ const main = async () => {
     benchmark
   };
 
+  const argsList = process.argv.slice(3); // eslint-disable-line no-magic-numbers
+  const args = {
+    skipIfExists: argsList.includes("--skip-if-exists")
+  };
+
   const action = actions[actionStr];
   if (!action) {
     throw new Error(`Invalid action: ${actionStr}`);
   }
 
-  return action();
+  return action(args);
 };
 
 module.exports = {
