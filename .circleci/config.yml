@@ -100,4 +100,4 @@ workflows:
       - build-linux-node-10
       - build-linux-node-12
       - build-linux-node-13
-      - build-win-node-stable
+      # TODO: - build-win-node-stable
