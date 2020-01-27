@@ -33,6 +33,7 @@ build: &build
         # Fixtures: We have to custom list each fixture directory. Suggestion:
         # ```
         # $ find test/packages/*/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
+        # $ find test/packages/*/*/{lib,functions,layers/with-deps}/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
         # ```
         - ~/project/test/packages/complex/npm/node_modules
         - ~/project/test/packages/complex/yarn/node_modules
@@ -48,6 +49,12 @@ build: &build
         - ~/project/test/packages/simple/yarn/node_modules
         - ~/project/test/packages/webpack/npm/node_modules
         - ~/project/test/packages/webpack/yarn/node_modules
+        - ~/project/test/packages/complex/npm/layers/with-deps/nodejs/node_modules
+        - ~/project/test/packages/complex/yarn/layers/with-deps/nodejs/node_modules
+        - ~/project/test/packages/monorepo/npm/functions/another/node_modules
+        - ~/project/test/packages/monorepo/npm/functions/base/node_modules
+        - ~/project/test/packages/monorepo/npm/lib/camel/node_modules
+        - ~/project/test/packages/monorepo/yarn/functions/base/node_modules
 
     # Info
     - run: node --version
@@ -58,8 +65,7 @@ build: &build
     # Build
     - run: yarn run check
     - run: yarn test:cli
-    # TODO: TEST THIS ENABLED AGAIN - run: yarn benchmark --parallel
-    - run: yarn benchmark
+    - run: yarn benchmark --parallel
     - run: yarn benchmark:test
 
 jobs:

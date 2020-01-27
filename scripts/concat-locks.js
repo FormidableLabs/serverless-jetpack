@@ -20,6 +20,7 @@ const DEST = path.resolve(__dirname, "../all-lock-files.txt");
 //
 // ```sh
 // $ ls test/packages/*/*/{yarn.lock,package-lock.json} | cat | sort
+// $ ls test/packages/*/*/{lib,functions,layers/with-deps}/*/package-lock.json | cat | sort
 // ```
 const LOCK_FILES = [
   // Project root.
@@ -38,7 +39,11 @@ const LOCK_FILES = [
   "test/packages/simple/npm/package-lock.json",
   "test/packages/simple/yarn/yarn.lock",
   "test/packages/webpack/npm/package-lock.json",
-  "test/packages/webpack/yarn/yarn.lock"
+  "test/packages/webpack/yarn/yarn.lock",
+  "test/packages/complex/npm/layers/with-deps/nodejs/package-lock.json",
+  "test/packages/monorepo/npm/functions/another/package-lock.json",
+  "test/packages/monorepo/npm/functions/base/package-lock.json",
+  "test/packages/monorepo/npm/lib/camel/package-lock.json"
 ];
 
 const main = async () => {
