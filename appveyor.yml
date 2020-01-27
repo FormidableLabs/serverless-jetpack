@@ -26,7 +26,6 @@ test_script:
   - node --version
   - yarn --version
   - npm --version
-  - node -e 'const { arch, env } = process; console.log(JSON.stringify({ arch, env }, null, 2));'
 
   # Build
   - yarn run check
