@@ -87,10 +87,11 @@ jobs:
       name: node/default
       tag: '13'
 
-  build-win-node-stable:
-    <<: *build
-    executor:
-      name: win/default
+  # TODO: Out of windows OSS credits
+  # build-win-node-stable:
+  #   <<: *build
+  #   executor:
+  #     name: win/default
 
 workflows:
   version: 2
