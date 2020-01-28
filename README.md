@@ -4,6 +4,7 @@ Serverless Jetpack 🚀
 [![CircleCI status][circle_img]][circle_site]
 [![AppVeyor status][appveyor_img]][appveyor_site]
 [![MIT license][lic_img]][lic_site]
+[![Maintenance Status][maintenance-image]](#maintenance-status)
 
 A faster JavaScript packager for [Serverless][] applications.
 
@@ -280,6 +281,15 @@ This ends up being way faster in most cases, and particularly when you have very
 
 ### Complexities
 
+#### Other Serverless plugins that set `package.artifact`
+
+The `serverless-jetpack` plugin hooks into the Serverless packaging lifecycle by being the [last](https://github.com/FormidableLabs/serverless-jetpack/pull/68#issuecomment-556987101) function run in the `before:package:createDeploymentArtifacts` lifecycle event. This means that if a user configures `package.artifact` directly in their Serverless configuration or another plugin sets `package.artifact` before Jetpack runs then Jetpack will skip the unit of packaging (service, function, layer, etc.).
+
+Some notable plugins that **do** set `package.artifact` and thus don't need and won't use Jetpack (or vanilla Serverless packaging for that matter):
+
+- [`serverless-plugin-typescript`](https://github.com/prisma-labs/serverless-plugin-typescript): See [#74](https://github.com/FormidableLabs/serverless-jetpack/issues/74)
+- [`serverless-webpack`](https://github.com/serverless-heaven/serverless-webpack): See, e.g. [`packageModules.js`](https://github.com/serverless-heaven/serverless-webpack/blob/21393845fb173a6f806b0bc2bee0be7daf0adc86/lib/packageModules.js#L11-L24)
+
 #### Minor differences vs. Serverless globbing
 
 Our [benchmark correctness tests](./test/benchmark.js) highlight a number of various files not included by Jetpack that are included by `serverless` in packaging our benchmark scenarios. Some of these are things like `node_modules/.yarn-integrity` which Jetpack knowingly ignores because you shouldn't need it. All of the others we've discovered to date are instances in which `serverless` incorrectly includes `devDependencies`...
@@ -376,6 +386,10 @@ Results:
 | huge         | npm  | jetpack  |  3426 | **-88.46 %** |
 | huge         | npm  | baseline | 29684 |              |
 
+## Maintenance Status
+
+**Active:** Formidable is actively working on this project, and we expect to continue for work for the foreseeable future. Bug reports, feature requests and pull requests are welcome.
+
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/
 [yarn workspaces]: https://yarnpkg.com/lang/en/docs/workspaces/
@@ -385,9 +399,10 @@ Results:
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
-[circle_img]: https://circleci.com/gh/FormidableLabs/serverless-jetpack.svg?style=svg
+[circle_img]: https://circleci.com/gh/FormidableLabs/serverless-jetpack.svg?style=shield
 [circle_site]: https://circleci.com/gh/FormidableLabs/serverless-jetpack
 [appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
 [appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
 [lic_img]: https://img.shields.io/npm/l/serverless-jetpack.svg?color=brightgreen&style=flat
 [lic_site]: https://github.com/FormidableLabs/serverless-jetpack/blob/master/LICENSE.txt
+[maintenance-image]: https://img.shields.io/badge/maintenance-active-brightgreen.svg
