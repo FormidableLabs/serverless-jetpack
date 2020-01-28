@@ -4,6 +4,7 @@ const os = require("os");
 const path = require("path");
 const { log } = console;
 const { "default": PQueue } = require("p-queue");
+const pLimit = require("p-limit");
 const chalk = require("chalk");
 const { gray } = chalk;
 const execa = require("execa");
@@ -177,8 +178,13 @@ const benchmark = async () => {
   const archiveRoot = path.join(__dirname, "../.test-zips");
   await fs.mkdirp(archiveRoot);
 
+  // Create max limit on concurrency.
+  const numCpus = os.cpus().length;
+  const concurrency = IS_PARALLEL ? numCpus : 1;
+  const limit = pLimit(concurrency);
+
   // Execute scenarios in parallel for scenario + mode.
-  h2(chalk `Packaging Scenarios`);
+  h2(chalk `Packaging Scenarios: {gray ${JSON.stringify({ concurrency, numCpus })}}`);
   const queues = {};
   const results = {};
   await Promise.all(matrix
@@ -186,14 +192,12 @@ const benchmark = async () => {
       // Environment for combination.
       const cwd = path.resolve(`test/packages/${scenario}/${mode}`);
       const logTask = _logTask({ scenario, mode });
-
-      // Use only _one_ concurrency = 1 queue if not parallel.
-      const key = IS_PARALLEL ? `${scenario}/${mode}` : "all";
+      const key = `${scenario}/${mode}`;
       queues[key] = queues[key] || new PQueue({ concurrency: 1 });
 
       logTask("[task:queued]");
       // eslint-disable-next-line max-statements
-      return queues[key].add(async () => {
+      return queues[key].add(() => limit(async () => {
         logTask("[task:start]");
 
         // Timing convenience wrapper.
@@ -267,7 +271,7 @@ const benchmark = async () => {
           pluginRow,
           baselineTime ? [scenario, mode, "baseline", baselineTime, ""] : null
         ].filter(Boolean));
-      });
+      }));
     })
   );
 
