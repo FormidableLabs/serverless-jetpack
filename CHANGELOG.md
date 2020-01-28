@@ -1,6 +1,10 @@
 Changes
 =======
 
+## UNRELEASE
+
+* Infra: Add CircleCI.
+
 ## 0.8.1
 
 * Upgrade production dependencies (`jest-worker`, and other minor/patches).

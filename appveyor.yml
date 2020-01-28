@@ -5,34 +5,82 @@ environment:
     - nodejs_version: "12"
     # - nodejs_version: "13"
 
+matrix:
+  fast_finish: true
+
 branches:
   only:
     - master
 
 install:
   - ps: Install-Product node $env:nodejs_version
-  # Get a more modern yarn.
-  - npm install --global yarn@latest cross-env
   # Fail if lockfile outdated.
   # https://yarnpkg.com/lang/en/docs/cli/install/#toc-yarn-install-frozen-lockfile
   - yarn install --frozen-lockfile
+  # Detect if `test/packages/*/*/node_modules` exists in any form and skip
+  # installs on a per-directory basis.
+  - yarn benchmark:install --skip-if-exists
 
 test_script:
+  # Info
+  - node --version
   - yarn --version
+  - npm --version
+
+  # Build
   - yarn run check
-  - yarn benchmark:build
-  - yarn benchmark:install
   - yarn test:cli
-  - cross-env TEST_PARALLEL=true yarn benchmark
+  - yarn benchmark --parallel
   - yarn benchmark:test
 
 # Don't actually build.
 build: off
 
-matrix:
-  fast_finish: true
-
+# Note: Enable `Save build cache in Pull Requests` in settings to get PR cache.
+# See: https://www.appveyor.com/docs/build-cache/
 cache:
- - node_modules
- - "%LOCALAPPDATA%/Yarn"
- - '%APPDATA%\npm-cache'
+  # Root project
+  - node_modules -> yarn.lock
+
+  # Test dependencies
+  # ```sh
+  # $ ls test/packages/*/*/{yarn.lock,package-lock.json} | cat | sort | sed 's/\//\\/g' && \
+  #   ls test/packages/*/*/{lib,functions,layers/with-deps}/*/package-lock.json | cat | sort | sed 's/\//\\/g'
+  # ```
+  #
+  # Then regex in VS code:
+  # - search:   `^(test\\.*)\\(yarn\.lock|package-lock\.json)$`
+  # - replace:  `  - $1\\node_modules -> $1\\$2`
+  #
+  # Then add in these complicated extras pointing to project (not dir) yarn.lock
+  # ```
+  # $ find test/packages/*/yarn/{lib,functions,layers/with-deps}/* -type d -name node_modules -maxdepth 1 | sort | sed 's/\//\\/g'
+  # ```
+  #
+  # Then regex in VS code:
+  # - search:   `^(test\\.*)\\(yarn)\\(.*)`
+  # - replace:  `  - $1\\$2\\$3 -> $1\\$2\\yarn.lock`
+  - test\packages\complex\npm\node_modules -> test\packages\complex\npm\package-lock.json
+  - test\packages\complex\yarn\node_modules -> test\packages\complex\yarn\yarn.lock
+  - test\packages\dashboard\npm\node_modules -> test\packages\dashboard\npm\package-lock.json
+  - test\packages\dashboard\yarn\node_modules -> test\packages\dashboard\yarn\yarn.lock
+  - test\packages\huge\npm\node_modules -> test\packages\huge\npm\package-lock.json
+  - test\packages\huge\yarn\node_modules -> test\packages\huge\yarn\yarn.lock
+  - test\packages\individually\npm\node_modules -> test\packages\individually\npm\package-lock.json
+  - test\packages\individually\yarn\node_modules -> test\packages\individually\yarn\yarn.lock
+  - test\packages\monorepo\npm\node_modules -> test\packages\monorepo\npm\package-lock.json
+  - test\packages\monorepo\yarn\node_modules -> test\packages\monorepo\yarn\yarn.lock
+  - test\packages\simple\npm\node_modules -> test\packages\simple\npm\package-lock.json
+  - test\packages\simple\yarn\node_modules -> test\packages\simple\yarn\yarn.lock
+  - test\packages\webpack\npm\node_modules -> test\packages\webpack\npm\package-lock.json
+  - test\packages\webpack\yarn\node_modules -> test\packages\webpack\yarn\yarn.lock
+  - test\packages\complex\npm\layers\with-deps\nodejs\node_modules -> test\packages\complex\npm\layers\with-deps\nodejs\package-lock.json
+  - test\packages\monorepo\npm\functions\another\node_modules -> test\packages\monorepo\npm\functions\another\package-lock.json
+  - test\packages\monorepo\npm\functions\base\node_modules -> test\packages\monorepo\npm\functions\base\package-lock.json
+  - test\packages\monorepo\npm\lib\camel\node_modules -> test\packages\monorepo\npm\lib\camel\package-lock.json
+  - test\packages\complex\yarn\layers\with-deps\nodejs\node_modules -> test\packages\complex\yarn\yarn.lock
+  - test\packages\monorepo\yarn\functions\base\node_modules -> test\packages\monorepo\yarn\yarn.lock
+
+  # User-wide
+  - '%LOCALAPPDATA%/Yarn'
+  - '%APPDATA%\npm-cache'

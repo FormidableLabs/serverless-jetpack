@@ -345,5 +345,6 @@ const globAndZip = async ({
 
 module.exports = {
   resolveFilePathsFromPatterns,
-  globAndZip
+  globAndZip,
+  exists
 };

@@ -12,9 +12,10 @@ const fs = require("fs-extra");
 const table = require("markdown-table");
 const strip = require("strip-ansi");
 const del = require("del");
+const { exists } = require("../util/bundle");
 
 const { TEST_MODE, TEST_SCENARIO, TEST_PARALLEL } = process.env;
-const IS_PARALLEL = TEST_PARALLEL === "true";
+let IS_PARALLEL = TEST_PARALLEL === "true";
 const IS_WIN = process.platform === "win32";
 const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
@@ -130,12 +131,18 @@ const build = async () => {
   }
 };
 
-const install = async () => {
+const install = async ({ skipIfExists }) => {
   for (const { scenario, mode } of MATRIX) {
+    const cwd = path.resolve(`test/packages/${scenario}/${mode}`);
     const execOpts = {
-      cwd: path.resolve(`test/packages/${scenario}/${mode}`),
+      cwd,
       stdio: "inherit"
     };
+
+    if (skipIfExists && await exists(path.resolve(cwd, "node_modules"))) {
+      log(chalk `{cyan ${scenario}/${mode}}: Found existing node_modules. {yellow Skipping}`);
+      continue;
+    }
 
     log(chalk `{cyan ${scenario}/${mode}}: Installing`);
     await execMode(mode, ["install", "--no-progress"], execOpts);
@@ -294,12 +301,17 @@ const main = async () => {
     benchmark
   };
 
+  const argsList = process.argv.slice(3); // eslint-disable-line no-magic-numbers
+  const args = {
+    skipIfExists: argsList.includes("--skip-if-exists")
+  };
+
   const action = actions[actionStr];
   if (!action) {
     throw new Error(`Invalid action: ${actionStr}`);
   }
 
-  return action();
+  return action(args);
 };
 
 module.exports = {
@@ -307,6 +319,9 @@ module.exports = {
 };
 
 if (require.main === module) {
+  // Allow CLI setting for parallel.
+  IS_PARALLEL = IS_PARALLEL || process.argv.includes("--parallel");
+
   main().catch((err) => {
     log(err);
     process.exit(1); // eslint-disable-line no-process-exit
