@@ -385,7 +385,7 @@ Results:
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
-[circle_img]: https://circleci.com/gh/FormidableLabs/serverless-jetpack.svg?style=svg
+[circle_img]: https://circleci.com/gh/FormidableLabs/serverless-jetpack.svg?style=shield
 [circle_site]: https://circleci.com/gh/FormidableLabs/serverless-jetpack
 [appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
 [appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
