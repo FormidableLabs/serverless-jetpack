@@ -15,8 +15,7 @@ const strip = require("strip-ansi");
 const del = require("del");
 const { exists } = require("../util/bundle");
 
-const { TEST_MODE, TEST_SCENARIO, TEST_PARALLEL } = process.env;
-let IS_PARALLEL = TEST_PARALLEL === "true";
+const { TEST_MODE, TEST_SCENARIO } = process.env;
 const IS_WIN = process.platform === "win32";
 const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
@@ -161,7 +160,7 @@ const install = async ({ skipIfExists }) => {
 const _logTask = (obj) => (msg) => log(chalk `{green ${msg}}: ${JSON.stringify(obj)}`);
 
 // eslint-disable-next-line max-statements
-const benchmark = async () => {
+const benchmark = async ({ isParallel, numCpus }) => {
   const HEADER = ["Scenario", "Mode", "Type", "Time", "vs Base"].map((t) => gray(t));
   const timedData = [HEADER];
   const otherData = [HEADER];
@@ -179,8 +178,7 @@ const benchmark = async () => {
   await fs.mkdirp(archiveRoot);
 
   // Create max limit on concurrency.
-  const numCpus = os.cpus().length;
-  const concurrency = IS_PARALLEL ? numCpus : 1;
+  const concurrency = isParallel ? numCpus : 1;
   const limit = pLimit(concurrency);
 
   // Execute scenarios in parallel for scenario + mode.
@@ -307,7 +305,12 @@ const main = async () => {
 
   const argsList = process.argv.slice(3); // eslint-disable-line no-magic-numbers
   const args = {
-    skipIfExists: argsList.includes("--skip-if-exists")
+    skipIfExists: argsList.includes("--skip-if-exists"),
+    isParallel: argsList.includes("--parallel"),
+    numCpus: parseInt(
+      (argsList.find((n) => n.startsWith("--num-cpus=")) || "").split("=")[1]
+      || os.cpus().length
+    )
   };
 
   const action = actions[actionStr];
@@ -323,9 +326,6 @@ module.exports = {
 };
 
 if (require.main === module) {
-  // Allow CLI setting for parallel.
-  IS_PARALLEL = IS_PARALLEL || process.argv.includes("--parallel");
-
   main().catch((err) => {
     log(err);
     process.exit(1); // eslint-disable-line no-process-exit

@@ -65,7 +65,8 @@ build: &build
     # Build
     - run: yarn run check
     - run: yarn test:cli
-    - run: yarn benchmark --parallel
+    # CPUs note: CircleCI reports `36` CPUs while container actually has way less.
+    - run: yarn benchmark --parallel --num-cpus=4
     - run: yarn benchmark:test
 
 jobs:
