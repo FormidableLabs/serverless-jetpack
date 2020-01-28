@@ -4,102 +4,99 @@ orbs:
   node: circleci/node@1.1
   win: circleci/windows@2.2.0
 
-build: &build
-  steps:
-    - checkout
-
-    # Custom caching for dependencies for the root project and lots of nested
-    # ones in `test/packages/*/*/node_modules`. Especially on windows, this
-    # bespoke packaging approach can be super, duper slow.
-    #
-    # We first concatenate all `yarn.lock` and `package-lock.json` files into
-    # a single file, and then hash that as part of the cache key. We then store
-    # all the various `node_modules` directories everywhere in the cache.
-    - run: yarn concat-locks
-    - restore_cache:
-        key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
-
-    # Always do the `yarn install`, even if have `node_modules` from cache.
-    - run: yarn install --frozen-lockfile
-    # Detect if `test/packages/*/*/node_modules` exists in any form and skip
-    # installs on a per-directory basis.
-    - run: yarn benchmark:install --skip-if-exists
-
-    - save_cache:
-        key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
-        paths:
-        # Root
-        - ~/project/node_modules
-        # Fixtures: We have to custom list each fixture directory. Suggestion:
-        # ```
-        # $ find test/packages/*/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
-        # $ find test/packages/*/*/{lib,functions,layers/with-deps}/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
-        # ```
-        - ~/project/test/packages/complex/npm/node_modules
-        - ~/project/test/packages/complex/yarn/node_modules
-        - ~/project/test/packages/dashboard/npm/node_modules
-        - ~/project/test/packages/dashboard/yarn/node_modules
-        - ~/project/test/packages/huge/npm/node_modules
-        - ~/project/test/packages/huge/yarn/node_modules
-        - ~/project/test/packages/individually/npm/node_modules
-        - ~/project/test/packages/individually/yarn/node_modules
-        - ~/project/test/packages/monorepo/npm/node_modules
-        - ~/project/test/packages/monorepo/yarn/node_modules
-        - ~/project/test/packages/simple/npm/node_modules
-        - ~/project/test/packages/simple/yarn/node_modules
-        - ~/project/test/packages/webpack/npm/node_modules
-        - ~/project/test/packages/webpack/yarn/node_modules
-        - ~/project/test/packages/complex/npm/layers/with-deps/nodejs/node_modules
-        - ~/project/test/packages/complex/yarn/layers/with-deps/nodejs/node_modules
-        - ~/project/test/packages/monorepo/npm/functions/another/node_modules
-        - ~/project/test/packages/monorepo/npm/functions/base/node_modules
-        - ~/project/test/packages/monorepo/npm/lib/camel/node_modules
-        - ~/project/test/packages/monorepo/yarn/functions/base/node_modules
-
-    # Info
-    - run: node --version
-    - run: yarn --version
-    - run: npm --version
-    - run: node -e 'const { arch, env } = process; console.log(JSON.stringify({ arch, env }, null, 2));'
-
-    # Build
-    - run: yarn run check
-    - run: yarn test:cli
-    # CPUs note: CircleCI reports `36` CPUs while container actually has way less.
-    - run: yarn benchmark --parallel --concurrency=4
-    - run: yarn benchmark:test
-
 jobs:
-  build-linux-node-10:
-    <<: *build
-    executor:
-      name: node/default
-      tag: '10'
+  build_and_test:
+    parameters:
+      executor_name:
+        type: string
+        default: node/default
+      executor_tag:
+        type: string
 
-  build-linux-node-12:
-    <<: *build
     executor:
-      name: node/default
-      tag: '12'
+      name: << parameters.executor_name >>
+      tag: << parameters.executor_tag >>
 
-  build-linux-node-13:
-    <<: *build
-    executor:
-      name: node/default
-      tag: '13'
+    steps:
+      - checkout
 
-  # TODO(83): Out of windows OSS credits
-  # See: https://github.com/FormidableLabs/serverless-jetpack/issues/83
-  # build-win-node-stable:
-  #   <<: *build
-  #   executor:
-  #     name: win/default
+      # Custom caching for dependencies for the root project and lots of nested
+      # ones in `test/packages/*/*/node_modules`. Especially on windows, this
+      # bespoke packaging approach can be super, duper slow.
+      #
+      # We first concatenate all `yarn.lock` and `package-lock.json` files into
+      # a single file, and then hash that as part of the cache key. We then store
+      # all the various `node_modules` directories everywhere in the cache.
+      - run: yarn concat-locks
+      - restore_cache:
+          key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
+
+      # Always do the `yarn install`, even if have `node_modules` from cache.
+      - run: yarn install --frozen-lockfile
+      # Detect if `test/packages/*/*/node_modules` exists in any form and skip
+      # installs on a per-directory basis.
+      - run: yarn benchmark:install --skip-if-exists
+
+      - save_cache:
+          key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
+          paths:
+          # Root
+          - ~/project/node_modules
+          # Fixtures: We have to custom list each fixture directory. Suggestion:
+          # ```
+          # $ find test/packages/*/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
+          # $ find test/packages/*/*/{lib,functions,layers/with-deps}/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
+          # ```
+          - ~/project/test/packages/complex/npm/node_modules
+          - ~/project/test/packages/complex/yarn/node_modules
+          - ~/project/test/packages/dashboard/npm/node_modules
+          - ~/project/test/packages/dashboard/yarn/node_modules
+          - ~/project/test/packages/huge/npm/node_modules
+          - ~/project/test/packages/huge/yarn/node_modules
+          - ~/project/test/packages/individually/npm/node_modules
+          - ~/project/test/packages/individually/yarn/node_modules
+          - ~/project/test/packages/monorepo/npm/node_modules
+          - ~/project/test/packages/monorepo/yarn/node_modules
+          - ~/project/test/packages/simple/npm/node_modules
+          - ~/project/test/packages/simple/yarn/node_modules
+          - ~/project/test/packages/webpack/npm/node_modules
+          - ~/project/test/packages/webpack/yarn/node_modules
+          - ~/project/test/packages/complex/npm/layers/with-deps/nodejs/node_modules
+          - ~/project/test/packages/complex/yarn/layers/with-deps/nodejs/node_modules
+          - ~/project/test/packages/monorepo/npm/functions/another/node_modules
+          - ~/project/test/packages/monorepo/npm/functions/base/node_modules
+          - ~/project/test/packages/monorepo/npm/lib/camel/node_modules
+          - ~/project/test/packages/monorepo/yarn/functions/base/node_modules
+
+      # Info
+      - run: node --version
+      - run: yarn --version
+      - run: npm --version
+      - run: node -e 'const { arch, env } = process; console.log(JSON.stringify({ arch, env }, null, 2));'
+
+      # Build
+      - run: yarn run check
+      - run: yarn test:cli
+      # CPUs note: CircleCI reports `36` CPUs while container actually has way less.
+      - run: yarn benchmark --parallel --concurrency=4
+      - run: yarn benchmark:test
 
 workflows:
   version: 2
   builds:
     jobs:
-      - build-linux-node-10
-      - build-linux-node-12
-      - build-linux-node-13
-      # TODO(83): - build-win-node-stable
+      - build_and_test:
+          name: build-linux-node-10
+          executor_tag: '10'
+      - build_and_test:
+          name: build-linux-node-12
+          executor_tag: '12'
+      - build_and_test:
+          name: build-linux-node-13
+          executor_tag: '13'
+      # TODO(83): Out of windows OSS credits
+      # See: https://github.com/FormidableLabs/serverless-jetpack/issues/83
+      # - build_and_test:
+      #     name: build-win-node-10
+      #     executor_name: win/default
+      #     node_version: '10' # TODO: Implement this in node orb.
