@@ -2,7 +2,6 @@ Serverless Jetpack 🚀
 ====================
 [![npm version][npm_img]][npm_site]
 [![CircleCI status][circle_img]][circle_site]
-[![Travis status][trav_img]][trav_site]
 [![AppVeyor status][appveyor_img]][appveyor_site]
 [![MIT license][lic_img]][lic_site]
 
@@ -388,8 +387,6 @@ Results:
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
 [circle_img]: https://circleci.com/gh/FormidableLabs/serverless-jetpack.svg?style=svg
 [circle_site]: https://circleci.com/gh/FormidableLabs/serverless-jetpack
-[trav_img]: https://api.travis-ci.com/FormidableLabs/serverless-jetpack.svg
-[trav_site]: https://travis-ci.com/FormidableLabs/serverless-jetpack
 [appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
 [appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
 [lic_img]: https://img.shields.io/npm/l/serverless-jetpack.svg?color=brightgreen&style=flat

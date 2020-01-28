@@ -87,7 +87,8 @@ jobs:
       name: node/default
       tag: '13'
 
-  # TODO: Out of windows OSS credits
+  # TODO(83): Out of windows OSS credits
+  # See: https://github.com/FormidableLabs/serverless-jetpack/issues/83
   # build-win-node-stable:
   #   <<: *build
   #   executor:
@@ -100,4 +101,4 @@ workflows:
       - build-linux-node-10
       - build-linux-node-12
       - build-linux-node-13
-      # TODO: - build-win-node-stable
+      # TODO(83): - build-win-node-stable
