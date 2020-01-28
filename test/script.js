@@ -19,6 +19,7 @@ const { TEST_MODE, TEST_SCENARIO } = process.env;
 const IS_WIN = process.platform === "win32";
 const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
+const numCpus = os.cpus().length;
 
 /**
  * Test script helper.
@@ -160,7 +161,7 @@ const install = async ({ skipIfExists }) => {
 const _logTask = (obj) => (msg) => log(chalk `{green ${msg}}: ${JSON.stringify(obj)}`);
 
 // eslint-disable-next-line max-statements
-const benchmark = async ({ isParallel, numCpus }) => {
+const benchmark = async ({ concurrency }) => {
   const HEADER = ["Scenario", "Mode", "Type", "Time", "vs Base"].map((t) => gray(t));
   const timedData = [HEADER];
   const otherData = [HEADER];
@@ -178,7 +179,6 @@ const benchmark = async ({ isParallel, numCpus }) => {
   await fs.mkdirp(archiveRoot);
 
   // Create max limit on concurrency.
-  const concurrency = isParallel ? numCpus : 1;
   const limit = pLimit(concurrency);
 
   // Execute scenarios in parallel for scenario + mode.
@@ -304,13 +304,11 @@ const main = async () => {
   };
 
   const argsList = process.argv.slice(3); // eslint-disable-line no-magic-numbers
+  const isParallel = argsList.includes("--parallel");
+  const concNum = (argsList.find((n) => n.startsWith("--concurrency=")) || "").split("=")[1];
   const args = {
     skipIfExists: argsList.includes("--skip-if-exists"),
-    isParallel: argsList.includes("--parallel"),
-    numCpus: parseInt(
-      (argsList.find((n) => n.startsWith("--num-cpus=")) || "").split("=")[1]
-      || os.cpus().length
-    )
+    concurrency: concNum || isParallel ? parseInt(concNum || numCpus) : 1
   };
 
   const action = actions[actionStr];

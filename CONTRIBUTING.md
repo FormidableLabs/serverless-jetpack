@@ -68,7 +68,10 @@ $ TEST_MODE=yarn,npm TEST_SCENARIO=simple yarn benchmark
 # Faster, because scenarios run in parallel, but less reliable results because
 # of impact on your machine. Use this for faster development, but do a normal
 # serial benchmark for pasting results.
+# ... using all CPU cores
 $ yarn benchmark --parallel
+# ... or set the level of concurrency manually
+$ yarn benchmark --concurrency=2
 ```
 
 After this, we can run benchmark specific QA stuff:
