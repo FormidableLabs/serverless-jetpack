@@ -302,7 +302,7 @@ const globAndZip = async ({
   const bundlePath = path.resolve(servicePath, bundleName);
 
   const NOTHING = false;
-  const TRACE = false;
+  const TRACE = true;
 
   // TODO(trace): Don't need this.
   // Iterate all dependency roots to gather production dependencies.
@@ -317,14 +317,17 @@ const globAndZip = async ({
   );
 
   // TODO(trace): make option
+  // TODO(trace): STILL SLOW (vs nothing)
   // TODO(issue): Doesn't get lazy requires?
-  // TODO(issue): Need unique filter.
   let depTraced = [];
   if (!NOTHING && TRACE) {
     const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
     if (jsFiles.length) {
       const trace = require("@zeit/node-file-trace");
-      depTraced = (await trace(jsFiles)).fileList;
+      const { fileList } = await trace(jsFiles);
+
+      // Only keep unique files.
+      depTraced = fileList.sort().filter((d, i, arr) => d !== arr[i - 1]);
       included = included.concat(depTraced);
     }
   }
