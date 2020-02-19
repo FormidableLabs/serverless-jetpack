@@ -301,10 +301,15 @@ const globAndZip = async ({
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
+  const NOTHING = true;
+  const TRACE = true;
+
   // TODO(trace): Don't need this.
-  // // Iterate all dependency roots to gather production dependencies.
-  // const depInclude = await createDepInclude({ cwd, rootPath, roots });
-  const depInclude = ["!node_modules/**"];
+  // Iterate all dependency roots to gather production dependencies.
+  let depInclude = ["!node_modules/**"];
+  if (!NOTHING && !TRACE) {
+    depInclude = await createDepInclude({ cwd, rootPath, roots });
+  }
 
   // Glob and filter all files in package.
   let { included, excluded } = await resolveFilePathsFromPatterns(
@@ -312,12 +317,14 @@ const globAndZip = async ({
   );
 
   // TODO(trace): make option
-  const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
   let depTraced = [];
-  if (jsFiles.length) {
-    const trace = require("@zeit/node-file-trace");
-    depTraced = (await trace(jsFiles)).fileList;
-    included = included.concat(depTraced);
+  if (!NOTHING && TRACE) {
+    const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
+    if (jsFiles.length) {
+      const trace = require("@zeit/node-file-trace");
+      depTraced = (await trace(jsFiles)).fileList;
+      included = included.concat(depTraced);
+    }
   }
 
   // Create package zip.
