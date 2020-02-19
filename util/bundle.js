@@ -301,7 +301,7 @@ const globAndZip = async ({
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
-  const NOTHING = true;
+  const NOTHING = false;
   const TRACE = true;
 
   // TODO(trace): Don't need this.
@@ -317,6 +317,7 @@ const globAndZip = async ({
   );
 
   // TODO(trace): make option
+  // TODO(issue): Doesn't get lazy requires?
   let depTraced = [];
   if (!NOTHING && TRACE) {
     const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
