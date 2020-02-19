@@ -307,9 +307,18 @@ const globAndZip = async ({
   const depInclude = ["!node_modules/**"];
 
   // Glob and filter all files in package.
-  const { included, excluded } = await resolveFilePathsFromPatterns(
+  let { included, excluded } = await resolveFilePathsFromPatterns(
     { cwd, servicePath, preInclude, depInclude, include, exclude }
   );
+
+  // TODO(trace): make option
+  const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
+  let depTraced = [];
+  if (jsFiles.length) {
+    const trace = require("@zeit/node-file-trace");
+    depTraced = (await trace(jsFiles)).fileList;
+    included = included.concat(depTraced);
+  }
 
   // Create package zip.
   await createZip({
@@ -333,6 +342,7 @@ const globAndZip = async ({
         preInclude,
         include,
         depInclude,
+        depTraced,
         exclude
       },
       files: {
