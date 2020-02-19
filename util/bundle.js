@@ -302,7 +302,7 @@ const globAndZip = async ({
   const bundlePath = path.resolve(servicePath, bundleName);
 
   const NOTHING = false;
-  const TRACE = true;
+  const TRACE = false;
 
   // TODO(trace): Don't need this.
   // Iterate all dependency roots to gather production dependencies.
@@ -318,6 +318,7 @@ const globAndZip = async ({
 
   // TODO(trace): make option
   // TODO(issue): Doesn't get lazy requires?
+  // TODO(issue): Need unique filter.
   let depTraced = [];
   if (!NOTHING && TRACE) {
     const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
