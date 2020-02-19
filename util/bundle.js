@@ -301,8 +301,10 @@ const globAndZip = async ({
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
-  // Iterate all dependency roots to gather production dependencies.
-  const depInclude = await createDepInclude({ cwd, rootPath, roots });
+  // TODO(trace): Don't need this.
+  // // Iterate all dependency roots to gather production dependencies.
+  // const depInclude = await createDepInclude({ cwd, rootPath, roots });
+  const depInclude = ["!node_modules/**"];
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(
