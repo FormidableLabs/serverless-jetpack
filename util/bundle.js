@@ -303,18 +303,31 @@ const globAndZip = async ({
 
   const NOTHING = false;
   const TRACE = true;
+  const START = new Date();
+  let LAST = START;
+  const elapsed = () => {
+    const now = new Date();
+    const last = now - LAST;
+    LAST = now;
+    return {
+      last,
+      elapsed: now - START
+    };
+  };
 
   // TODO(trace): Don't need this.
   // Iterate all dependency roots to gather production dependencies.
   let depInclude = ["!node_modules/**"];
   if (!NOTHING && !TRACE) {
     depInclude = await createDepInclude({ cwd, rootPath, roots });
+    console.log("TODO(trace): createDepInclude", elapsed());
   }
 
   // Glob and filter all files in package.
   let { included, excluded } = await resolveFilePathsFromPatterns(
     { cwd, servicePath, preInclude, depInclude, include, exclude }
   );
+  console.log("TODO(trace): resolveFilePathsFromPatterns", elapsed());
 
   // TODO(trace): make option
   // TODO(trace): STILL SLOW (vs nothing)
@@ -325,6 +338,8 @@ const globAndZip = async ({
     if (jsFiles.length) {
       const trace = require("@zeit/node-file-trace");
       const { fileList } = await trace(jsFiles);
+      // TODO: HERE. This is slow (`37 secs`)
+      console.log("TODO(trace): trace", elapsed());
 
       // Only keep unique files.
       depTraced = fileList.sort().filter((d, i, arr) => d !== arr[i - 1]);
@@ -338,6 +353,7 @@ const globAndZip = async ({
     cwd,
     bundlePath
   });
+  console.log("TODO(trace): createZip", elapsed());
 
   let results = {
     numFiles: included.length,
