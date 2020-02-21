@@ -307,7 +307,7 @@ const globAndZip = async ({
     DEP_TRACE: "DEP_TRACE",
     MANUAL_TRACE: "MANUAL_TRACE"
   };
-  const MODE = MODES.SRC_WALK;
+  const MODE = MODES.MANUAL_TRACE;
   const START = new Date();
   let LAST = START;
   const elapsed = () => {
