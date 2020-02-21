@@ -301,8 +301,13 @@ const globAndZip = async ({
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
-  const NOTHING = false;
-  const TRACE = true;
+  const MODES = {
+    NOTHING: "NOTHING",
+    DEP_INCLUDE: "DEP_INCLUDE",
+    DEP_TRACE: "DEP_TRACE",
+    MANUAL_TRACE: "MANUAL_TRACE"
+  };
+  const MODE = MODES.SRC_WALK;
   const START = new Date();
   let LAST = START;
   const elapsed = () => {
@@ -318,7 +323,7 @@ const globAndZip = async ({
   // TODO(trace): Don't need this.
   // Iterate all dependency roots to gather production dependencies.
   let depInclude = ["!node_modules/**"];
-  if (!NOTHING && !TRACE) {
+  if (MODE === MODES.DEP_INCLUDE) {
     depInclude = await createDepInclude({ cwd, rootPath, roots });
     console.log("TODO(trace): createDepInclude", elapsed());
   }
@@ -333,7 +338,7 @@ const globAndZip = async ({
   // TODO(trace): STILL SLOW (vs nothing)
   // TODO(issue): Doesn't get lazy requires?
   let depTraced = [];
-  if (!NOTHING && TRACE) {
+  if (MODE === MODES.DEP_TRACE) {
     const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
     if (jsFiles.length) {
       const trace = require("@zeit/node-file-trace");
@@ -344,6 +349,18 @@ const globAndZip = async ({
       // Only keep unique files.
       depTraced = fileList.sort().filter((d, i, arr) => d !== arr[i - 1]);
       included = included.concat(depTraced);
+    }
+  }
+
+  if (MODE === MODES.MANUAL_TRACE) {
+    const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
+    if (jsFiles.length) {
+      console.log("TODO(trace): Manual Mode", { jsFiles });
+
+      // TODO
+      // // Only keep unique files.
+      // depTraced = fileList.sort().filter((d, i, arr) => d !== arr[i - 1]);
+      // included = included.concat(depTraced);
     }
   }
 
