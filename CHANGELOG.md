@@ -1,8 +1,10 @@
 Changes
 =======
 
-## UNRELEASE
+## UNRELEASED
 
+* Bug: Only package Node.js `runtime` service + functions.
+  [#89](https://github.com/FormidableLabs/serverless-jetpack/pull/89)
 * Infra: Add CircleCI.
 
 ## 0.8.1
