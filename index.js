@@ -448,11 +448,10 @@ class Jetpack {
       }));
 
     // Get list of individual functions to package.
-    const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
-      // Individually packaged
-      (servicePackage.individually || obj.individually)
+    const individualPkgs = fnsPkgs.filter((obj) => servicePackage.individually || obj.individually);
+    const fnsPkgsToPackage = individualPkgs.filter((obj) =>
       // Enabled
-      && !(obj.disable || obj.artifact)
+      !(obj.disable || obj.artifact)
       // Function runtime is node or unspecified + service-level node.
       && (obj.isNode || !obj.runtime && serviceIsNode)
     );
@@ -460,6 +459,9 @@ class Jetpack {
     tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () =>
       this.packageFunction({ ...obj, worker, report })
     ));
+    if (numFns < individualPkgs.length) {
+      this._log(`Skipping individual packaging for ${individualPkgs.length - numFns} functions`);
+    }
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
