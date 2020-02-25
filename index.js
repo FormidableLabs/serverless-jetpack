@@ -354,7 +354,7 @@ class Jetpack {
     // **Note**: We _do_ append ".serverless" in path skipping serverless'
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
-
+    
     // Package.
     this._logDebug(`Start packaging function: ${bundleName}`);
     const results = await this.globAndZip({ bundleName, functionObject, worker, report });
@@ -445,9 +445,12 @@ class Jetpack {
       }));
 
     // Get list of individual functions to package.
-    const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
-      (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
-    );
+    const fnsPkgsToPackage = fnsPkgs.filter((obj) => {
+      const individually =       (servicePackage.individually || obj.individually) 
+      const enabled =  !(obj.disable || obj.artifact) 
+      const isNode = (((service.provider.runtime || "").startsWith("node") && !obj.functionObject.runtime) || obj.functionObject.runtime.startsWith("node"))
+      return individually && enabled && isNode;
+    });
     const numFns = fnsPkgsToPackage.length;
     tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () =>
       this.packageFunction({ ...obj, worker, report })
