@@ -408,6 +408,7 @@ class Jetpack {
   async package() {
     const { service } = this.serverless;
     const servicePackage = service.package;
+    const serviceIsNode = (service.provider.runtime || "").startsWith("node");
     const { concurrency } = this._serviceOptions;
     const options = this.options || {};
     const report = !!options.report;
@@ -435,7 +436,9 @@ class Jetpack {
       }))
       .map((obj) => ({
         ...obj,
-        functionPackage: obj.functionObject.package || {}
+        functionPackage: obj.functionObject.package || {},
+        runtime: obj.functionObject.runtime,
+        isNode: (obj.functionObject.runtime || "").startsWith("node")
       }))
       .map((obj) => ({
         ...obj,
@@ -445,18 +448,27 @@ class Jetpack {
       }));
 
     // Get list of individual functions to package.
-    const fnsPkgsToPackage = fnsPkgs.filter((obj) =>
-      (servicePackage.individually || obj.individually) && !(obj.disable || obj.artifact)
+    const individualPkgs = fnsPkgs.filter((obj) => servicePackage.individually || obj.individually);
+    const fnsPkgsToPackage = individualPkgs.filter((obj) =>
+      // Enabled
+      !(obj.disable || obj.artifact)
+      // Function runtime is node or unspecified + service-level node.
+      && (obj.isNode || !obj.runtime && serviceIsNode)
     );
     const numFns = fnsPkgsToPackage.length;
     tasks = tasks.concat(fnsPkgsToPackage.map((obj) => () =>
       this.packageFunction({ ...obj, worker, report })
     ));
+    if (numFns < individualPkgs.length) {
+      this._log(`Skipping individual packaging for ${individualPkgs.length - numFns} functions`);
+    }
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
     const shouldPackageService = !servicePackage.individually
       && !servicePackage.artifact
+      // Service must be Node.js
+      && serviceIsNode
       // Don't package service if we specify a single function **and** have a match
       && (!singleFunctionName || !numFns)
       // Otherwise, have some functions left that need to use the service package.

@@ -99,6 +99,7 @@ const build = async () => {
     "serverless.*",
     "src/**",
     "*.js",
+    "*.py",
     "functions/*/src/**",
     "functions/*/package.json",
     "layers/*/*.js",
