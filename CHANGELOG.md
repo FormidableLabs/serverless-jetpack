@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.9.0
 
 * Bug: Only package Node.js `runtime` service + functions.
   [#89](https://github.com/FormidableLabs/serverless-jetpack/pull/89)
