@@ -5,6 +5,7 @@ const path = require("path");
 const pLimit = require("p-limit");
 const Worker = require("jest-worker").default;
 const { globAndZip } = require("./util/bundle");
+const globby = require("globby");
 
 const SLS_TMP_DIR = ".serverless";
 const PLUGIN_NAME = pkg.name;
@@ -227,15 +228,32 @@ class Jetpack {
     this._logDebug(
       `Found ${handlers.length} handlers to trace for ${unit}: ${JSON.stringify(handlers)}`
     );
-    if (!(handlers || []).length) { return undefined; }
 
-    // TODO: Error if didn't find the handler.
-    console.log("TODO HERE", { handlers });
+    // Short-circuit if there's nothing to trace.
+    if (!handlers.length) { return undefined; }
 
-    // No applicable handlers found.
+    // Find the handler files.
+    const cwd = this.serverless.config.servicePath || ".";
+    const handlerFiles = await Promise.all(handlers.map(async (handler) => {
+      let pattern = handler.replace(/\.[^\.]+$/, "");
+      // Add pattern glob if not already present.
+      if (!(/\.(js|mjs)$/).test(pattern)) {
+        pattern += ".{js,mjs}";
+      }
 
+      // Find (potentially multiple) matches
+      const matched = await globby(pattern, { cwd });
+      if (!matched.length) {
+        throw new Error(`Could not find file for handler: ${handler} with pattern: ${pattern}`);
+      }
 
-    return undefined;
+      // Choose JS first, else first matched entry.
+      const matchedJsFile = matched.filter((file) => (/\.js$/).test(file))[0];
+      return matchedJsFile || matched[0];
+    }));
+
+    // eslint-disable-next-line consistent-return
+    return handlerFiles;
   }
 
   _report({ results }) {
@@ -404,7 +422,9 @@ class Jetpack {
 
     // Package.
     this._logDebug(`Start packaging function: ${bundleName} in mode: ${mode}`);
-    const results = await this.globAndZip({ bundleName, functionObject, traceInclude, worker, report });
+    const results = await this.globAndZip({
+      bundleName, functionObject, traceInclude, worker, report
+    });
     const { buildTime } = results;
 
     // Mutate serverless configuration to use our artifacts.
