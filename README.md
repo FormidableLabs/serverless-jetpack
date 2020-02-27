@@ -252,6 +252,9 @@ TODO: Consider `trace.include` for globs in addition to handler inference.
 
 * **Only works with JavaScript handlers**: Tracing mode only works with handler files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
 
+* **Only applies to level of packaging**: When tracing mode is set at the service level (`custom.jetpack.trace`) then it applies to all functions not specified as `individually`. When set at the function level (`functions.{FN_NAME}.jetpack.trace`) it only applies to functions `individually` packaged.
+    * As a subtle nuance, this means that for an individually packaged function if `custom.jetpack.trace=true` and `functions.{FN_NAME}.jetpack.trace=false` then the function will **not** use trace mode.
+
 * **Replaces Package Introspection**: Enabling tracing mode will replace all `package.json` production dependency inspection and add a blanket exclusion pattern for `node_modules` meaning things that are traced are the **only** thing that will be included by your bundle.
 
 * **Works with other `include|excludes`s**: The normal package `include|exclude`s work like normal and are a means of bring in other files as appropriate to your application.

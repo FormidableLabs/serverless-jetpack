@@ -159,6 +159,7 @@ class Jetpack {
       base: ".",
       roots: null,
       preInclude: [],
+      trace: false,
       concurrency: 1
     };
 
@@ -177,7 +178,8 @@ class Jetpack {
 
     const opts = Object.assign({}, this._serviceOptions);
 
-    const fnOpts = (functionObject || {}).jetpack || {};
+    const fnObj = functionObject || {};
+    const fnOpts = fnObj.jetpack || {};
     const layerOpts = (layerObject || {}).jetpack || {};
 
     if (fnOpts.roots || layerOpts.roots) {
@@ -202,6 +204,35 @@ class Jetpack {
       .map((layerObj) => `${layerObj.path}/**`);
 
     return this.__layerExcludes;
+  }
+
+  async _traceInclude({ functionObject, functionObjects } = {}) {
+    // Detect if in tracing mode
+    const serviceTrace = this._serviceOptions.trace;
+    const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
+
+    // Filter to only the function objects we should trace.
+    let tracedObjects = [];
+    if (functionObjects && serviceTrace) {
+      // Service-level trace + service package.
+      tracedObjects = functionObjects;
+    } else if (functionObject && (functionTrace || serviceTrace && functionTrace !== false)) {
+      // `individually` function package with service or individual.
+      tracedObjects = [functionObject];
+    }
+
+    // Extract handler functions to trace and short-circuit if none.
+    const handlers = tracedObjects.map((obj) => obj.handler);
+    this._logDebug(`Found ${handlers.length} handlers to trace for ${functionObjects ? "service" : `function: ${functionObject.name}`}`);
+    if (!(handlers || []).length) { return undefined; }
+
+    // TODO: Error if didn't find the handler.
+    console.log("TODO HERE", { handlers });
+
+    // No applicable handlers found.
+
+
+    return undefined;
   }
 
   _report({ results }) {
@@ -364,9 +395,13 @@ class Jetpack {
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
+    // Get traces.
+    const traceInclude = await this._traceInclude({ functionObject });
+    const mode = traceInclude ? "trace" : "pattern";
+
     // Package.
-    this._logDebug(`Start packaging function: ${bundleName}`);
-    const results = await this.globAndZip({ bundleName, functionObject, worker, report });
+    this._logDebug(`Start packaging function: ${bundleName} in mode: ${mode}`);
+    const results = await this.globAndZip({ bundleName, functionObject, traceInclude, worker, report });
     const { buildTime } = results;
 
     // Mutate serverless configuration to use our artifacts.
@@ -377,7 +412,7 @@ class Jetpack {
     return { packageType: "function", ...results };
   }
 
-  async packageService({ worker, report }) {
+  async packageService({ functionObjects, worker, report }) {
     const { service } = this.serverless;
     const serviceName = service.service;
     const servicePackage = service.package;
@@ -385,9 +420,13 @@ class Jetpack {
     // Mimic built-in serverless naming.
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
+    // Get traces.
+    const traceInclude = await this._traceInclude({ functionObjects });
+    const mode = traceInclude ? "trace" : "pattern";
+
     // Package.
-    this._logDebug(`Start packaging service: ${bundleName}`);
-    const results = await this.globAndZip({ bundleName, worker, report });
+    this._logDebug(`Start packaging service: ${bundleName} in mode: ${mode}`);
+    const results = await this.globAndZip({ bundleName, traceInclude, worker, report });
     const { buildTime } = results;
 
     // Mutate serverless configuration to use our artifacts.
@@ -474,18 +513,23 @@ class Jetpack {
 
     // We recreate the logic from `packager#packageService` for deciding whether
     // to package the service or not.
-    const shouldPackageService = !servicePackage.individually
+    const serviceFnsToPkg = !servicePackage.individually
       && !servicePackage.artifact
       // Service must be Node.js
       && serviceIsNode
       // Don't package service if we specify a single function **and** have a match
       && (!singleFunctionName || !numFns)
       // Otherwise, have some functions left that need to use the service package.
-      && fnsPkgs.some((obj) => !(obj.disable || obj.individually || obj.artifact));
+      && fnsPkgs.filter((obj) => !(obj.disable || obj.individually || obj.artifact));
+    const shouldPackageService = !!serviceFnsToPkg.length;
 
     // Package entire service if applicable.
     if (shouldPackageService) {
-      tasks.push(() => this.packageService({ worker, report }));
+      tasks.push(() => this.packageService({
+        functionObjects: serviceFnsToPkg.map((o) => o.functionObject),
+        worker,
+        report
+      }));
     } else if (!numFns) {
       // Detect if we did nothing...
       this._logDebug("No matching service or functions to package.");
