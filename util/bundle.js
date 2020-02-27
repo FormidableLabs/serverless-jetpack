@@ -304,10 +304,10 @@ const globAndZip = async ({
   const MODES = {
     NOTHING: "NOTHING",
     DEP_INCLUDE: "DEP_INCLUDE",
-    DEP_TRACE: "DEP_TRACE",
-    MANUAL_TRACE: "MANUAL_TRACE"
+    NODE_FILE_TRACE: "NODE_FILE_TRACE",
+    TRACE_DEPS: "TRACE_DEPS"
   };
-  const MODE = MODES.MANUAL_TRACE;
+  const MODE = MODES.TRACE_DEPS;
   const START = new Date();
   let LAST = START;
   const elapsed = () => {
@@ -338,7 +338,7 @@ const globAndZip = async ({
   // TODO(trace): STILL SLOW (vs nothing)
   // TODO(issue): Doesn't get lazy requires?
   let depTraced = [];
-  if (MODE === MODES.DEP_TRACE) {
+  if (MODE === MODES.NODE_FILE_TRACE) {
     const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
     if (jsFiles.length) {
       const trace = require("@zeit/node-file-trace");
@@ -352,10 +352,21 @@ const globAndZip = async ({
     }
   }
 
-  if (MODE === MODES.MANUAL_TRACE) {
+  if (MODE === MODES.TRACE_DEPS) {
     const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
     if (jsFiles.length) {
-      console.log("TODO(trace): Manual Mode", { jsFiles });
+      const { traceFile } = require("trace-deps");
+      const firstJsFile = jsFiles[0];
+
+      const deps = (await traceFile({ srcPath: firstJsFile }))
+        // TODO: Do this instead in trace-deps
+        // Convert to relative paths.
+        .map((depPath) => path.relative(servicePath, depPath));
+
+      console.log("TODO(trace): trace-deps", elapsed());
+      console.log("TODO(trace): trace-deps: included\n -", included.join("\n - "));
+      console.log("TODO(trace): trace-deps: deps\n -", deps.join("\n - "));
+      included = included.concat(deps);
 
       // TODO
       // // Only keep unique files.
