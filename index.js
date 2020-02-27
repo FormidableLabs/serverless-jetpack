@@ -327,7 +327,7 @@ class Jetpack {
     };
   }
 
-  async globAndZip({ bundleName, functionObject, layerObject, worker, report }) {
+  async globAndZip({ bundleName, functionObject, layerObject, traceInclude, worker, report }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const layerPath = (layerObject || {}).path;
@@ -335,9 +335,6 @@ class Jetpack {
 
     const { base, roots, preInclude } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
-
-    // TODO: HERE -- IMPLEMENT
-    const traceInclude = undefined; // "server/index.js";
 
     const buildFn = worker ? worker.globAndZip : globAndZip;
     const results = await buildFn({
@@ -403,7 +400,7 @@ class Jetpack {
   async packageLayer({ layerName, layerObject, worker, report }) {
     const bundleName = path.join(SLS_TMP_DIR, `${layerName}.zip`);
 
-    // Package.
+    // Package. (Not traced)
     this._logDebug(`Start packaging layer: ${bundleName}`);
     const results = await this.globAndZip({ bundleName, layerObject, worker, report });
     const { buildTime } = results;
