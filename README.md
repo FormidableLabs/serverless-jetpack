@@ -220,6 +220,28 @@ layers:
         - "layers/vendor/nodejs"
 ```
 
+### Tracing Mode
+
+Jetpack speeds up the underlying pattern matching approach of `serverless` packaging while providing completely equivalent bundles. However, this approach has some fundamental limitations:
+
+* **Over-inclusive**: All production dependencies include many individual files that are not needed at runtime.
+* **Speed**: For large sets of dependencies, copying lots of files is slow at packaging time.
+
+Thus, we pose the question: _What if we packaged **only** the files we needed at runtime?_
+
+Welcome to **tracing mode**!
+
+Tracing mode is an alternative way to include dependencies in a `serverless` application. It works by using [Acorn](https://github.com/browserify/acorn-node) to parse out all dependencies in entry point files (`require`, `require.resolve`, static `import`) and then resolves them with [resolve](https://github.com/browserify/resolve) according to the Node.js resolution algorithm. This produces a list of the files that will actually be used at runtime and Jetpack includes these instead of traversing production dependencies.
+
+#### Tracing Configuration
+
+TODO
+
+#### Tracing Caveats
+
+* **Static analysis only**: Tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
+
+
 ## Command Line Interface
 
 Jetpack also provides some CLI options.
