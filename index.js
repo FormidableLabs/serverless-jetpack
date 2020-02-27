@@ -235,6 +235,7 @@ class Jetpack {
     // Find the handler files.
     const cwd = this.serverless.config.servicePath || ".";
     const handlerFiles = await Promise.all(handlers.map(async (handler) => {
+      // We extract handler file name pretty analogously to how serverless does it.
       let pattern = handler.replace(/\.[^\.]+$/, "");
       // Add pattern glob if not already present.
       if (!(/\.(js|mjs)$/).test(pattern)) {

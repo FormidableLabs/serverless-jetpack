@@ -276,6 +276,7 @@ const createZip = async ({ files, cwd, bundlePath }) => {
  * @param {Boolean}   opts.report       include extra report information?
  * @returns {Promise<Object>} Various information about the bundle
  */
+// eslint-disable-next-line max-statements
 const globAndZip = async ({
   cwd,
   servicePath,
@@ -302,7 +303,12 @@ const globAndZip = async ({
   if (traceInclude) {
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
-    console.log("TODO HERE", { traceInclude });
+    const traced = await traceFiles({ srcPaths: traceInclude, ignores });
+
+    // Convert to relative paths and include in patterns for bundling.
+    depInclude = depInclude.concat(
+      traced.map((depPath) => path.relative(servicePath, depPath))
+    );
   } else {
     // [Pattern Mode] Iterate all dependency roots to gather production dependencies.
     depInclude = depInclude.concat(
