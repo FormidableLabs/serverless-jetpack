@@ -246,13 +246,15 @@ custom:
     trace: true
 ```
 
-TODO: Consider `trace.include` for globs to replace handler inference.
+TODO: Consider `trace.include` for globs in addition to handler inference.
 
 #### Tracing Caveats
 
 * **Replaces Package Introspection**: Enabling tracing mode will replace all `package.json` production dependency inspection and add a blanket exclusion pattern for `node_modules` meaning things that are traced are the **only** thing that will be included by your bundle.
 
 * **Works with other `include|excludes`s**: The normal package `include|exclude`s work like normal and are a means of bring in other files as appropriate to your application.
+
+* **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
 
 * **Static analysis only**: Tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
 
