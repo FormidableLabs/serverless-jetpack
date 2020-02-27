@@ -223,7 +223,10 @@ class Jetpack {
 
     // Extract handler functions to trace and short-circuit if none.
     const handlers = tracedObjects.map((obj) => obj.handler);
-    this._logDebug(`Found ${handlers.length} handlers to trace for ${functionObjects ? "service" : `function: ${functionObject.name}`}`);
+    const unit = functionObjects ? "service" : `function: ${functionObject.name}`;
+    this._logDebug(
+      `Found ${handlers.length} handlers to trace for ${unit}: ${JSON.stringify(handlers)}`
+    );
     if (!(handlers || []).length) { return undefined; }
 
     // TODO: Error if didn't find the handler.
