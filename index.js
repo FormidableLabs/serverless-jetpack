@@ -337,7 +337,7 @@ class Jetpack {
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
 
     // TODO: HERE -- IMPLEMENT
-    const traceInclude = "server/index.js";
+    const traceInclude = undefined; // "server/index.js";
 
     const buildFn = worker ? worker.globAndZip : globAndZip;
     const results = await buildFn({
