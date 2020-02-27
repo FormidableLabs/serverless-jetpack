@@ -11,9 +11,10 @@ A faster JavaScript packager for [Serverless][] applications.
 - ⚡ Drop-in replacement for `serverless package|deploy`
 - 💻 Lambda Functions packaging
 - 🍰 Lambda Layers packaging
-- 🐉 Monorepo (`lerna`, `yarn workspace`) support
 - 📦 Per-function packaging
+- 🐉 Monorepo (`lerna`, `yarn workspace`) support
 - 🔀 Tunable, multi-cpu parallelization
+- 🔎 Dependency tracing options (faster packaging, slimmer bundles)
 
 ## Overview
 

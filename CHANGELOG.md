@@ -1,6 +1,10 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Add dependency tracing feature.
+
 ## 0.9.0
 
 * Bug: Only package Node.js `runtime` service + functions.
