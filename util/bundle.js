@@ -352,26 +352,27 @@ const globAndZip = async ({
     }
   }
 
+  // TODO/WORK: Add new benchmark category and add to README
+  // TODO: Figure out how test suites work / add specific tests?
   if (MODE === MODES.TRACE_DEPS) {
     const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
     if (jsFiles.length) {
-      const { traceFile } = require("trace-deps");
+      const { traceFile, traceFiles } = require("trace-deps");
       const firstJsFile = jsFiles[0];
 
-      const deps = (await traceFile({ srcPath: firstJsFile }))
+      const firstDeps = (await traceFile({ srcPath: firstJsFile }))
         // TODO: Do this instead in trace-deps
         // Convert to relative paths.
         .map((depPath) => path.relative(servicePath, depPath));
+      console.log("TODO(trace): traceFile", firstDeps.length, elapsed());
 
-      console.log("TODO(trace): trace-deps", elapsed());
-      console.log("TODO(trace): trace-deps: included\n -", included.join("\n - "));
-      console.log("TODO(trace): trace-deps: deps\n -", deps.join("\n - "));
-      included = included.concat(deps);
+      const allDeps = (await traceFiles({ srcPaths: jsFiles }))
+        // TODO: Do this instead in trace-deps
+        // Convert to relative paths.
+        .map((depPath) => path.relative(servicePath, depPath));
+      console.log("TODO(trace): traceFiles", allDeps.length, elapsed());
 
-      // TODO
-      // // Only keep unique files.
-      // depTraced = fileList.sort().filter((d, i, arr) => d !== arr[i - 1]);
-      // included = included.concat(depTraced);
+      included = included.concat(allDeps);
     }
   }
 
