@@ -357,16 +357,21 @@ const globAndZip = async ({
   if (MODE === MODES.TRACE_DEPS) {
     const jsFiles = included.filter((f) => f.endsWith(".js") || f.endsWith(".mjs"));
     if (jsFiles.length) {
+      // TODO: Shouldn't need this. Figure it out.
+      // TODO: Make an option from within serverless.yml config.
+      const ignores = [
+        "react-ssr-prepass"
+      ];
       const { traceFile, traceFiles } = require("trace-deps");
       const firstJsFile = jsFiles[0];
 
-      const firstDeps = (await traceFile({ srcPath: firstJsFile }))
+      const firstDeps = (await traceFile({ srcPath: firstJsFile, ignores }))
         // TODO: Do this instead in trace-deps
         // Convert to relative paths.
         .map((depPath) => path.relative(servicePath, depPath));
       console.log("TODO(trace): traceFile", firstDeps.length, elapsed());
 
-      const allDeps = (await traceFiles({ srcPaths: jsFiles }))
+      const allDeps = (await traceFiles({ srcPaths: jsFiles, ignores }))
         // TODO: Do this instead in trace-deps
         // Convert to relative paths.
         .map((depPath) => path.relative(servicePath, depPath));
