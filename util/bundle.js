@@ -303,6 +303,9 @@ const globAndZip = async ({
   if (traceInclude) {
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
+    // TODO: Implement `jetpack.trace.ignores`
+    const ignores = undefined;
+    // TODO: Implement `jetpack.trace.include`
     const traced = await traceFiles({ srcPaths: traceInclude, ignores });
 
     // Convert to relative paths and include in patterns for bundling.

@@ -246,7 +246,9 @@ custom:
     trace: true
 ```
 
-TODO: Consider `trace.include` for globs in addition to handler inference.
+TODO: Consider `trace.include` for globs in addition to **or** replacing handler inference.
+
+TODO: Consider `trace.ignores` for ignored pattern prefixes.
 
 #### Tracing Caveats
 
