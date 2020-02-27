@@ -8,6 +8,7 @@ const makeDir = require("make-dir");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
+const { traceFiles } = require("trace-deps");
 const { findProdInstalls } = require("inspectdep");
 
 const IS_WIN = process.platform === "win32";
@@ -139,13 +140,6 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
     depRoots = cwdPkgExists ? [cwd] : [];
   }
 
-  // Starting base of Jetpack patterns.
-  // Remove all cwd-relative-root node_modules. (Specific `roots` can bring
-  // back in, and at least monorepo scenario needs the exclude.)
-  const basePatterns = [
-    "!node_modules/**"
-  ];
-
   return Promise
     // Find the production install paths
     .all(depRoots
@@ -178,7 +172,7 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
       )
     )
     // Flatten to final list with base default patterns applied.
-    .then((depsList) => depsList.reduce((m, a) => m.concat(a), basePatterns.slice(0)));
+    .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
 };
 
 const createZip = async ({ files, cwd, bundlePath }) => {
@@ -289,6 +283,7 @@ const globAndZip = async ({
   roots,
   bundleName,
   preInclude,
+  traceInclude,
   include,
   exclude,
   report
@@ -301,8 +296,19 @@ const globAndZip = async ({
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
-  // Iterate all dependency roots to gather production dependencies.
-  const depInclude = await createDepInclude({ cwd, rootPath, roots });
+  // Remove all cwd-relative-root node_modules first. Trace/package modes will
+  // then bring `node_modules` individual files back in after.
+  let depInclude = ["!node_modules/**"];
+  if (traceInclude) {
+    // [Trace Mode] Trace and introspect all individual dependency files.
+    // Add them as _patterns_ so that later globbing exclusions can apply.
+    console.log("TODO HERE", { traceInclude });
+  } else {
+    // [Pattern Mode] Iterate all dependency roots to gather production dependencies.
+    depInclude = depInclude.concat(
+      await createDepInclude({ cwd, rootPath, roots })
+    );
+  }
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(

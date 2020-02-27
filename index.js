@@ -336,10 +336,22 @@ class Jetpack {
     const { base, roots, preInclude } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
 
+    // TODO: HERE -- IMPLEMENT
+    const traceInclude = "server/index.js";
+
     const buildFn = worker ? worker.globAndZip : globAndZip;
-    const results = await buildFn(
-      { cwd, servicePath, base, roots, bundleName, preInclude, include, exclude, report }
-    );
+    const results = await buildFn({
+      cwd,
+      servicePath,
+      base,
+      roots,
+      bundleName,
+      preInclude,
+      traceInclude,
+      include,
+      exclude,
+      report
+    });
 
     const { numFiles, bundlePath } = results;
     this._logDebug(
