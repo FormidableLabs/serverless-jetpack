@@ -77,5 +77,7 @@ describe("index", () => {
     it("pattern matches service while traces individually functions"); // TODO
     it("traces for service-level individually and trace"); // TODO
     it("traces for service-level individually and mixed trace and pattern"); // TODO
+    it("traces with ignore options"); // TODO
+    it("traces with include options"); // TODO
   });
 });
