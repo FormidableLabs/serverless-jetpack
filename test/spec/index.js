@@ -12,16 +12,19 @@ const Jetpack = require("../..");
 
 // Helpers.
 // Create a mostly-real serverless object for config parsing.
-const createServerless = async () => {
+const createServerless = async (sandbox) => {
   const serverless = new Serverless();
   serverless.processedInput = {
     options: {},
     commands: []
   };
+  serverless.cli = {
+    log: sandbox.stub()
+  };
   await serverless.pluginManager.loadConfigFile();
   await serverless.service.load();
 
-  return serverless
+  return serverless;
 };
 
 describe("index", () => {
@@ -32,14 +35,17 @@ describe("index", () => {
     sandbox = sinon.createSandbox();
   });
 
-  afterEach((() => {
+  afterEach(() => {
     sandbox.restore();
-  }))
+  });
 
   describe("serverless trace configurations", () => {
-
     beforeEach(() => {
       mock({});
+
+      sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
+        buildTime: 0
+      }));
     });
 
     afterEach(() => {
@@ -61,16 +67,29 @@ describe("index", () => {
 
           functions:
             one:
-              handler: one.hello
+              handler: one.handler
+            two:
+              handler: two.handler
+              jetpack:
+                trace: false
+        `,
+        "one.js": `
+          exports.handler = async () => ({
+            body: JSON.stringify({ message: "one" })
+          });
+        `,
+        "two.js": `
+          exports.handler = async () => ({
+            body: JSON.stringify({ message: "two" })
+          });
         `
       });
 
-      const plugin = new Jetpack(await createServerless());
-      console.log("TODO HERE", {
-        _serviceOptions: plugin._serviceOptions
-      });
-
-      // TODO: HERE IMPLEMENT TEST
+      const plugin = new Jetpack(await createServerless(sandbox));
+      await plugin.package();
+      expect(Jetpack.prototype.globAndZip)
+        .to.have.callCount(1).and
+        .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
     });
 
     it("traces service level with individually functions not traced"); // TODO
