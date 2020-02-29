@@ -52,7 +52,7 @@ describe("index", () => {
       mock.restore();
     });
 
-    it("traces all functions at service level, even if trace disabled in fn", async () => {
+    it("traces with service config even if non-individually function is false", async () => {
       mock({
         "serverless.yml": `
           service: sls-mocked
@@ -70,6 +70,7 @@ describe("index", () => {
               handler: one.handler
             two:
               handler: two.handler
+              # Because not individually packaged, trace=false will have no effect.
               jetpack:
                 trace: false
         `,
@@ -92,8 +93,51 @@ describe("index", () => {
         .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
     });
 
-    it("traces service level with individually functions not traced"); // TODO
-    it("pattern matches service while traces individually functions"); // TODO
+    it("traces with service config and skips individually + trace=false functions", async () => {
+      mock({
+        "serverless.yml": `
+          service: sls-mocked
+
+          custom:
+            jetpack:
+              trace: true
+
+          provider:
+            name: aws
+            runtime: nodejs12.x
+
+          functions:
+            one:
+              handler: one.handler
+            two:
+              handler: two.handler
+              # Because individually packaged, trace=false will apply.
+              package:
+                individually: true
+              jetpack:
+                trace: false
+        `,
+        "one.js": `
+          exports.handler = async () => ({
+            body: JSON.stringify({ message: "one" })
+          });
+        `,
+        "two.js": `
+          exports.handler = async () => ({
+            body: JSON.stringify({ message: "two" })
+          });
+        `
+      });
+
+      const plugin = new Jetpack(await createServerless(sandbox));
+      await plugin.package();
+      // TODO: HERE FAILING TEST.
+      expect(Jetpack.prototype.globAndZip)
+        .to.have.callCount(1).and
+        .to.be.calledWithMatch({ traceInclude: ["one.js"] });
+    });
+
+    it("pattern matches service with only individually + trace=true functions traced"); // TODO
     it("traces for service-level individually and trace"); // TODO
     it("traces for service-level individually and mixed trace and pattern"); // TODO
     it("traces with ignore options"); // TODO

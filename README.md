@@ -254,8 +254,9 @@ TODO: Consider `trace.ignores` for ignored pattern prefixes.
 
 * **Only works with JavaScript handlers**: Tracing mode only works with handler files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
 
-* **Only applies to level of packaging**: When tracing mode is set at the service level (`custom.jetpack.trace`) then it applies to all functions not specified as `individually`. When set at the function level (`functions.{FN_NAME}.jetpack.trace`) it only applies to functions `individually` packaged.
-    * As a subtle nuance, this means that for an individually packaged function if `custom.jetpack.trace=true` and `functions.{FN_NAME}.jetpack.trace=false` then the function will **not** use trace mode.
+* **Service/function-level Applciation**: Tracing mode at the service level and `individually` configurations work as follows:
+  * If service level `custom.jetpack.trace` is set (`true` or config object), then the service will be traced. All functions are packaged in tracing mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace=false` explicitly.
+  * If service level `custom.jetpack.trace` is false or unset, then the service will not be traced. All functions are packaged in normal pattern mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace` is set which will be in tracing mode.
 
 * **Replaces Package Introspection**: Enabling tracing mode will replace all `package.json` production dependency inspection and add a blanket exclusion pattern for `node_modules` meaning things that are traced are the **only** thing that will be included by your bundle.
 
