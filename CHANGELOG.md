@@ -3,7 +3,7 @@ Changes
 
 ## UNRELEASED
 
-* Add dependency tracing feature.
+* Add dependency tracing feature and `jetpack.trace` configuration options.
 
 ## 0.9.0
 
