@@ -8,27 +8,30 @@ const mock = require("mock-fs");
 const sinon = require("sinon");
 
 const Serverless = require("serverless");
+const { getServerlessConfigFile } = require("serverless/lib/utils/getServerlessConfigFile");
 const Jetpack = require("../..");
 
 // Helpers.
-// Create a mostly-real serverless object for config parsing.
-const createServerless = async (sandbox) => {
-  const serverless = new Serverless();
-  serverless.processedInput = {
-    options: {},
-    commands: []
-  };
-  serverless.cli = {
-    log: sandbox.stub()
-  };
-  await serverless.pluginManager.loadConfigFile();
-  await serverless.service.load();
-
-  return serverless;
-};
 
 describe("index", () => {
   let sandbox;
+  let serverless;
+
+  // [BRITTLE]: Create a mostly-real serverless object for config parsing.
+  const createServerless = async () => {
+    serverless = new Serverless();
+    serverless.processedInput = {
+      options: {},
+      commands: []
+    };
+    serverless.cli = {
+      log: sandbox.stub()
+    };
+    await serverless.pluginManager.loadConfigFile();
+    await serverless.service.load();
+
+    return serverless;
+  };
 
   beforeEach(() => {
     mock({});
@@ -38,6 +41,9 @@ describe("index", () => {
   afterEach(() => {
     sandbox.restore();
     mock.restore();
+
+    // [BRITTLE]: Manually reset the serverless lodash cache.
+    getServerlessConfigFile.cache = new Map();
   });
 
   describe("serverless trace configurations", () => {
@@ -82,14 +88,14 @@ describe("index", () => {
         `
       });
 
-      const plugin = new Jetpack(await createServerless(sandbox));
+      const plugin = new Jetpack(await createServerless());
       await plugin.package();
       expect(Jetpack.prototype.globAndZip)
         .to.have.callCount(1).and
         .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
     });
 
-    it.only("traces with service config and skips individually + trace=false functions", async () => {
+    it("traces with service config and skips individually + trace=false functions", async () => {
       mock({
         "serverless.yml": `
           service: sls-mocked
@@ -125,15 +131,14 @@ describe("index", () => {
         `
       });
 
-      // TODO: HERE -- Getting a return of the Previous test file! `.only` bandaids.
-      // TODO: Also the test is failing! (because calling with `traceInclude: ["two.js"]`)
+      // TODO: HERE -- The test is failing! (because calling with `traceInclude: ["two.js"]`)
 
-      const plugin = new Jetpack(await createServerless(sandbox));
+      const plugin = new Jetpack(await createServerless());
       await plugin.package();
       expect(Jetpack.prototype.globAndZip)
         .to.have.callCount(2).and
         .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
-        .to.be.calledWithMatch({ traceInclude: undefined })
+        .to.be.calledWithMatch({ traceInclude: undefined });
     });
 
     it("pattern matches service with only individually + trace=true functions traced"); // TODO

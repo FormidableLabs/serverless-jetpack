@@ -507,7 +507,7 @@ class Jetpack {
         functionObject: service.getFunction(functionName)
       }))
       .map((obj) => {
-        console.log(JSON.stringify(obj.functionObject, null, 2));
+        console.log("TODO functionObject", JSON.stringify(obj.functionObject, null, 2));
         return obj;
       })
       .map((obj) => ({
@@ -523,7 +523,7 @@ class Jetpack {
         artifact: obj.functionPackage.artifact
       }));
 
-    console.log("TODO HERE", { fnsPkgs });
+    console.log("TODO HERE fnsPkgs", { fnsPkgs });
 
     // Get list of individual functions to package.
     const individualPkgs = fnsPkgs.filter((obj) => servicePackage.individually || obj.individually);
