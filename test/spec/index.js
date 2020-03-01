@@ -1,6 +1,6 @@
 "use strict";
 
-/* eslint no-magic-numbers: ["error", { "ignore": [0, 1, 2] }]*/
+/* eslint no-magic-numbers: ["error", { "ignore": [0, 1, 2, 3] }]*/
 
 /**
  * Plugin tests.
@@ -12,8 +12,6 @@ const sinon = require("sinon");
 const Serverless = require("serverless");
 const { getServerlessConfigFile } = require("serverless/lib/utils/getServerlessConfigFile");
 const Jetpack = require("../..");
-
-// Helpers.
 
 describe("index", () => {
   let sandbox;
@@ -54,7 +52,6 @@ describe("index", () => {
         buildTime: 0
       }));
     });
-
 
     it("traces with service config even if non-individually function is false", async () => {
       mock({
@@ -115,7 +112,12 @@ describe("index", () => {
               handler: one.handler
             two:
               handler: two.handler
-              # Because individually packaged, trace=false will apply.
+              # Because individually packaged, service trace=true will apply.
+              package:
+                individually: true
+            three:
+              handler: three.handler
+              # Because individually packaged, fn trace=false will apply.
               package:
                 individually: true
               jetpack:
@@ -133,17 +135,56 @@ describe("index", () => {
         `
       });
 
-      // TODO: HERE -- The test is failing! (because calling with `traceInclude: ["two.js"]`)
+      const plugin = new Jetpack(await createServerless());
+      await plugin.package();
+      expect(Jetpack.prototype.globAndZip)
+        .to.have.callCount(3).and
+        .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+        .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
+        .to.be.calledWithMatch({ traceInclude: undefined });
+    });
+
+    it("pattern matches service with only individually + trace=true functions traced", async () => {
+      mock({
+        "serverless.yml": `
+          service: sls-mocked
+
+          package:
+            individually: true
+
+          provider:
+            name: aws
+            runtime: nodejs12.x
+
+          functions:
+            one:
+              handler: one.handler
+            two:
+              handler: two.handler
+              # Default service-level false for individually. This will trace.
+              jetpack:
+                trace: true
+            three:
+              handler: three.handler
+              # Explicit false should also not trace.
+              jetpack:
+                trace: false
+        `,
+        "two.js": `
+          exports.handler = async () => ({
+            body: JSON.stringify({ message: "two" })
+          });
+        `
+      });
 
       const plugin = new Jetpack(await createServerless());
       await plugin.package();
       expect(Jetpack.prototype.globAndZip)
-        .to.have.callCount(2).and
-        .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+        .to.have.callCount(3).and
+        .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
         .to.be.calledWithMatch({ traceInclude: undefined });
     });
 
-    it("pattern matches service with only individually + trace=true functions traced"); // TODO
     it("traces for service-level individually and trace"); // TODO
     it("traces for service-level individually and mixed trace and pattern"); // TODO
     it("traces with ignore options"); // TODO
