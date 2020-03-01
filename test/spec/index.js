@@ -1,5 +1,7 @@
 "use strict";
 
+/* eslint no-magic-numbers: ["error", { "ignore": [0, 1, 2] }]*/
+
 /**
  * Plugin tests.
  */

@@ -190,6 +190,7 @@ class Jetpack {
     }
 
     opts.preInclude = opts.preInclude.concat(fnOpts.preInclude || []);
+    opts.trace = fnOpts.trace;
 
     return opts;
   }
@@ -506,10 +507,10 @@ class Jetpack {
         functionName,
         functionObject: service.getFunction(functionName)
       }))
-      .map((obj) => {
-        console.log("TODO functionObject", JSON.stringify(obj.functionObject, null, 2));
-        return obj;
-      })
+      .map((obj) =>
+        // console.log("TODO functionObject", JSON.stringify(obj.functionObject, null, 2));
+        obj
+      )
       .map((obj) => ({
         ...obj,
         functionPackage: obj.functionObject.package || {},
@@ -523,7 +524,7 @@ class Jetpack {
         artifact: obj.functionPackage.artifact
       }));
 
-    console.log("TODO HERE fnsPkgs", { fnsPkgs });
+    // console.log("TODO HERE fnsPkgs", { fnsPkgs });
 
     // Get list of individual functions to package.
     const individualPkgs = fnsPkgs.filter((obj) => servicePackage.individually || obj.individually);
