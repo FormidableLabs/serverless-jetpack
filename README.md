@@ -231,7 +231,7 @@ Thus, we pose the question: _What if we packaged **only** the files we needed at
 
 Welcome to **tracing mode**!
 
-Tracing mode is an alternative way to include dependencies in a `serverless` application. It works by using [Acorn](https://github.com/browserify/acorn-node) to parse out all dependencies in entry point files (`require`, `require.resolve`, static `import`) and then resolves them with [resolve](https://github.com/browserify/resolve) according to the Node.js resolution algorithm. This produces a list of the files that will actually be used at runtime and Jetpack includes these instead of traversing production dependencies.
+Tracing mode is an alternative way to include dependencies in a `serverless` application. It works by using [Acorn](https://github.com/browserify/acorn-node) to parse out all dependencies in entry point files (`require`, `require.resolve`, static `import`) and then resolves them with [resolve](https://github.com/browserify/resolve) according to the Node.js resolution algorithm. This produces a list of the files that will actually be used at runtime and Jetpack includes these instead of traversing production dependencies. The engine for all of this work is a small, dedicated library, [trace-deps][].
 
 #### Tracing Configuration
 
@@ -441,6 +441,7 @@ Results:
 [lerna]: https://lerna.js.org/
 [yarn workspaces]: https://yarnpkg.com/lang/en/docs/workspaces/
 [inspectdep]: https://github.com/FormidableLabs/inspectdep/
+[trace-deps]: https://github.com/FormidableLabs/trace-deps/
 [globby]: https://github.com/sindresorhus/globby
 [nanomatch]: https://github.com/micromatch/nanomatch
 
