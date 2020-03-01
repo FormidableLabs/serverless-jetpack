@@ -348,7 +348,8 @@ const globAndZip = async ({
       patterns: {
         preInclude,
         include,
-        depInclude,
+        depInclude: traceInclude ? [] : depInclude,
+        traceInclude: traceInclude ? depInclude : [],
         exclude
       },
       files: {

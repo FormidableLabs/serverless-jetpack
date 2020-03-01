@@ -276,8 +276,10 @@ class Jetpack {
       - '**'
       # Jetpack (\`${patterns.preInclude.length}\`): \`custom.jetpack.preInclude\` + \`function.{NAME}.jetpack.preInclude\`
       ${patterns.preInclude.map((p) => `- '${p}'`).join("\n      ")}
-      # Jetpack (\`${patterns.depInclude.length}\`): dynamic dependency additions
+      # Jetpack (\`${patterns.depInclude.length}\`): pattern-matched dependency additions
       ${patterns.depInclude.map((p) => `- '${p}'`).join("\n      ")}
+      # Jetpack (\`${patterns.traceInclude.length}\`): traced dependency additions
+      ${patterns.traceInclude.map((p) => `- '${p}'`).join("\n      ")}
       # Serverless (\`${patterns.include.length}\`): \`package.include\` + \`function.{NAME}.package.include\` + internal extras
       ${patterns.include.map((p) => `- '${p}'`).join("\n      ")}
       \`\`\`
