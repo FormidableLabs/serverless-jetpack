@@ -220,85 +220,7 @@ layers:
         - "layers/vendor/nodejs"
 ```
 
-### Tracing Mode
-
-Jetpack speeds up the underlying pattern matching approach of `serverless` packaging while providing completely equivalent bundles. However, this approach has some fundamental limitations:
-
-* **Over-inclusive**: All production dependencies include many individual files that are not needed at runtime.
-* **Speed**: For large sets of dependencies, copying lots of files is slow at packaging time.
-
-Thus, we pose the question: _What if we packaged **only** the files we needed at runtime?_
-
-Welcome to **tracing mode**!
-
-Tracing mode is an alternative way to include dependencies in a `serverless` application. It works by using [Acorn](https://github.com/browserify/acorn-node) to parse out all dependencies in entry point files (`require`, `require.resolve`, static `import`) and then resolves them with [resolve](https://github.com/browserify/resolve) according to the Node.js resolution algorithm. This produces a list of the files that will actually be used at runtime and Jetpack includes these instead of traversing production dependencies. The engine for all of this work is a small, dedicated library, [trace-deps][].
-
-#### Tracing Configuration
-
-The most basic configuration is just to enable `custom.jetpack.trace` (service-wide) or `functions.{FN_NAME}.jetpack.trace` (per-function) set to `true`. By default, tracing mode will trace _just_ the entry point file specified in `functions.{FN_NAME}.handler`.
-
-```yml
-plugins:
-  - serverless-jetpack
-
-custom:
-  jetpack:
-    trace: true
-```
-
-TODO: Consider `trace.include` for globs in addition to **or** replacing handler inference.
-
-TODO: Consider `trace.ignores` for ignored pattern prefixes.
-
-#### Tracing Caveats
-
-* **Only works with JavaScript handlers**: Tracing mode only works with handler files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
-
-* **Service/function-level Applciation**: Tracing mode at the service level and `individually` configurations work as follows:
-  * If service level `custom.jetpack.trace` is set (`true` or config object), then the service will be traced. All functions are packaged in tracing mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace=false` explicitly.
-  * If service level `custom.jetpack.trace` is false or unset, then the service will not be traced. All functions are packaged in normal pattern mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace` is set which will be in tracing mode.
-
-* **Replaces Package Introspection**: Enabling tracing mode will replace all `package.json` production dependency inspection and add a blanket exclusion pattern for `node_modules` meaning things that are traced are the **only** thing that will be included by your bundle.
-
-* **Works with other `include|excludes`s**: The normal package `include|exclude`s work like normal and are a means of bring in other files as appropriate to your application.
-
-* **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
-
-* **Static analysis only**: Tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
-
-## Command Line Interface
-
-Jetpack also provides some CLI options.
-
-### `serverless jetpack package`
-
-Package a function like `serverless package` does, just with better options.
-
-```sh
-$ serverless jetpack package -h
-Plugin: Jetpack
-jetpack package ............... Packages a Serverless service or function
-    --function / -f .................... Function name. Packages a single function (see 'deploy function')
-```
-
-So, to package all service / functions like `serverless package` does, use:
-
-```sh
-$ serverless jetpack package # OR
-$ serverless package
-```
-
-... as this is basically the same built-in or custom.
-
-The neat addition that Jetpack provides is:
-
-```sh
-$ serverless jetpack package -f|--function {NAME}
-```
-
-which allows you to package just one named function exactly the same as `serverless deploy -f {NAME}` does. (Curiously `serverless deploy` implements the `-f {NAME}` option but `serverless package` does not.)
-
-## How it works
+## How Jetpack's faster dependency filtering works
 
 Serverless built-in packaging slows to a crawl in applications that have lots of files from `devDependencies`. Although the `excludeDevDependencies` option will ultimately remove these from the target zip bundle, it does so only **after** the files are read from disk, wasting a lot of disk I/O and time.
 
@@ -391,6 +313,84 @@ exclude:
 include:
   - "!**/node_modules/aws-sdk/**"
 ```
+
+## Tracing Mode
+
+Jetpack speeds up the underlying dependencies filtering approach of `serverless` packaging while providing completely equivalent bundles. However, this approach has some fundamental limitations:
+
+* **Over-inclusive**: All production dependencies include many individual files that are not needed at runtime.
+* **Speed**: For large sets of dependencies, copying lots of files is slow at packaging time.
+
+Thus, we pose the question: _What if we packaged **only** the files we needed at runtime?_
+
+Welcome to **tracing mode**!
+
+Tracing mode is an alternative way to include dependencies in a `serverless` application. It works by using [Acorn](https://github.com/browserify/acorn-node) to parse out all dependencies in entry point files (`require`, `require.resolve`, static `import`) and then resolves them with [resolve](https://github.com/browserify/resolve) according to the Node.js resolution algorithm. This produces a list of the files that will actually be used at runtime and Jetpack includes these instead of traversing production dependencies. The engine for all of this work is a small, dedicated library, [trace-deps][].
+
+### Tracing Configuration
+
+The most basic configuration is just to enable `custom.jetpack.trace` (service-wide) or `functions.{FN_NAME}.jetpack.trace` (per-function) set to `true`. By default, tracing mode will trace _just_ the entry point file specified in `functions.{FN_NAME}.handler`.
+
+```yml
+plugins:
+  - serverless-jetpack
+
+custom:
+  jetpack:
+    trace: true
+```
+
+TODO: Consider `trace.include` for globs in addition to **or** replacing handler inference.
+
+TODO: Consider `trace.ignores` for ignored pattern prefixes.
+
+### Tracing Caveats
+
+* **Only works with JavaScript handlers**: Tracing mode only works with handler files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
+
+* **Service/function-level Applciation**: Tracing mode at the service level and `individually` configurations work as follows:
+  * If service level `custom.jetpack.trace` is set (`true` or config object), then the service will be traced. All functions are packaged in tracing mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace=false` explicitly.
+  * If service level `custom.jetpack.trace` is false or unset, then the service will not be traced. All functions are packaged in normal dependency-filtering mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace` is set which will be in tracing mode.
+
+* **Replaces Package Introspection**: Enabling tracing mode will replace all `package.json` production dependency inspection and add a blanket exclusion pattern for `node_modules` meaning things that are traced are the **only** thing that will be included by your bundle.
+
+* **Works with other `include|excludes`s**: The normal package `include|exclude`s work like normal and are a means of bring in other files as appropriate to your application.
+
+* **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
+
+* **Static analysis only**: Tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
+
+## Command Line Interface
+
+Jetpack also provides some CLI options.
+
+### `serverless jetpack package`
+
+Package a function like `serverless package` does, just with better options.
+
+```sh
+$ serverless jetpack package -h
+Plugin: Jetpack
+jetpack package ............... Packages a Serverless service or function
+    --function / -f .................... Function name. Packages a single function (see 'deploy function')
+```
+
+So, to package all service / functions like `serverless package` does, use:
+
+```sh
+$ serverless jetpack package # OR
+$ serverless package
+```
+
+... as this is basically the same built-in or custom.
+
+The neat addition that Jetpack provides is:
+
+```sh
+$ serverless jetpack package -f|--function {NAME}
+```
+
+which allows you to package just one named function exactly the same as `serverless deploy -f {NAME}` does. (Curiously `serverless deploy` implements the `-f {NAME}` option but `serverless package` does not.)
 
 ## Benchmarks
 

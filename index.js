@@ -276,9 +276,9 @@ class Jetpack {
       - '**'
       # Jetpack (\`${patterns.preInclude.length}\`): \`custom.jetpack.preInclude\` + \`function.{NAME}.jetpack.preInclude\`
       ${patterns.preInclude.map((p) => `- '${p}'`).join("\n      ")}
-      # Jetpack (\`${patterns.depInclude.length}\`): pattern-matched dependency additions
+      # Jetpack (\`${patterns.depInclude.length}\`): dependency filtering mode additions
       ${patterns.depInclude.map((p) => `- '${p}'`).join("\n      ")}
-      # Jetpack (\`${patterns.traceInclude.length}\`): traced dependency additions
+      # Jetpack (\`${patterns.traceInclude.length}\`): trace mode additions
       ${patterns.traceInclude.map((p) => `- '${p}'`).join("\n      ")}
       # Serverless (\`${patterns.include.length}\`): \`package.include\` + \`function.{NAME}.package.include\` + internal extras
       ${patterns.include.map((p) => `- '${p}'`).join("\n      ")}
@@ -422,7 +422,7 @@ class Jetpack {
 
     // Get traces.
     const traceInclude = await this._traceInclude({ functionObject });
-    const mode = traceInclude ? "trace" : "pattern";
+    const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
     this._logDebug(`Start packaging function: ${bundleName} in mode: ${mode}`);
@@ -449,7 +449,7 @@ class Jetpack {
 
     // Get traces.
     const traceInclude = await this._traceInclude({ functionObjects });
-    const mode = traceInclude ? "trace" : "pattern";
+    const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
     this._logDebug(`Start packaging service: ${bundleName} in mode: ${mode}`);
