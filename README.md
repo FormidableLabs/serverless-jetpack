@@ -340,21 +340,91 @@ custom:
     trace: true
 ```
 
-TODO: Consider `trace.include` for globs in addition to **or** replacing handler inference.
+The `trace` field can be a Boolean or object containing further configuration information.
 
-TODO: Consider `trace.ignores` for ignored pattern prefixes.
+#### Tracing Options
+
+The basic `trace` Boolean field should hopefully work for most cases. Jetpack provides several additional options for more flexibility:
+
+**Service**-level configurations available via `custom.jetpack.trace`:
+
+* `trace` (`Boolean | Object`): If `trace: true` or `trace: { /* other options */ }` then tracing mode is activated at the service level.
+* `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing on. This is particularly useful when you are excluding a package like `aws-sdk` that is already provided for your lambda.
+
+The following **function**-level configurations available via `functions.{FN_NAME}.jetpack.trace` and  `layers.{LAYER_NAME}.jetpack.trace`:
+
+* `trace` (`Boolean | Object`): If `trace: true` or `trace: { /* other options */ }` then tracing mode is activated at the function level **if** the function is being packaged `individually`.
+* `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing **if** the function is being packaged `individually`. If there is a service-level `trace.ignores` then, the function-level one will be **added** to the list.
+* `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging.
+    * **Note**: These patterns are in _addition_ to the handler inferred file path. If you want to exclude the handler path you could technically do a `!file/path.js` exclusion, but that would be a strange case in that your handler files would no longer be present.
+
+Let's see the advanced options in action:
+
+```yml
+plugins:
+  - serverless-jetpack
+
+custom:
+  jetpack:
+    preInclude:
+      - "!**"
+    trace:
+      ignores:
+        - "aws-sdk" # Ignore for all service + function tracing
+
+package:
+  include:
+    - "a/manual/file_i_want.js"
+
+functions:
+  # Functions in service package.
+  # - `jetpack.trace` option `ignores` does not apply.
+  # - `jetpack.include` **will** include and trace additional files.
+  service-packaged-app-1:
+    handler: app1.handler
+
+  service-packaged-app-2:
+    handler: app2.handler
+    jetpack:
+      trace:
+        # Trace and include: `app2.js` + `extra/**.js` patterns
+        include:
+          - "extra/**.js"
+
+  # Individually with no trace configuration will be traced from service-level config
+  individually-packaged-1:
+    handler: ind1.handler
+    package:
+      individually: true
+      # Normal package include|exclude work the same, but are not traced.
+      include:
+        - "some/stuff/**"
+    jetpack:
+      trace:
+        # When individually, `ignores` from fn are added: `["aws-sdk", "react-ssr-prepass"]`
+        ignores:
+          - "react-ssr-prepass"
+
+  # Individually with explicit `false` will not be traced
+  individually-packaged-1:
+    handler: ind1.handler
+    package:
+      individually: true
+    jetpack:
+      trace: false
+```
 
 ### Tracing Caveats
 
 * **Only works with JavaScript handlers**: Tracing mode only works with handler files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
 
-* **Service/function-level Applciation**: Tracing mode at the service level and `individually` configurations work as follows:
+* **Service/function-level Applications**: Tracing mode at the service level and `individually` configurations work as follows:
   * If service level `custom.jetpack.trace` is set (`true` or config object), then the service will be traced. All functions are packaged in tracing mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace=false` explicitly.
   * If service level `custom.jetpack.trace` is false or unset, then the service will not be traced. All functions are packaged in normal dependency-filtering mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace` is set which will be in tracing mode.
 
 * **Replaces Package Introspection**: Enabling tracing mode will replace all `package.json` production dependency inspection and add a blanket exclusion pattern for `node_modules` meaning things that are traced are the **only** thing that will be included by your bundle.
 
-* **Works with other `include|excludes`s**: The normal package `include|exclude`s work like normal and are a means of bring in other files as appropriate to your application.
+* **Works with other `include|excludes`s**: The normal package `include|exclude`s work like normal and are a means of bring in other files as appropriate to your application. And for many cases, you **will** want to include other files via the normal `serverless` configurations, just without tracing and manually specified.
 
 * **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
 

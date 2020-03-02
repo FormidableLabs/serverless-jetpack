@@ -48,6 +48,7 @@ describe("index", () => {
 
   describe("serverless trace configurations", () => {
     beforeEach(() => {
+      // Don't actually read disk and bundle.
       sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
         buildTime: 0
       }));
@@ -197,7 +198,7 @@ describe("index", () => {
 
           custom:
             jetpack:
-                trace: true
+              trace: true
 
           provider:
             name: aws
@@ -239,7 +240,61 @@ describe("index", () => {
         .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
     });
 
-    it("traces with ignore options"); // TODO
+    // TODO: HERE
+    it.skip("traces with ignores options", async () => {
+      mock({
+        "serverless.yml": `
+          service: sls-mocked
+
+          package:
+            individually: true
+
+          custom:
+            jetpack:
+              trace:
+                ignores:
+                  - aws-sdk
+
+          provider:
+            name: aws
+            runtime: nodejs12.x
+
+          functions:
+            one:
+              handler: one.handler
+              jetpack:
+                ignores: # Additions to service-level ignores
+                  - react-ssr-prepass
+            two:
+              handler: two.handler
+            three:
+              handler: three.handler
+              # Explicit false should not trace.
+              jetpack:
+                trace: false
+        `,
+        "one.js": `
+          exports.handler = async () => ({
+            body: JSON.stringify({ message: "one" })
+          });
+        `,
+        "two.js": `
+          exports.handler = async () => ({
+            body: JSON.stringify({ message: "two" })
+          });
+        `
+      });
+
+      const plugin = new Jetpack(await createServerless());
+      await plugin.package();
+      expect(Jetpack.prototype.globAndZip)
+        .to.have.callCount(3).and
+        .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+        .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
+        .to.be.calledWithMatch({ traceInclude: undefined }).and
+        .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
+    });
+
     it("traces with include options"); // TODO
   });
 });

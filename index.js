@@ -208,6 +208,19 @@ class Jetpack {
     return this.__layerExcludes;
   }
 
+  // // Helper for trace configurations.
+  // _traceConfig({ functionObject } = {}) {
+  //   const serviceTrace = this._serviceOptions.trace;
+  //   const serviceTraceObj = typeof serviceTrace === "object" ?  serviceTrace : {};
+  //   const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
+  //   const functionTraceObj = typeof functionTrace === "object" ?  functionTrace : {};
+
+  //   //
+
+
+  //   return "TODO";
+  // }
+
   async _traceInclude({ functionObject, functionObjects } = {}) {
     // Detect if in tracing mode
     const serviceTrace = this._serviceOptions.trace;
