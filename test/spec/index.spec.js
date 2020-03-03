@@ -161,6 +161,10 @@ describe("index", () => {
       });
 
       it("traces with trace.include options"); // TODO
+
+      // TODO: service-level include
+      // TODO: service-packaged function with additional include
+      // TODO: individually include
     });
 
     describe("configurations", () => {

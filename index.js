@@ -209,28 +209,54 @@ class Jetpack {
   }
 
   // Helper for trace configurations.
-  _traceConfig({ functionObject } = {}) {
+  _traceConfig({ functionObject, functionObjects } = {}) {
+    // Mode: trace functions via service package
     const serviceTrace = this._serviceOptions.trace;
     const serviceEnabled = typeof serviceTrace === "object" || serviceTrace === true;
+    const serviceObj = {
+      ignores: [],
+      include: (functionObjects || [])
+        // Get array of arrays of function trace includes
+        .map((obj) => (this._extraOptions({ functionObject: obj }).trace || {}).include || [])
+        // Flatten to a single array
+        .reduce((m, a) => m.concat(a), []),
+      ...typeof serviceTrace === "object" ? serviceTrace : {}
+    };
+
+    // Mode: trace individaul function.
     const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
+    const functionObj = {
+      ignores: [],
+      include: [],
+      ...typeof functionTrace === "object" ? functionTrace : {}
+    };
+    functionObj.ignores = []
+      // Aggregate in service-level ignores first
+      .concat(serviceObj.ignores, functionObj.ignores)
+      // Make unique.
+      .sort()
+      .filter((val, i, arr) => val !== arr[i - 1]);
 
     return {
       service: {
-        enabled: serviceEnabled
+        enabled: serviceEnabled,
+        obj: serviceObj
       },
       "function": {
         enabled:
           typeof functionTrace === "object"
           || functionTrace === true
-          || serviceEnabled && functionTrace !== false
-
+          || serviceEnabled && functionTrace !== false,
+        obj: functionObj
       }
     };
   }
 
   async _traceInclude({ functionObject, functionObjects } = {}) {
     // Detect if in tracing mode
-    const traceCfg = this._traceConfig({ functionObject });
+    const traceCfg = this._traceConfig({ functionObject, functionObjects });
+
+    console.log("TODO HERE", JSON.stringify(traceCfg, null, 2));
 
     // Filter to only the function objects we should trace.
     let tracedObjects = [];
