@@ -14,6 +14,9 @@ const { findProdInstalls } = require("inspectdep");
 const IS_WIN = process.platform === "win32";
 const EPOCH = new Date(0);
 
+// Stubbable container object.
+let bundle = {};
+
 // File helpers
 const readStat = promisify(fs.stat);
 const exists = (filePath) => readStat(filePath)
@@ -328,7 +331,7 @@ const globAndZip = async ({
   );
 
   // Create package zip.
-  await createZip({
+  await bundle.createZip({
     files: included,
     cwd,
     bundlePath
@@ -362,8 +365,9 @@ const globAndZip = async ({
   return results;
 };
 
-module.exports = {
+module.exports = bundle = {
   resolveFilePathsFromPatterns,
+  createZip,
   globAndZip,
   exists
 };
