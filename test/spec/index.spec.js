@@ -105,7 +105,64 @@ describe("index", () => {
             "node_modules/one-pkg/index.js"
           ] });
       });
+
+      // TODO: HERE -- IMPLEMENT AND PASS TEST
+      it("excludes ignores and package include when tracing", async () => {
+        mock({
+          "serverless.yml": `
+            service: sls-mocked
+
+            custom:
+              jetpack:
+                trace:
+                  ignores:
+                    - two-pkg
+
+            provider:
+              name: aws
+              runtime: nodejs12.x
+
+            functions:
+              numbers:
+                handler: numbers.handler
+          `,
+          "numbers.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ one: require("one-pkg"), two: require("two-pkg") })
+            });
+          `,
+          node_modules: {
+            "one-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'one';"
+            },
+            "two-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'two';"
+            }
+          }
+        });
+
+        const plugin = new Jetpack(await createServerless());
+        await plugin.package();
+        expect(Jetpack.prototype.globAndZip)
+          .to.have.callCount(1).and
+          .to.be.calledWithMatch({ traceInclude: ["numbers.js"] });
+        expect(bundle.createZip)
+          .to.have.callCount(1).and
+          .to.be.calledWithMatch({ files: [
+            "numbers.js",
+            "node_modules/one-pkg/index.js"
+          ] });
+      });
+
+      it("traces with trace.include options"); // TODO
     });
+
     describe("configurations", () => {
       beforeEach(() => {
         // Don't actually read disk and bundle.
@@ -299,63 +356,6 @@ describe("index", () => {
           .to.be.calledWithMatch({ traceInclude: undefined }).and
           .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
       });
-
-      // TODO: HERE
-      it.skip("traces with ignores options", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            package:
-              individually: true
-
-            custom:
-              jetpack:
-                trace:
-                  ignores:
-                    - aws-sdk
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-                jetpack:
-                  ignores: # Additions to service-level ignores
-                    - react-ssr-prepass
-              two:
-                handler: two.handler
-              three:
-                handler: three.handler
-                # Explicit false should not trace.
-                jetpack:
-                  trace: false
-          `,
-          "one.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "one" })
-            });
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
-        });
-
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(3).and
-          .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: undefined }).and
-          .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
-      });
-
-      it("traces with include options"); // TODO
     });
   });
 });
