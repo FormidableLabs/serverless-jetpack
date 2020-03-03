@@ -208,30 +208,36 @@ class Jetpack {
     return this.__layerExcludes;
   }
 
-  // // Helper for trace configurations.
-  // _traceConfig({ functionObject } = {}) {
-  //   const serviceTrace = this._serviceOptions.trace;
-  //   const serviceTraceObj = typeof serviceTrace === "object" ?  serviceTrace : {};
-  //   const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
-  //   const functionTraceObj = typeof functionTrace === "object" ?  functionTrace : {};
+  // Helper for trace configurations.
+  _traceConfig({ functionObject } = {}) {
+    const serviceTrace = this._serviceOptions.trace;
+    const serviceEnabled = typeof serviceTrace === "object" || serviceTrace === true;
+    const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
 
-  //   //
+    return {
+      service: {
+        enabled: serviceEnabled
+      },
+      "function": {
+        enabled:
+          typeof functionTrace === "object"
+          || functionTrace === true
+          || serviceEnabled && functionTrace !== false
 
-
-  //   return "TODO";
-  // }
+      }
+    };
+  }
 
   async _traceInclude({ functionObject, functionObjects } = {}) {
     // Detect if in tracing mode
-    const serviceTrace = this._serviceOptions.trace;
-    const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
+    const traceCfg = this._traceConfig({ functionObject });
 
     // Filter to only the function objects we should trace.
     let tracedObjects = [];
-    if (functionObjects && serviceTrace) {
+    if (functionObjects && traceCfg.service.enabled) {
       // Service-level trace + service package.
       tracedObjects = functionObjects;
-    } else if (functionObject && (functionTrace || serviceTrace && functionTrace !== false)) {
+    } else if (functionObject && traceCfg.function.enabled) {
       // `individually` function package with service or individual.
       tracedObjects = [functionObject];
     }
