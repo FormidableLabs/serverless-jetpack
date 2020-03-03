@@ -252,20 +252,22 @@ class Jetpack {
     };
   }
 
-  async _traceInclude({ functionObject, functionObjects } = {}) {
+  // eslint-disable-next-line max-statements
+  async _traceOptions({ functionObject, functionObjects } = {}) {
     // Detect if in tracing mode
     const traceCfg = this._traceConfig({ functionObject, functionObjects });
 
-    console.log("TODO HERE", JSON.stringify(traceCfg, null, 2));
-
     // Filter to only the function objects we should trace.
     let tracedObjects = [];
+    let traceIgnores = [];
     if (functionObjects && traceCfg.service.enabled) {
       // Service-level trace + service package.
       tracedObjects = functionObjects;
+      traceIgnores = traceCfg.service.obj.ignores;
     } else if (functionObject && traceCfg.function.enabled) {
       // `individually` function package with service or individual.
       tracedObjects = [functionObject];
+      traceIgnores = traceCfg.function.obj.ignores;
     }
 
     // Extract handler functions to trace and short-circuit if none.
@@ -276,11 +278,11 @@ class Jetpack {
     );
 
     // Short-circuit if there's nothing to trace.
-    if (!handlers.length) { return undefined; }
+    if (!handlers.length) { return {}; }
 
     // Find the handler files.
     const cwd = this.serverless.config.servicePath || ".";
-    const handlerFiles = await Promise.all(handlers.map(async (handler) => {
+    const traceInclude = await Promise.all(handlers.map(async (handler) => {
       // We extract handler file name pretty analogously to how serverless does it.
       let pattern = handler.replace(/\.[^\.]+$/, "");
       // Add pattern glob if not already present.
@@ -299,20 +301,24 @@ class Jetpack {
       return matchedJsFile || matched[0];
     }));
 
-    // eslint-disable-next-line consistent-return
-    return handlerFiles;
+    return { traceInclude, traceIgnores };
   }
 
   _report({ results }) {
     const INDENT = 6;
     /* eslint-disable max-len*/
     const bundles = results
-      .map(({ bundlePath, roots, patterns, files }) => `
+      .map(({ bundlePath, roots, patterns, files, trace }) => `
       ## ${path.basename(bundlePath)}
 
       - Path: ${bundlePath}
       - Roots: ${roots ? "" : "(None)"}
       ${(roots || []).map((p) => `    - '${p}'`).join("\n      ")}
+
+      ### Trace: Configuration
+
+      # Ignores (\`${trace.ignores.length}\`):
+      ${trace.ignores.map((p) => `- '${p}'`).join("\n      ")}
 
       ### Patterns: Include
 
@@ -428,7 +434,9 @@ class Jetpack {
     };
   }
 
-  async globAndZip({ bundleName, functionObject, layerObject, traceInclude, worker, report }) {
+  async globAndZip({
+    bundleName, functionObject, layerObject, traceInclude, traceIgnores, worker, report
+  }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
     const layerPath = (layerObject || {}).path;
@@ -444,6 +452,7 @@ class Jetpack {
       base,
       roots,
       bundleName,
+      traceIgnores,
       preInclude,
       traceInclude,
       include,
@@ -466,13 +475,13 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Get traces.
-    const traceInclude = await this._traceInclude({ functionObject });
+    const { traceInclude, traceIgnores } = await this._traceOptions({ functionObject });
     const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
     this._logDebug(`Start packaging function: ${bundleName} in mode: ${mode}`);
     const results = await this.globAndZip({
-      bundleName, functionObject, traceInclude, worker, report
+      bundleName, functionObject, traceInclude, traceIgnores, worker, report
     });
     const { buildTime } = results;
 
@@ -493,12 +502,14 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Get traces.
-    const traceInclude = await this._traceInclude({ functionObjects });
+    const { traceInclude, traceIgnores } = await this._traceOptions({ functionObjects });
     const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
     this._logDebug(`Start packaging service: ${bundleName} in mode: ${mode}`);
-    const results = await this.globAndZip({ bundleName, traceInclude, worker, report });
+    const results = await this.globAndZip({
+      bundleName, traceInclude, traceIgnores, worker, report
+    });
     const { buildTime } = results;
 
     // Mutate serverless configuration to use our artifacts.
@@ -554,10 +565,6 @@ class Jetpack {
         functionName,
         functionObject: service.getFunction(functionName)
       }))
-      .map((obj) =>
-        // console.log("TODO functionObject", JSON.stringify(obj.functionObject, null, 2));
-        obj
-      )
       .map((obj) => ({
         ...obj,
         functionPackage: obj.functionObject.package || {},
@@ -570,8 +577,6 @@ class Jetpack {
         individually: !!obj.functionPackage.individually,
         artifact: obj.functionPackage.artifact
       }));
-
-    // console.log("TODO HERE fnsPkgs", { fnsPkgs });
 
     // Get list of individual functions to package.
     const individualPkgs = fnsPkgs.filter((obj) => servicePackage.individually || obj.individually);

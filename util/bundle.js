@@ -273,7 +273,9 @@ const createZip = async ({ files, cwd, bundlePath }) => {
  * @param {string}    opts.base         optional base directory (relative to `servicePath`)
  * @param {string[]}  opts.roots        optional dependency roots (relative to `servicePath`)
  * @param {string}    opts.bundleName   output bundle name
+ * @param {string[]}  opts.traceIgnores package paths to ignore in tracing mode
  * @param {string[]}  opts.preInclude   glob patterns to include first
+ * @param {string[]}  opts.traceInclude glob patterns from tracing mode
  * @param {string[]}  opts.include      glob patterns to include
  * @param {string[]}  opts.exclude      glob patterns to exclude
  * @param {Boolean}   opts.report       include extra report information?
@@ -286,6 +288,7 @@ const globAndZip = async ({
   base,
   roots,
   bundleName,
+  traceIgnores,
   preInclude,
   traceInclude,
   include,
@@ -306,10 +309,7 @@ const globAndZip = async ({
   if (traceInclude) {
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
-    // TODO: Implement `jetpack.trace.include`
-    // TODO: Implement `jetpack.trace.ignores`
-    const ignores = undefined;
-    const traced = await traceFiles({ srcPaths: traceInclude, ignores });
+    const traced = await traceFiles({ srcPaths: traceInclude, ignores: traceIgnores });
 
     // Aggregate.
     depInclude = depInclude.concat(
@@ -348,6 +348,9 @@ const globAndZip = async ({
     results = {
       ...results,
       roots,
+      trace: {
+        ignores: traceIgnores || []
+      },
       patterns: {
         preInclude,
         include,
