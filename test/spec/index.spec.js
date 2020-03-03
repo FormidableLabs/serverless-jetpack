@@ -159,7 +159,102 @@ describe("index", () => {
           ] });
       });
 
-      it("traces with trace.include options"); // TODO
+      it("traces with trace.include options", async () => {
+        mock({
+          "serverless.yml": `
+            service: sls-mocked
+
+            custom:
+              jetpack:
+                trace:
+                  include:
+                    # Additional trace files for all service + individually packages
+                    - "additional.*"
+
+            provider:
+              name: aws
+              runtime: nodejs12.x
+
+            functions:
+              one:
+                handler: one.handler
+                jetpack:
+                  trace:
+                    include:
+                      # Additional source file to trace.
+                      - "one-additional*"
+              two:
+                handler: two.handler
+          `,
+          "additional.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ addl: require("additional-pkg") })
+            });
+          `,
+          "one.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ one: require("one-pkg") })
+            });
+          `,
+          "one-additional.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ onePath: require.resolve("one-additional-pkg") })
+            });
+          `,
+          "two.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ two: require("two-pkg") })
+            });
+          `,
+          node_modules: {
+            "additional-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'additional';"
+            },
+            "one-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'one';"
+            },
+            "one-additional-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'one-additional';"
+            },
+            "two-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'two';"
+            }
+          }
+        });
+
+        const plugin = new Jetpack(await createServerless());
+        await plugin.package();
+        expect(Jetpack.prototype.globAndZip)
+          .to.have.callCount(1).and
+          .to.be.calledWithMatch({ traceInclude: [
+            "one.js", "two.js", "additional.*", "one-additional*"
+          ] });
+        expect(bundle.createZip)
+          .to.have.callCount(1).and
+          .to.be.calledWithMatch({ files: [
+            "additional.js",
+            "one-additional.js",
+            "one.js",
+            "two.js",
+            "node_modules/additional-pkg/index.js",
+            "node_modules/one-additional-pkg/index.js",
+            "node_modules/one-pkg/index.js",
+            "node_modules/two-pkg/index.js"
+          ] });
+      });
+
 
       // TODO: service-level include
       // TODO: service-packaged function with additional include

@@ -25,6 +25,8 @@ const dedent = (str, num) => str
   .map((l) => l.substring(num))
   .join("\n");
 
+const uniq = (val, i, arr) => val !== arr[i - 1];
+
 /**
  * Package Serverless applications manually.
  *
@@ -213,29 +215,42 @@ class Jetpack {
     // Mode: trace functions via service package
     const serviceTrace = this._serviceOptions.trace;
     const serviceEnabled = typeof serviceTrace === "object" || serviceTrace === true;
+    const serviceFnIncludes = (functionObjects || [])
+      // Get array of arrays of function trace includes for service-level packaging only.
+      .map((obj) => (this._extraOptions({ functionObject: obj }).trace || {}).include || [])
+      // Flatten to a single array
+      .reduce((m, a) => m.concat(a), []);
     const serviceObj = {
       ignores: [],
-      include: (functionObjects || [])
-        // Get array of arrays of function trace includes
-        .map((obj) => (this._extraOptions({ functionObject: obj }).trace || {}).include || [])
-        // Flatten to a single array
-        .reduce((m, a) => m.concat(a), []),
+      include: [],
       ...typeof serviceTrace === "object" ? serviceTrace : {}
     };
+    serviceObj.include = []
+      // Aggregate with all service-packaged functions.
+      .concat(serviceObj.include, serviceFnIncludes)
+      // Make unique.
+      .sort()
+      .filter(uniq);
 
-    // Mode: trace individaul function.
+    // Mode: trace individual function.
     const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
     const functionObj = {
       ignores: [],
       include: [],
       ...typeof functionTrace === "object" ? functionTrace : {}
     };
+    functionObj.include = []
+      // Aggregate in service-level includes first
+      .concat(serviceObj.include, functionObj.include)
+      // Make unique.
+      .sort()
+      .filter(uniq);
     functionObj.ignores = []
       // Aggregate in service-level ignores first
       .concat(serviceObj.ignores, functionObj.ignores)
       // Make unique.
       .sort()
-      .filter((val, i, arr) => val !== arr[i - 1]);
+      .filter(uniq);
 
     return {
       service: {
@@ -258,20 +273,20 @@ class Jetpack {
     const traceCfg = this._traceConfig({ functionObject, functionObjects });
 
     // Filter to only the function objects we should trace.
-    let tracedObjects = [];
-    let traceIgnores = [];
+    let fnObjs = [];
+    let traceObj;
     if (functionObjects && traceCfg.service.enabled) {
       // Service-level trace + service package.
-      tracedObjects = functionObjects;
-      traceIgnores = traceCfg.service.obj.ignores;
+      fnObjs = functionObjects;
+      traceObj = traceCfg.service.obj;
     } else if (functionObject && traceCfg.function.enabled) {
       // `individually` function package with service or individual.
-      tracedObjects = [functionObject];
-      traceIgnores = traceCfg.function.obj.ignores;
+      fnObjs = [functionObject];
+      traceObj = traceCfg.function.obj;
     }
 
     // Extract handler functions to trace and short-circuit if none.
-    const handlers = tracedObjects.map((obj) => obj.handler);
+    const handlers = fnObjs.map((obj) => obj.handler);
     const unit = functionObjects ? "service" : `function: ${functionObject.name}`;
     this._logDebug(
       `Found ${handlers.length} handlers to trace for ${unit}: ${JSON.stringify(handlers)}`
@@ -280,28 +295,32 @@ class Jetpack {
     // Short-circuit if there's nothing to trace.
     if (!handlers.length) { return {}; }
 
-    // Find the handler files.
+    // Create the full list of globs to trace.
     const cwd = this.serverless.config.servicePath || ".";
-    const traceInclude = await Promise.all(handlers.map(async (handler) => {
-      // We extract handler file name pretty analogously to how serverless does it.
-      let pattern = handler.replace(/\.[^\.]+$/, "");
-      // Add pattern glob if not already present.
-      if (!(/\.(js|mjs)$/).test(pattern)) {
-        pattern += ".{js,mjs}";
-      }
+    const traceInclude = await Promise
+      // Find all the handler files in preference order.
+      .all(handlers.map(async (handler) => {
+        // We extract handler file name pretty analogously to how serverless does it.
+        let pattern = handler.replace(/\.[^\.]+$/, "");
+        // Add pattern glob if not already present.
+        if (!(/\.(js|mjs)$/).test(pattern)) {
+          pattern += ".{js,mjs}";
+        }
 
-      // Find (potentially multiple) matches
-      const matched = await globby(pattern, { cwd });
-      if (!matched.length) {
-        throw new Error(`Could not find file for handler: ${handler} with pattern: ${pattern}`);
-      }
+        // Find (potentially multiple) matches
+        const matched = await globby(pattern, { cwd });
+        if (!matched.length) {
+          throw new Error(`Could not find file for handler: ${handler} with pattern: ${pattern}`);
+        }
 
-      // Choose JS first, else first matched entry.
-      const matchedJsFile = matched.filter((file) => (/\.js$/).test(file))[0];
-      return matchedJsFile || matched[0];
-    }));
+        // Choose JS first, else first matched entry.
+        const matchedJsFile = matched.filter((file) => (/\.js$/).test(file))[0];
+        return matchedJsFile || matched[0];
+      }))
+      // Add in the user-configured extra includes.
+      .then((matchedJsFiles) => [].concat(matchedJsFiles, traceObj.include));
 
-    return { traceInclude, traceIgnores };
+    return { traceInclude, traceIgnores: traceObj.ignores };
   }
 
   _report({ results }) {

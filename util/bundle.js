@@ -309,7 +309,8 @@ const globAndZip = async ({
   if (traceInclude) {
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
-    const traced = await traceFiles({ srcPaths: traceInclude, ignores: traceIgnores });
+    const srcPaths = await globby(traceInclude, { cwd });
+    const traced = await traceFiles({ srcPaths, ignores: traceIgnores });
 
     // Aggregate.
     depInclude = depInclude.concat(
@@ -336,6 +337,7 @@ const globAndZip = async ({
     cwd,
     bundlePath
   });
+
 
   let results = {
     numFiles: included.length,
