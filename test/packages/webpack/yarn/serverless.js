@@ -6,7 +6,7 @@ const pkg = () => ({
 });
 
 const webpack = () => ({
-  packager: process.env.MODE
+  packager: process.env.PKG
 });
 
 module.exports = {

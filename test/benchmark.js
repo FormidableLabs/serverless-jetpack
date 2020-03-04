@@ -401,8 +401,8 @@ const topLevel = (filePath) => {
 const keepMatchesAll = (f) => !PKG_IGNORE_ALL.has(topLevel(f));
 
 // Applies only to baselines (false positives).
-const keepBaselineMatch = ({ scenario, mode }) => (f) => {
-  const matches = SLS_FALSE_POSITIVES[`${scenario}/${mode}`];
+const keepBaselineMatch = ({ scenario, pkg }) => (f) => {
+  const matches = SLS_FALSE_POSITIVES[`${scenario}/${pkg}`];
   if (!matches) { return true; }
 
   // Exact match for .bin, top-level for everything else.
@@ -443,8 +443,8 @@ describe("benchmark", () => {
 
   describe("baseline vs jetpack", () => {
     // Baseline sls vs. jetpack validation.
-    BASELINE_COMP_MATRIX.forEach(({ scenario, mode }) => {
-      const combo = `${scenario}/${mode}`;
+    BASELINE_COMP_MATRIX.forEach(({ scenario, pkg }) => {
+      const combo = `${scenario}/${pkg}`;
 
       it(combo, async () => {
         const baselineFixture = fixtures[`${combo}/baseline`];
@@ -475,7 +475,7 @@ describe("benchmark", () => {
           const missingInPlugin = baselineLines
             .filter((l) => !pluginSet.has(l))
             .filter(keepMatchesAll)
-            .filter(keepBaselineMatch({ scenario, mode }));
+            .filter(keepBaselineMatch({ scenario, pkg }));
 
           expect(missingInBaseline, `extra files in jetpack for ${fileName}`).to.eql([]);
           expect(missingInPlugin, `missing files in jetpack for ${fileName}`).to.eql([]);

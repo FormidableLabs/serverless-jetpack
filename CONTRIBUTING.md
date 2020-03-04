@@ -61,9 +61,9 @@ $ yarn benchmark:build
 From there you can run various packaging configurations and perform benchmarks.
 
 ```sh
-$ TEST_MODE=yarn TEST_SCENARIO=simple yarn benchmark
-$ TEST_MODE=yarn TEST_SCENARIO=simple,huge yarn benchmark
-$ TEST_MODE=yarn,npm TEST_SCENARIO=simple yarn benchmark
+$ TEST_PKG=yarn TEST_SCENARIO=simple yarn benchmark
+$ TEST_PKG=yarn TEST_SCENARIO=simple,huge yarn benchmark
+$ TEST_PKG=yarn,npm TEST_SCENARIO=simple yarn benchmark
 
 # Faster, because scenarios run in parallel, but less reliable results because
 # of impact on your machine. Use this for faster development, but do a normal

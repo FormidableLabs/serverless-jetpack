@@ -320,7 +320,7 @@ const globAndZip = async ({
       traced.map((depPath) => path.relative(servicePath, depPath))
     );
   } else {
-    // [Pattern Mode] Iterate all dependency roots to gather production dependencies.
+    // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
     depInclude = depInclude.concat(
       await createDepInclude({ cwd, rootPath, roots })
     );

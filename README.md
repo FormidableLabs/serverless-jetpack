@@ -473,8 +473,11 @@ As a quick guide to the results table:
     - `simple`: Very small production and development dependencies.
     - `individually`: Same dependencies as `simple`, but with `individually` packaging.
     - `huge`: Lots and lots of development dependencies.
-- `Mode`: Project installed via `yarn` or `npm`? This really only matters in that `npm` and `yarn` may flatten dependencies differently, so we want to make sure Jetpack is correct in both cases.
+- `Pkg`: Project installed via `yarn` or `npm`? This really only matters in that `npm` and `yarn` may flatten dependencies differently, so we want to make sure Jetpack is correct in both cases.
 - `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
+- `Mode`: For `jetpack` benchmarks, either:
+    - `deps`: Dependency filtering with equivalent output to `serverless` (just faster).
+    - `trace`: Tracing dependencies from specified source files. Not equivalent to `serevrless` packaging, but functionally correct, way faster, and with smaller packages.
 - `Time`: Elapsed build time in milliseconds.
 - `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
 
@@ -485,7 +488,7 @@ Machine information:
 
 Results:
 
-| Scenario     | Mode | Type     |  Time |      vs Base |
+| Scenario     | Pkg  | Type     |  Time |      vs Base |
 | :----------- | :--- | :------- | ----: | -----------: |
 | simple       | yarn | jetpack  |  2151 | **-71.48 %** |
 | simple       | yarn | baseline |  7541 |              |
