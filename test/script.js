@@ -15,7 +15,7 @@ const strip = require("strip-ansi");
 const del = require("del");
 const { exists } = require("../util/bundle");
 
-const { TEST_PKG, TEST_SCENARIO } = process.env;
+const { TEST_PKG, TEST_MODE, TEST_SCENARIO } = process.env;
 const IS_WIN = process.platform === "win32";
 const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
@@ -30,13 +30,20 @@ const numCpus = os.cpus().length;
  * $ TEST_PKG=yarn TEST_SCENARIO=simple      node test/script.js install
  * $ TEST_PKG=yarn TEST_SCENARIO=simple,huge node test/script.js build
  * $ TEST_PKG=yarn,npm TEST_SCENARIO=simple  node test/script.js benchmark
+ * $ TEST_MODE=trace TEST_SCENARIO=simple    node test/script.js benchmark
  * ```
  */
-const CONFIGS = [
-  { pkg: "yarn" },
-  { pkg: "npm" }
+const PKGS = [
+  "yarn",
+  "npm"
 ]
-  .filter(({ pkg }) => !TEST_PKG || TEST_PKG.split(",").includes(pkg));
+  .filter((pkg) => !TEST_PKG || TEST_PKG.split(",").includes(pkg));
+
+const MODES = [
+  "trace",
+  "deps"
+]
+  .filter((mode) => !TEST_MODE || TEST_MODE.split(",").includes(mode));
 
 const SCENARIOS = [
   "simple",
@@ -69,7 +76,7 @@ const ALLOW_FAILURE_SCENARIOS = new Set([
 ]);
 
 const MATRIX = SCENARIOS
-  .map((scenario) => CONFIGS.map((c) => ({ ...c, scenario })))
+  .map((scenario) => PKGS.map((pkg) => ({ pkg, scenario })))
   .reduce((m, a) => m.concat(a), []);
 
 const ENV = {
@@ -79,7 +86,7 @@ const ENV = {
 };
 
 const TABLE_OPTS = {
-  align: ["l", "l", "l", "r", "r"],
+  align: ["l", "l", "l", "l", "r", "r"],
   stringLength: (cell) => strip(cell).length // fix alignment with chalk.
 };
 
@@ -163,7 +170,7 @@ const _logTask = (obj) => (msg) => log(chalk `{green ${msg}}: ${JSON.stringify(o
 
 // eslint-disable-next-line max-statements
 const benchmark = async ({ concurrency }) => {
-  const HEADER = ["Scenario", "Pkg", "Type", "Time", "vs Base"].map((t) => gray(t));
+  const HEADER = ["Scenario", "Pkg", "Type", "Mode", "Time", "vs Base"].map((t) => gray(t));
   const timedData = [HEADER];
   const otherData = [HEADER];
 
@@ -221,30 +228,36 @@ const benchmark = async ({ concurrency }) => {
           return Date.now() - start;
         };
 
-        logTask("[task:start:jetpack]");
-        const pluginTime = await runPackage({
-          env: {
-            ...ENV,
-            PKG: pkg
-          }
-        });
-        logTask("[task:end:jetpack]");
+        // Run each mode in serial because
+        const jpLimit = pLimit(1);
+        const jetpackTimes = await Promise.all(MODES.map((mode) => jpLimit(async () => {
+          logTask(`[task:start:jetpack:${mode}]`);
+          const jetpackTime = await runPackage({
+            env: {
+              ...ENV,
+              PKG: pkg
+            }
+          });
+          logTask(`[task:end:jetpack:${mode}]`);
 
-        const pluginArchive = path.join(archiveRoot, scenario, pkg, "jetpack");
-        await del(pluginArchive);
-        await fs.mkdirp(pluginArchive);
-        const pluginZips = await globby(".serverless/*.zip", { cwd });
-        await Promise.all(pluginZips.map((zipFile) => fs.copy(
-          path.join(cwd, zipFile),
-          path.join(pluginArchive, path.basename(zipFile))
-        )));
+          const jetpackArchive = path.join(archiveRoot, scenario, pkg, "jetpack", mode);
+          await del(jetpackArchive);
+          await fs.mkdirp(jetpackArchive);
+          const jetpackZips = await globby(".serverless/*.zip", { cwd });
+          await Promise.all(jetpackZips.map((zipFile) => fs.copy(
+            path.join(cwd, zipFile),
+            path.join(jetpackArchive, path.basename(zipFile))
+          )));
 
-        let baselineTime;
+          return jetpackTime;
+        })));
+
+        let baseTime;
         if (JETPACK_ONLY_SCENARIOS.has(scenario)) {
           logTask("[task:skipping:baseline]");
         } else {
           logTask("[task:start:baseline]");
-          baselineTime = await runPackage();
+          baseTime = await runPackage();
           logTask("[task:end:baseline]");
 
           const baselineArchive = path.join(archiveRoot, scenario, pkg, "baseline");
@@ -258,17 +271,16 @@ const benchmark = async ({ concurrency }) => {
         }
 
         // Report.
-        let pct;
-        if (baselineTime) {
+        const jetpackRows = MODES.map((mode, i) => {
           // eslint-disable-next-line no-magic-numbers
-          pct = ((pluginTime - baselineTime) / baselineTime * 100).toFixed(2);
-        }
-        const pluginRow = [scenario, pkg, "jetpack", pluginTime, pct ? `**${pct} %**` : ""];
+          const pct = baseTime ? ((jetpackTimes[i] - baseTime) / baseTime * 100).toFixed(2) : "";
+          return [scenario, pkg, "jetpack", mode, jetpackTimes[i], pct ? `**${pct} %**` : ""];
+        });
 
         const resultsKey = `${scenario}/${pkg}`;
         results[resultsKey] = (results[resultsKey] || []).concat([
-          pluginRow,
-          baselineTime ? [scenario, pkg, "baseline", baselineTime, ""] : null
+          ...jetpackRows,
+          baseTime ? [scenario, pkg, "baseline", "", baseTime, ""] : null
         ].filter(Boolean));
       }));
     })
