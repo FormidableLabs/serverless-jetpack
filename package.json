@@ -43,7 +43,7 @@
     "make-dir": "^3.0.0",
     "nanomatch": "^1.2.13",
     "p-limit": "^2.2.2",
-    "trace-deps": "^0.1.0"
+    "trace-deps": "^0.2.0"
   },
   "devDependencies": {
     "adm-zip": "^0.4.13",

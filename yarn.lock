@@ -5202,10 +5202,10 @@ to-regex@^3.0.1, to-regex@^3.0.2:
     regex-not "^1.0.2"
     safe-regex "^1.1.0"
 
-trace-deps@^0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/trace-deps/-/trace-deps-0.1.0.tgz#2084958d06e97805a81ce7fc1d6a2c79c200606c"
-  integrity sha512-4iVBcuyPehXteYtQfUzBjBuycWosj07VZOjDxm0OAtlHqz8T8t/BELyzAnB04J2cdEfd2MRFqGjfjSCWVX14pA==
+trace-deps@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/trace-deps/-/trace-deps-0.2.0.tgz#18d3ea1c4c084f214d783ced13de92efda394f6f"
+  integrity sha512-xAFJN6xqjYZFMLqjwosXQnyOTFSuA7g7aysUTPPLxGUl2jE0N5DvcSrjJABXyrCEyo3tP8o26J4Ejr1B1e0RDg==
   dependencies:
     acorn-node "^1.8.2"
     resolve "^1.15.1"
