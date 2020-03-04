@@ -114,6 +114,8 @@ describe("index", () => {
 
             custom:
               jetpack:
+                preInclude:
+                  - "!**"
                 trace:
                   ignores:
                     - two-pkg
@@ -125,10 +127,23 @@ describe("index", () => {
             functions:
               numbers:
                 handler: numbers.handler
+              has-ignores:
+                handler: has-ignores.handler
+                package:
+                  individually: true
+                jetpack:
+                  trace:
+                    ignores:
+                      - should-be-ignored
           `,
           "numbers.js": `
             exports.handler = async () => ({
               body: JSON.stringify({ one: require("one-pkg"), two: require("two-pkg") })
+            });
+          `,
+          "has-ignores.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ ignoreMe: require("should-be-ignored") })
             });
           `,
           node_modules: {
@@ -150,14 +165,18 @@ describe("index", () => {
         const plugin = new Jetpack(await createServerless());
         await plugin.package();
         expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(1).and
-          .to.be.calledWithMatch({ traceInclude: ["numbers.js"] });
+          .to.have.callCount(2).and
+          .to.be.calledWithMatch({ traceInclude: ["numbers.js"] }).and
+          .to.be.calledWithMatch({ traceInclude: ["has-ignores.js"] });
         expect(bundle.createZip)
-          .to.have.callCount(1).and
+          .to.have.callCount(2).and
           .to.be.calledWithMatch({ files: [
             "numbers.js",
             "node_modules/one-pkg/index.js",
             "node_modules/one-pkg/package.json"
+          ] }).and
+          .to.be.calledWithMatch({ files: [
+            "has-ignores.js"
           ] });
       });
 
