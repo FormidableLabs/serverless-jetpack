@@ -15,7 +15,8 @@ const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
 const sls = (args, opts) => execa(SLS_CMD, args, {
   env: {
     ...process.env,
-    PKG: "yarn"
+    PKG: "yarn",
+    MODE: "deps" // TODO: Consider trace
   },
   ...opts
 });

@@ -235,7 +235,8 @@ const benchmark = async ({ concurrency }) => {
           const jetpackTime = await runPackage({
             env: {
               ...ENV,
-              PKG: pkg
+              PKG: pkg,
+              MODE: mode
             }
           });
           logTask(`[task:end:jetpack:${mode}]`);
