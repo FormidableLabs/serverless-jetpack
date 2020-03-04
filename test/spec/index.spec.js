@@ -102,7 +102,8 @@ describe("index", () => {
           .to.have.callCount(1).and
           .to.be.calledWithMatch({ files: [
             "one.js",
-            "node_modules/one-pkg/index.js"
+            "node_modules/one-pkg/index.js",
+            "node_modules/one-pkg/package.json"
           ] });
       });
 
@@ -155,7 +156,8 @@ describe("index", () => {
           .to.have.callCount(1).and
           .to.be.calledWithMatch({ files: [
             "numbers.js",
-            "node_modules/one-pkg/index.js"
+            "node_modules/one-pkg/index.js",
+            "node_modules/one-pkg/package.json"
           ] });
       });
 
@@ -305,9 +307,13 @@ describe("index", () => {
             "additional.js",
             "extra.js",
             "node_modules/additional-pkg/index.js",
+            "node_modules/additional-pkg/package.json",
             "node_modules/extra-pkg/index.js",
+            "node_modules/extra-pkg/package.json",
             "node_modules/one-pkg/index.js",
-            "node_modules/two-pkg/index.js"
+            "node_modules/one-pkg/package.json",
+            "node_modules/two-pkg/index.js",
+            "node_modules/two-pkg/package.json"
           ] }).and
           // function package
           .to.be.calledWithMatch({ files: [
@@ -315,8 +321,11 @@ describe("index", () => {
             "additional.js",
             "green.js",
             "node_modules/additional-pkg/index.js",
+            "node_modules/additional-pkg/package.json",
             "node_modules/green-pkg/index.js",
-            "node_modules/red-pkg/index.js"
+            "node_modules/green-pkg/package.json",
+            "node_modules/red-pkg/index.js",
+            "node_modules/red-pkg/package.json"
           ] });
       });
     });
