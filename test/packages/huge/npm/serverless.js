@@ -6,9 +6,9 @@ const pkg = () => ({
 });
 
 const jetpack = () => ({
-  service: process.env.MODE === "trace" ? {
-    trace: true
-  } : false
+  service: {
+    trace: process.env.MODE === "trace"
+  }
 });
 
 module.exports = {
