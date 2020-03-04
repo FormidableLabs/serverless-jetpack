@@ -159,13 +159,15 @@ describe("index", () => {
           ] });
       });
 
-      it("traces with trace.include options", async () => {
+      it("traces with various trace.include options", async () => {
         mock({
           "serverless.yml": `
             service: sls-mocked
 
             custom:
               jetpack:
+                preInclude:
+                  - "!**"
                 trace:
                   include:
                     # Additional trace files for all service + individually packages
@@ -176,15 +178,30 @@ describe("index", () => {
               runtime: nodejs12.x
 
             functions:
+              # Service functions
               one:
                 handler: one.handler
                 jetpack:
                   trace:
                     include:
                       # Additional source file to trace.
-                      - "one-additional*"
+                      - "extra*"
               two:
                 handler: two.handler
+              # Individually functions
+              red:
+                handler: red.handler
+                package:
+                  individually: true
+                jetpack:
+                  trace:
+                    include:
+                      - "green.*"
+              dont-include:
+                handler: dont-include.handler
+                package:
+                  individually: true
+                  disable: true
           `,
           "additional.js": `
             exports.handler = async () => ({
@@ -196,14 +213,29 @@ describe("index", () => {
               body: JSON.stringify({ one: require("one-pkg") })
             });
           `,
-          "one-additional.js": `
+          "extra.js": `
             exports.handler = async () => ({
-              body: JSON.stringify({ onePath: require.resolve("one-additional-pkg") })
+              body: JSON.stringify({ extra: require.resolve("extra-pkg") })
             });
           `,
           "two.js": `
             exports.handler = async () => ({
               body: JSON.stringify({ two: require("two-pkg") })
+            });
+          `,
+          "red.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ one: require("red-pkg") })
+            });
+          `,
+          "green.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ one: require("green-pkg") })
+            });
+          `,
+          "dont-include.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ one: require("dont-include-pkg") })
             });
           `,
           node_modules: {
@@ -219,17 +251,35 @@ describe("index", () => {
               }),
               "index.js": "module.exports = 'one';"
             },
-            "one-additional-pkg": {
+            "extra-pkg": {
               "package.json": stringify({
                 main: "index.js"
               }),
-              "index.js": "module.exports = 'one-additional';"
+              "index.js": "module.exports = 'extra';"
             },
             "two-pkg": {
               "package.json": stringify({
                 main: "index.js"
               }),
               "index.js": "module.exports = 'two';"
+            },
+            "red-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'red';"
+            },
+            "green-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'green';"
+            },
+            "dont-include-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'dont-include';"
             }
           }
         });
@@ -237,28 +287,38 @@ describe("index", () => {
         const plugin = new Jetpack(await createServerless());
         await plugin.package();
         expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(1).and
+          .to.have.callCount(2).and
+          // service package
           .to.be.calledWithMatch({ traceInclude: [
-            "one.js", "two.js", "additional.*", "one-additional*"
+            "one.js", "two.js", "additional.*", "extra*"
+          ] }).and
+          // function package
+          .to.be.calledWithMatch({ traceInclude: [
+            "red.js", "additional.*", "green.*"
           ] });
         expect(bundle.createZip)
-          .to.have.callCount(1).and
+          .to.have.callCount(2).and
+          // service package
           .to.be.calledWithMatch({ files: [
-            "additional.js",
-            "one-additional.js",
             "one.js",
             "two.js",
+            "additional.js",
+            "extra.js",
             "node_modules/additional-pkg/index.js",
-            "node_modules/one-additional-pkg/index.js",
+            "node_modules/extra-pkg/index.js",
             "node_modules/one-pkg/index.js",
             "node_modules/two-pkg/index.js"
+          ] }).and
+          // function package
+          .to.be.calledWithMatch({ files: [
+            "red.js",
+            "additional.js",
+            "green.js",
+            "node_modules/additional-pkg/index.js",
+            "node_modules/green-pkg/index.js",
+            "node_modules/red-pkg/index.js"
           ] });
       });
-
-
-      // TODO: service-level include
-      // TODO: service-packaged function with additional include
-      // TODO: individually include
     });
 
     describe("configurations", () => {
