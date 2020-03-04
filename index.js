@@ -508,7 +508,7 @@ class Jetpack {
     functionObject.package = functionObject.package || {};
     functionObject.package.artifact = bundleName;
 
-    this._log(`Packaged function: ${bundleName} (${toSecs(buildTime)}s)`);
+    this._log(`Packaged function (${mode} mode): ${bundleName} (${toSecs(buildTime)}s)`);
     return { packageType: "function", ...results };
   }
 
@@ -534,7 +534,7 @@ class Jetpack {
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
 
-    this._log(`Packaged service: ${bundleName} (${toSecs(buildTime)}s)`);
+    this._log(`Packaged service (${mode} mode): ${bundleName} (${toSecs(buildTime)}s)`);
     return { packageType: "service", ...results };
   }
 
