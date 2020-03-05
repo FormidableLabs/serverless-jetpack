@@ -52,7 +52,8 @@ const SCENARIOS = [
   "individually",
   "monorepo",
   "webpack",
-  "huge"
+  "huge",
+  "huge-prod"
 ]
   .filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));
 
@@ -61,12 +62,20 @@ const TIMING_SCENARIOS = new Set([
   "simple",
   "complex",
   "individually",
-  "huge"
+  "huge",
+  "huge-prod"
 ]);
 
 // Some scenarios are only feasible in Jetpack
 const JETPACK_ONLY_SCENARIOS = new Set([
   "monorepo"
+]);
+
+// Tests to exclude from correctness tests.
+const SKIP_CORRECTNESS_SCENARIOS = new Set([
+  "monorepo",
+  "webpack",
+  "huge-prod"
 ]);
 
 // Some scenarios allow failures in executing `serverless`
@@ -75,9 +84,24 @@ const ALLOW_FAILURE_SCENARIOS = new Set([
   "dashboard"
 ]);
 
+// All scenario to run.
 const MATRIX = SCENARIOS
   .map((scenario) => PKGS.map((pkg) => ({ pkg, scenario })))
   .reduce((m, a) => m.concat(a), []);
+
+// All scenarios to test.
+const TEST_MATRIX = MATRIX.filter(({ scenario }) => {
+  if (SKIP_CORRECTNESS_SCENARIOS.has(scenario)) {
+    return false;
+  }
+
+  // SFE-only scenarios.
+  if (scenario === "dashboard" && !IS_SLS_ENTERPRISE) {
+    return false;
+  }
+
+  return true;
+});
 
 const ENV = {
   STAGE: "sandbox",
@@ -339,7 +363,7 @@ const main = async () => {
 };
 
 module.exports = {
-  MATRIX
+  TEST_MATRIX
 };
 
 if (require.main === module) {

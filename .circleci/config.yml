@@ -53,6 +53,8 @@ jobs:
           - ~/project/test/packages/dashboard/yarn/node_modules
           - ~/project/test/packages/huge/npm/node_modules
           - ~/project/test/packages/huge/yarn/node_modules
+          - ~/project/test/packages/huge-prod/npm/node_modules
+          - ~/project/test/packages/huge-prod/yarn/node_modules
           - ~/project/test/packages/individually/npm/node_modules
           - ~/project/test/packages/individually/yarn/node_modules
           - ~/project/test/packages/monorepo/npm/node_modules

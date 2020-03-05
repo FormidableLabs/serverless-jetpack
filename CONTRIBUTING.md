@@ -36,6 +36,9 @@ test/packages/
 ├── huge
 │   ├── npm
 │   └── yarn
+├── huge-prod
+│   ├── npm
+│   └── yarn
 ├── individually
 │   ├── npm
 │   └── yarn

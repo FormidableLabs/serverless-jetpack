@@ -11,19 +11,7 @@ const globby = require("globby");
 const AdmZip = require("adm-zip");
 
 const { TEST_SCENARIO } = process.env;
-const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
-const { MATRIX } = require("./script");
-const SKIP_COMPARE_SCENARIOS = ["monorepo", "webpack"];
-const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => {
-  if (SKIP_COMPARE_SCENARIOS.includes(scenario)) {
-    return false;
-  }
-  // SFE-only scenarios.
-  if (scenario === "dashboard" && !IS_SLS_ENTERPRISE) {
-    return false;
-  }
-  return true;
-});
+const { TEST_MATRIX } = require("./script");
 
 // Filter known false positives.
 //
@@ -457,7 +445,7 @@ describe("benchmark", () => {
   describe("dependencies mode", () => {
     describe("baseline vs jetpack", () => {
       // Baseline sls vs. jetpack validation.
-      BASELINE_COMP_MATRIX.forEach(({ scenario, pkg }) => {
+      TEST_MATRIX.forEach(({ scenario, pkg }) => {
         const combo = `${scenario}/${pkg}`;
 
         it(combo, async () => {
@@ -693,7 +681,7 @@ describe("benchmark", () => {
       // More limited than in dependencies mode. Here we just check:
       // 1. Jetpack trace doesn't have extras
       // 2. Jetpack non-node_modules match baseline
-      BASELINE_COMP_MATRIX.forEach(({ scenario, pkg }) => {
+      TEST_MATRIX.forEach(({ scenario, pkg }) => {
         const combo = `${scenario}/${pkg}`;
 
         it(combo, async () => {
