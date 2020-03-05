@@ -687,8 +687,51 @@ describe("benchmark", () => {
   });
 
   describe("trace mode", () => {
-    describe("base includes", () => {
+    describe("baseline vs jetpack", () => {
+      // Baseline sls vs. jetpack validation.
+      //
+      // More limited than in dependencies mode. Here we just check:
+      // 1. Jetpack trace doesn't have extras
+      // 2. Jetpack non-node_modules match baseline
+      BASELINE_COMP_MATRIX.forEach(({ scenario, pkg }) => {
+        const combo = `${scenario}/${pkg}`;
 
+        it(combo, async () => {
+          const baselineFixture = fixtures[`${combo}/baseline`];
+
+          // Sanity check baseline exists.
+          expect(baselineFixture).to.be.ok;
+          const baselineFileNames = Object.keys(baselineFixture);
+          expect(baselineFileNames).to.be.ok.and.to.not.eql([]);
+
+          baselineFileNames.forEach((fileName) => {
+            // Get all of the lines from our file lists.
+            const baselineLines = baselineFixture[fileName];
+            const baselineSet = new Set(baselineLines);
+            const pluginLines = (fixtures[`${combo}/jetpack/trace`] || {})[fileName];
+            const pluginSet = new Set(pluginLines);
+
+            // Sanity check that we _generated_ lines for both jetpack + baseline.
+            // These being empty means most likely our test harness messed up
+            // and generated empty zips as **all** present scenarios should have
+            // at least one file.
+            expect(pluginLines).to.be.ok.and.to.not.eql([]);
+
+            // Figure out what is missing from each.
+            const missingInBaseline = pluginLines
+              .filter((l) => !baselineSet.has(l))
+              .filter(keepMatchesAll);
+
+            // DIFFERENT: Only check **non**-node_modules
+            const missingInPlugin = baselineLines
+              .filter((l) => l.indexOf("node_modules") === -1)
+              .filter((l) => !pluginSet.has(l));
+
+            expect(missingInBaseline, `extra files in jetpack for ${fileName}`).to.eql([]);
+            expect(missingInPlugin, `missing files in jetpack for ${fileName}`).to.eql([]);
+          });
+        });
+      });
     });
 
     describeScenario("webpack", () => {
