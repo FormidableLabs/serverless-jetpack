@@ -7,6 +7,7 @@ package:
 custom:
   region: ${opt:region, env:AWS_REGION}
   stage: ${opt:stage, env:STAGE}
+  jetpack: ${file(./serverless.js):jetpack.service}
 
 plugins:
   modules:
