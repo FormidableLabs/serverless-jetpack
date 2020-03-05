@@ -342,7 +342,9 @@ custom:
 
 The `trace` field can be a Boolean or object containing further configuration information.
 
-#### Tracing Options
+#### \[EXPERIMENTAL\] Tracing Options
+
+> ℹ️ **Experimental**: Although we have a wide array of tests, tracing mode is still considered experimental as we roll out the feature. You should be sure to test all the execution code paths in your deployed serverless functions and verify your bundled package contents before using in production.
 
 The basic `trace` Boolean field should hopefully work for most cases. Jetpack provides several additional options for more flexibility:
 
@@ -417,7 +419,11 @@ functions:
 
 ### Tracing Caveats
 
-* **Only works with JavaScript handlers**: Tracing mode only works with handler files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
+* **Works best for large, unused production dependencies**: Tracing mode is best suited for an application wherein many / most of the files specified in `package.json:dependencies` are not actually used. When there is a large descrepancy between "specific dependencies" and "actually used files" you'll see the biggest speedups. Conversely, when production dependencies are very tight and almost every file is used you won't see a large speedup versus Jetpack's normal dependency mode.
+
+* **Only works with JavaScript handlers + code**: Tracing mode only works with `functions.{FN_NAME}.handler` and `trace.include` files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
+
+* **Only works with imports/requires**: [trace-deps][] only works with a supported set of `require`, `require.resolve` and `import` dependency specifiers. That means if your application code or a dependency does something like: `const styles = fs.readFileSync(path.join(__dirname, "styles.css"))` then the dependency of `node_modules/<pkg>/<path>/styles.css` will not be included in your serverless bundle. To remedy this you presently must manually detect and find any such missing files and use a standard service or function level `package.include` as appropriate to explicitly include the specific files in your bundle.
 
 * **Service/function-level Applications**: Tracing mode at the service level and `individually` configurations work as follows:
   * If service level `custom.jetpack.trace` is set (`true` or config object), then the service will be traced. All functions are packaged in tracing mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace=false` explicitly.
@@ -483,30 +489,43 @@ As a quick guide to the results table:
 
 Machine information:
 
-* os:   `darwin 18.5.0 x64`
-* node: `v8.16.0`
+* os:   `darwin 18.7.0 x64`
+* node: `v12.14.1`
 
 Results:
 
-| Scenario     | Pkg  | Type     |  Time |      vs Base |
-| :----------- | :--- | :------- | ----: | -----------: |
-| simple       | yarn | jetpack  |  2151 | **-71.48 %** |
-| simple       | yarn | baseline |  7541 |              |
-| simple       | npm  | jetpack  |  3245 | **-62.83 %** |
-| simple       | npm  | baseline |  8730 |              |
-| complex      | yarn | jetpack  |  4219 | **-69.07 %** |
-| complex      | yarn | baseline | 13642 |              |
-| complex      | npm  | jetpack  |  4663 | **-71.11 %** |
-| complex      | npm  | baseline | 16142 |              |
-| individually | yarn | jetpack  |  3520 | **-73.57 %** |
-| individually | yarn | baseline | 13316 |              |
-| individually | npm  | jetpack  |  3759 | **-74.68 %** |
-| individually | npm  | baseline | 14848 |              |
-| huge         | yarn | jetpack  |  4799 | **-80.91 %** |
-| huge         | yarn | baseline | 25142 |              |
-| huge         | npm  | jetpack  |  3426 | **-88.46 %** |
-| huge         | npm  | baseline | 29684 |              |
-
+| Scenario     | Pkg  | Type     | Mode  |  Time |      vs Base |
+| :----------- | :--- | :------- | :---- | ----: | -----------: |
+| simple       | yarn | jetpack  | trace |  7630 | **-60.06 %** |
+| simple       | yarn | jetpack  | deps  |  2880 | **-84.92 %** |
+| simple       | yarn | baseline |       | 19102 |              |
+| simple       | npm  | jetpack  | trace |  7143 | **-62.61 %** |
+| simple       | npm  | jetpack  | deps  |  3465 | **-81.86 %** |
+| simple       | npm  | baseline |       | 19106 |              |
+| complex      | yarn | jetpack  | trace | 12988 | **-48.67 %** |
+| complex      | yarn | jetpack  | deps  | 10269 | **-59.41 %** |
+| complex      | yarn | baseline |       | 25302 |              |
+| complex      | npm  | jetpack  | trace | 10684 | **-59.44 %** |
+| complex      | npm  | jetpack  | deps  | 10496 | **-60.15 %** |
+| complex      | npm  | baseline |       | 26339 |              |
+| individually | yarn | jetpack  | trace | 16857 |  **-7.38 %** |
+| individually | yarn | jetpack  | deps  | 12759 | **-29.90 %** |
+| individually | yarn | baseline |       | 18201 |              |
+| individually | npm  | jetpack  | trace | 16024 | **-15.10 %** |
+| individually | npm  | jetpack  | deps  | 13067 | **-30.76 %** |
+| individually | npm  | baseline |       | 18873 |              |
+| huge         | yarn | jetpack  | trace |  5562 | **-86.02 %** |
+| huge         | yarn | jetpack  | deps  |  5079 | **-87.24 %** |
+| huge         | yarn | baseline |       | 39793 |              |
+| huge         | npm  | jetpack  | trace |  6790 | **-87.48 %** |
+| huge         | npm  | jetpack  | deps  |  4105 | **-92.43 %** |
+| huge         | npm  | baseline |       | 54254 |              |
+| huge-prod    | yarn | jetpack  | trace |  8987 | **-70.00 %** |
+| huge-prod    | yarn | jetpack  | deps  | 25348 | **-15.38 %** |
+| huge-prod    | yarn | baseline |       | 29954 |              |
+| huge-prod    | npm  | jetpack  | trace |  9766 | **-67.39 %** |
+| huge-prod    | npm  | jetpack  | deps  | 23121 | **-22.79 %** |
+| huge-prod    | npm  | baseline |       | 29947 |              |
 ## Maintenance Status
 
 **Active:** Formidable is actively working on this project, and we expect to continue for work for the foreseeable future. Bug reports, feature requests and pull requests are welcome.
