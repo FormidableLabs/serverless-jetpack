@@ -420,14 +420,15 @@ functions:
 ### Tracing Caveats
 
 * **Works best for large, unused production dependencies**: Tracing mode is best suited for an application wherein many / most of the files specified in `package.json:dependencies` are not actually used. When there is a large descrepancy between "specific dependencies" and "actually used files" you'll see the biggest speedups. Conversely, when production dependencies are very tight and almost every file is used you won't see a large speedup versus Jetpack's normal dependency mode.
+    * An example of an application with lots of unused production dependencies is our `huge-prod` test fixture. Trace mode is significanly faster than Jetpack dependency mode and baseline serverless packaging.
 
 * **Only works with JavaScript handlers + code**: Tracing mode only works with `functions.{FN_NAME}.handler` and `trace.include` files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
 
 * **Only works with imports/requires**: [trace-deps][] only works with a supported set of `require`, `require.resolve` and `import` dependency specifiers. That means if your application code or a dependency does something like: `const styles = fs.readFileSync(path.join(__dirname, "styles.css"))` then the dependency of `node_modules/<pkg>/<path>/styles.css` will not be included in your serverless bundle. To remedy this you presently must manually detect and find any such missing files and use a standard service or function level `package.include` as appropriate to explicitly include the specific files in your bundle.
 
 * **Service/function-level Applications**: Tracing mode at the service level and `individually` configurations work as follows:
-  * If service level `custom.jetpack.trace` is set (`true` or config object), then the service will be traced. All functions are packaged in tracing mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace=false` explicitly.
-  * If service level `custom.jetpack.trace` is false or unset, then the service will not be traced. All functions are packaged in normal dependency-filtering mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace` is set which will be in tracing mode.
+    * If service level `custom.jetpack.trace` is set (`true` or config object), then the service will be traced. All functions are packaged in tracing mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace=false` explicitly.
+    * If service level `custom.jetpack.trace` is false or unset, then the service will not be traced. All functions are packaged in normal dependency-filtering mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace` is set which will be in tracing mode.
 
 * **Replaces Package Introspection**: Enabling tracing mode will replace all `package.json` production dependency inspection and add a blanket exclusion pattern for `node_modules` meaning things that are traced are the **only** thing that will be included by your bundle.
 
