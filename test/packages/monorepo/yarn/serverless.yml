@@ -3,9 +3,7 @@ service: serverless-jetpack-monorepo
 custom:
   region: ${opt:region, env:AWS_REGION}
   stage: ${opt:stage, env:STAGE}
-  jetpack:
-    preInclude:
-      - "!**" # Start with no directories.
+  jetpack: ${file(./serverless.js):jetpack.service}
 
 package:
   individually: true
