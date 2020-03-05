@@ -13,8 +13,9 @@ const AdmZip = require("adm-zip");
 const { TEST_SCENARIO } = process.env;
 const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
 const { MATRIX } = require("./script");
+const SKIP_COMPARE_SCENARIOS = ["monorepo", "webpack"];
 const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => {
-  if (scenario === "monorepo") {
+  if (SKIP_COMPARE_SCENARIOS.includes(scenario)) {
     return false;
   }
   // SFE-only scenarios.
@@ -418,6 +419,7 @@ const describeScenario = (scenario, callback) =>
 
 describe("benchmark", () => {
   let fixtures;
+  let webpackFiles;
 
   before(async () => {
     // Read lists of contents from zip files directly.
@@ -440,6 +442,16 @@ describe("benchmark", () => {
 
       return memo;
     }, {});
+
+    // Extract the equivalent files from webpack single bundle files.
+    const wepbpackZip = new AdmZip(path.resolve(
+      projRoot, ".test-zips/webpack/yarn/baseline/serverless-jetpack-plugins.zip"
+    ));
+    webpackFiles = wepbpackZip.readAsText("src/base.js")
+      .split("\n")
+      .filter((line) => (/\!\*\*\* .*? \*\*\*\!/).test(line))
+      .map((line) => line.replace(/\!\*\*\*|\*\*\*\!/g, "").trim())
+      .map((file) => path.relative(".", file));
   });
 
   describe("dependencies mode", () => {
@@ -675,6 +687,19 @@ describe("benchmark", () => {
   });
 
   describe("trace mode", () => {
-    it("TODO TRACE TESTS"); // TODO
+    describe("base includes", () => {
+
+    });
+
+    describeScenario("webpack", () => {
+      it("traces the same files as webpack", () => {
+        // Trace files is "real" files and webpack files are from bundle control comments.
+        const traceFixture = fixtures["webpack/yarn/jetpack/trace"];
+        const traceFiles = traceFixture[Object.keys(traceFixture)[0]];
+
+        // Compare everything except package.json which Node.js needs, but webpack resolves away.
+        expect(traceFiles.filter((file) => !file.endsWith("package.json"))).to.eql(webpackFiles);
+      });
+    });
   });
 });
