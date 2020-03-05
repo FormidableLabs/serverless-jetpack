@@ -2,14 +2,27 @@
 
 const pkg = () => ({
   individually: false,
-  excludeDevDependencies: true
+  excludeDevDependencies: true,
+  include: [
+    process.env.MODE === "deps" ? "src/**/*.js" : null
+  ].filter(Boolean)
+});
+
+const jetpack = () => ({
+  service: {
+    preInclude: ["!**"],
+    trace: process.env.MODE === "trace"
+  }
 });
 
 const webpack = () => ({
-  packager: process.env.PKG
+  service: {
+    packager: process.env.PKG
+  }
 });
 
 module.exports = {
   pkg,
+  jetpack,
   webpack
 };

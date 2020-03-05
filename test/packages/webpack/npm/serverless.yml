@@ -3,15 +3,18 @@ service: serverless-jetpack-plugins
 package:
   individually: ${file(./serverless.js):pkg.individually}
   excludeDevDependencies: ${file(./serverless.js):pkg.excludeDevDependencies}
+  include: ${file(./serverless.js):pkg.include}
 
 custom:
   region: ${opt:region, env:AWS_REGION}
   stage: ${opt:stage, env:STAGE}
-  webpack: ${file(./serverless.js):webpack}
+  jetpack: ${file(./serverless.js):jetpack.service}
+  webpack: ${file(./serverless.js):webpack.service}
 
+# Note: We run webpack plugin only in baseline mode and run Jetpack in trace/deps mode.
 plugins:
   modules:
-    - serverless-webpack
+    - ./webpack-plugin-wrapper
     - serverless-offline
     - ../../../plugins/wrapper
 

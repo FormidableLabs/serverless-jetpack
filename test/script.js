@@ -258,7 +258,12 @@ const benchmark = async ({ concurrency }) => {
           logTask("[task:skipping:baseline]");
         } else {
           logTask("[task:start:baseline]");
-          baseTime = await runPackage();
+          baseTime = await runPackage({
+            env: {
+              ...ENV,
+              MODE: "baseline"
+            }
+          });
           logTask("[task:end:baseline]");
 
           const baselineArchive = path.join(archiveRoot, scenario, pkg, "baseline");
