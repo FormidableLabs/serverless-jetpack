@@ -23,6 +23,7 @@
     "benchmark:install": "node test/script.js install",
     "benchmark:build": "node test/script.js build",
     "benchmark:test": "mocha test/benchmark.js",
+    "benchmark:size": "node test/script.js size",
     "benchmark": "node test/script.js benchmark",
     "test:cli": "mocha test/cli",
     "test:spec": "mocha test/spec",

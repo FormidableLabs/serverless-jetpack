@@ -7,6 +7,7 @@ const { "default": PQueue } = require("p-queue");
 const pLimit = require("p-limit");
 const chalk = require("chalk");
 const { gray } = chalk;
+const AdmZip = require("adm-zip");
 const execa = require("execa");
 const globby = require("globby");
 const fs = require("fs-extra");
@@ -338,12 +339,43 @@ const benchmark = async ({ concurrency }) => {
   log(table(otherData.concat(otherRows), TABLE_OPTS));
 };
 
+const size = async () => {
+  // Read lists of contents from zip files directly.
+  const projRoot = path.resolve(__dirname, "..");
+  const zipFiles = await globby([".test-zips/**/*.zip"], { cwd: projRoot });
+  const zipData = await Promise.all(zipFiles.map(async (zipFile) => {
+    const zip = new AdmZip(path.resolve(projRoot, zipFile));
+    return {
+      entries: zip.getEntries().length,
+      size: (await fs.stat(path.resolve(projRoot, zipFile))).size
+    };
+  }));
+  const zipObj = zipData.reduce((memo, data, i) => {
+    const combo = zipFiles[i].replace(".test-zips/", "").split("/");
+    const dirIdx = combo.length - 1;
+    const key = combo.slice(0, dirIdx).join("/");
+    const file = combo.slice(dirIdx);
+
+    memo[key] = memo[key] || {};
+    memo[key][file] = data;
+
+    return memo;
+  }, {});
+
+  console.log("TODO HERE: IMPLEMENT SIZES", zipObj);
+  // - TODO: zip file size.
+  // - TODO: number of files.
+  // - TODO: Markdown table.
+  // - TODO: Implement filtering based on matrix.
+};
+
 const main = async () => {
   const actionStr = process.argv[2]; // eslint-disable-line no-magic-numbers
   const actions = {
     build,
     install,
-    benchmark
+    benchmark,
+    size
   };
 
   const argsList = process.argv.slice(3); // eslint-disable-line no-magic-numbers
