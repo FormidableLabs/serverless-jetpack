@@ -184,7 +184,7 @@ const createZip = async ({ files, cwd, bundlePath }) => {
 
   // Get all contents.
   //
-  // TODO(75): Review if this is too memmory-intensive or not performant and
+  // TODO(75): Review if this is too memory-intensive or not performant and
   // consider a more concurrency-optimized solution.
   // https://github.com/FormidableLabs/serverless-jetpack/issues/75
   const fileObjs = await Promise.all(files.map(

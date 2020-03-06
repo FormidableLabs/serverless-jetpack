@@ -438,6 +438,38 @@ functions:
 
 * **Static analysis only**: Tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
 
+### Tracing Results
+
+The following is a table of generated packages using vanilla Serverless vs Jetpack with tracing (using `yarn benchmark:sizes`). Even for our smallest `simple` scenario, the result is smaller total bundle size. For scenarios like the contrived `huge-prod` (with many unused production dependencies) the size difference is a significant 90+% decrease in size from `6.5 MB` to `0.5 MB`.
+
+The relevant portions of our measurement chart.
+
+- `Scenario`: Same benchmark scenarios
+- `Type`: `jetpack` is this plugin in `trace` mode and `baseline` is Serverless built-in packaging.
+- `Zips`: The number of zip files generated per scenario (e.g., service bundle + individually packaged function bundles).
+- `Files`: The aggregated number of indvidual files in **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in many less files.
+- `Size`: The aggregated total byte size of **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in smaller bundle packages.
+- `vs Base`: Percentage difference of the aggregated zip bundle byte sizes for a given scenario of Jetpack vs. Serverless built-in packaging.
+
+Results:
+
+| Scenario     | Type     | Zips | Files |    Size |      vs Base |
+| :----------- | :------- | ---: | ----: | ------: | -----------: |
+| simple       | jetpack  |    1 |   179 |  496863 | **-41.18 %** |
+| simple       | baseline |    1 |   369 |  844693 |              |
+| complex      | jetpack  |    6 |  2145 | 5358022 | **-11.16 %** |
+| complex      | baseline |    6 |  2525 | 6030822 |              |
+| individually | jetpack  |    3 |   365 |  999269 | **-32.49 %** |
+| individually | baseline |    3 |   618 | 1480191 |              |
+| monorepo     | jetpack  |    2 |   360 |  834652 | **-39.16 %** |
+| monorepo     | baseline |    2 |   531 | 1371924 |              |
+| webpack      | jetpack  |    1 |     3 |    1804 | **-20.21 %** |
+| webpack      | baseline |    1 |     1 |    2261 |              |
+| huge         | jetpack  |    1 |   179 |  613943 | **-72.52 %** |
+| huge         | baseline |    1 |   505 | 2234279 |              |
+| huge-prod    | jetpack  |    1 |   179 |  512997 | **-92.27 %** |
+| huge-prod    | baseline |    1 |  4044 | 6633028 |              |
+
 ## Command Line Interface
 
 Jetpack also provides some CLI options.
@@ -476,7 +508,7 @@ The following is a simple, "on my machine" benchmark generated with `yarn benchm
 
 As a quick guide to the results table:
 
-- `Scenario`: Contrived scenarios for the purpose of generating results.
+- `Scenario`: Contrived scenarios for the purpose of generating results. E.g.,
     - `simple`: Very small production and development dependencies.
     - `individually`: Same dependencies as `simple`, but with `individually` packaging.
     - `huge`: Lots and lots of development dependencies.
@@ -527,6 +559,7 @@ Results:
 | huge-prod    | npm  | jetpack  | trace |  9766 | **-67.39 %** |
 | huge-prod    | npm  | jetpack  | deps  | 23121 | **-22.79 %** |
 | huge-prod    | npm  | baseline |       | 29947 |              |
+
 ## Maintenance Status
 
 **Active:** Formidable is actively working on this project, and we expect to continue for work for the foreseeable future. Bug reports, feature requests and pull requests are welcome.

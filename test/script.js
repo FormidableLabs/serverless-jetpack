@@ -110,11 +110,6 @@ const ENV = {
   ...process.env
 };
 
-const TABLE_OPTS = {
-  align: ["l", "l", "l", "l", "r", "r"],
-  stringLength: (cell) => strip(cell).length // fix alignment with chalk.
-};
-
 const execMode = (pkg, args, opts) => execa(`${pkg}${IS_WIN ? ".cmd" : ""}`, args, opts);
 
 const h2 = (msg) => log(chalk `\n{cyan ## ${msg}}`);
@@ -195,6 +190,10 @@ const _logTask = (obj) => (msg) => log(chalk `{green ${msg}}: ${JSON.stringify(o
 
 // eslint-disable-next-line max-statements
 const benchmark = async ({ concurrency }) => {
+  const TABLE_OPTS = {
+    align: ["l", "l", "l", "l", "r", "r"],
+    stringLength: (cell) => strip(cell).length // fix alignment with chalk.
+  };
   const HEADER = ["Scenario", "Pkg", "Type", "Mode", "Time", "vs Base"].map((t) => gray(t));
   const timedData = [HEADER];
   const otherData = [HEADER];
@@ -340,7 +339,7 @@ const benchmark = async ({ concurrency }) => {
 };
 
 const size = async () => {
-  // Read lists of contents from zip files directly.
+  // Get zip file lists and add in size data.
   const projRoot = path.resolve(__dirname, "..");
   const zipFiles = await globby([".test-zips/**/*.zip"], { cwd: projRoot });
   const zipData = await Promise.all(zipFiles.map(async (zipFile) => {
@@ -362,11 +361,55 @@ const size = async () => {
     return memo;
   }, {});
 
-  console.log("TODO HERE: IMPLEMENT SIZES", zipObj);
-  // - TODO: zip file size.
-  // - TODO: number of files.
-  // - TODO: Markdown table.
-  // - TODO: Implement filtering based on matrix.
+  const matrix = MATRIX.filter(({ scenario }) => {
+    if (scenario === "dashboard" && !IS_SLS_ENTERPRISE) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Format report.
+  const TABLE_OPTS = {
+    align: ["l", "l", "r", "r", "r", "r"],
+    stringLength: (cell) => strip(cell).length // fix alignment with chalk.
+  };
+  const HEADER = ["Scenario", "Type", "Zips", "Files", "Size", "vs Base"]
+    .map((t) => gray(t));
+  const SIZE_IDX = 4;
+  const PCT_IDX = 5;
+  const report = [HEADER];
+
+  matrix
+    // Just use yarn stats since timings don't matter.
+    .filter(({ pkg }) => pkg === "yarn")
+    // Create data.
+    .map(({ scenario, pkg }) => ["jetpack/trace", "baseline"].forEach((part) => {
+      let data = zipObj[`${scenario}/${pkg}/${part}`];
+      if (!data) {
+        // Use Jetpack deps data if no baseline (like monorepo, etc.)
+        data = zipObj[`${scenario}/${pkg}/jetpack/deps`];
+      }
+      const zips = Object.values(data);
+      const stats = zips.reduce((memo, obj) => ({
+        entries: memo.entries + obj.entries,
+        size: memo.size + obj.size
+      }));
+
+      // Mutate previous entry if have basline stats now.
+      if (part === "baseline") {
+        const prev = report[report.length - 1];
+        // eslint-disable-next-line no-magic-numbers
+        prev[PCT_IDX] = `**${((prev[SIZE_IDX] - stats.size) / stats.size * 100).toFixed(2)} %**`;
+      }
+
+      report.push([
+        scenario, part.split("/")[0], zips.length, stats.entries, stats.size, ""
+      ]);
+    }));
+
+  h2(chalk `Sizes`);
+  log(table(report, TABLE_OPTS));
 };
 
 const main = async () => {
