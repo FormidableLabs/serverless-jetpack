@@ -5,6 +5,13 @@ const pkg = () => ({
   excludeDevDependencies: true
 });
 
+const jetpack = () => ({
+  service: {
+    trace: process.env.MODE === "trace"
+  }
+});
+
 module.exports = {
-  pkg
+  pkg,
+  jetpack
 };

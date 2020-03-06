@@ -23,6 +23,7 @@
     "benchmark:install": "node test/script.js install",
     "benchmark:build": "node test/script.js build",
     "benchmark:test": "mocha test/benchmark.js",
+    "benchmark:size": "node test/script.js size",
     "benchmark": "node test/script.js benchmark",
     "test:cli": "mocha test/cli",
     "test:spec": "mocha test/spec",
@@ -42,7 +43,8 @@
     "jest-worker": "^25.1.0",
     "make-dir": "^3.0.0",
     "nanomatch": "^1.2.13",
-    "p-limit": "^2.2.2"
+    "p-limit": "^2.2.2",
+    "trace-deps": "^0.2.0"
   },
   "devDependencies": {
     "adm-zip": "^0.4.13",
@@ -63,6 +65,8 @@
     "mock-fs": "^4.10.4",
     "p-queue": "^6.2.1",
     "serverless": "^1.61.3",
+    "sinon": "^9.0.0",
+    "sinon-chai": "^3.5.0",
     "strip-ansi": "^6.0.0"
   }
 }

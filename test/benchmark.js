@@ -11,18 +11,7 @@ const globby = require("globby");
 const AdmZip = require("adm-zip");
 
 const { TEST_SCENARIO } = process.env;
-const IS_SLS_ENTERPRISE = !!process.env.SERVERLESS_ACCESS_KEY;
-const { MATRIX } = require("./script");
-const BASELINE_COMP_MATRIX = MATRIX.filter(({ scenario }) => {
-  if (scenario === "monorepo") {
-    return false;
-  }
-  // SFE-only scenarios.
-  if (scenario === "dashboard" && !IS_SLS_ENTERPRISE) {
-    return false;
-  }
-  return true;
-});
+const { TEST_MATRIX } = require("./script");
 
 // Filter known false positives.
 //
@@ -401,8 +390,8 @@ const topLevel = (filePath) => {
 const keepMatchesAll = (f) => !PKG_IGNORE_ALL.has(topLevel(f));
 
 // Applies only to baselines (false positives).
-const keepBaselineMatch = ({ scenario, mode }) => (f) => {
-  const matches = SLS_FALSE_POSITIVES[`${scenario}/${mode}`];
+const keepBaselineMatch = ({ scenario, pkg }) => (f) => {
+  const matches = SLS_FALSE_POSITIVES[`${scenario}/${pkg}`];
   if (!matches) { return true; }
 
   // Exact match for .bin, top-level for everything else.
@@ -416,10 +405,16 @@ const describeScenario = (scenario, callback) =>
     ? describe(scenario, callback)
     : describe.skip(scenario, callback);
 
+const toPosixPath = (name) => name.split("\\").join("/");
+const SETUP_TIMEOUT = 10000;
+
 describe("benchmark", () => {
   let fixtures;
+  let webpackFiles;
 
-  before(async () => {
+  before(async function () {
+    this.timeout(SETUP_TIMEOUT); // eslint-disable-line no-invalid-this
+
     // Read lists of contents from zip files directly.
     const projRoot = path.resolve(__dirname, "..");
     const zipFiles = await globby([".test-zips/**/*.zip"], { cwd: projRoot });
@@ -431,241 +426,316 @@ describe("benchmark", () => {
     // Create object of `"combo.file = data"
     fixtures = contents.reduce((memo, data, i) => {
       const combo = zipFiles[i].replace(".test-zips/", "").split("/");
-      const key = combo.slice(0, 3).join("/"); // eslint-disable-line no-magic-numbers
-      const file = combo.slice(3); // eslint-disable-line no-magic-numbers
+      const dirIdx = combo.length - 1;
+      const key = combo.slice(0, dirIdx).join("/");
+      const file = combo.slice(dirIdx);
 
       memo[key] = memo[key] || {};
       memo[key][file] = data;
 
       return memo;
     }, {});
+
+    // Extract the equivalent files from webpack single bundle files.
+    const wepbpackZip = new AdmZip(path.resolve(
+      projRoot, ".test-zips/webpack/yarn/baseline/serverless-jetpack-plugins.zip"
+    ));
+    webpackFiles = wepbpackZip.readAsText("src/base.js")
+      .split("\n")
+      .filter((line) => (/\!\*\*\* .*? \*\*\*\!/).test(line))
+      .map((line) => line.replace(/\!\*\*\*|\*\*\*\!/g, "").trim())
+      .map((file) => path.relative(".", file))
+      .map(toPosixPath);
   });
 
-  describe("baseline vs jetpack", () => {
-    // Baseline sls vs. jetpack validation.
-    BASELINE_COMP_MATRIX.forEach(({ scenario, mode }) => {
-      const combo = `${scenario}/${mode}`;
+  describe("dependencies mode", () => {
+    describe("baseline vs jetpack", () => {
+      // Baseline sls vs. jetpack validation.
+      TEST_MATRIX.forEach(({ scenario, pkg }) => {
+        const combo = `${scenario}/${pkg}`;
 
-      it(combo, async () => {
-        const baselineFixture = fixtures[`${combo}/baseline`];
+        it(combo, async () => {
+          const baselineFixture = fixtures[`${combo}/baseline`];
 
-        // Sanity check baseline exists.
-        expect(baselineFixture).to.be.ok;
-        const baselineFileNames = Object.keys(baselineFixture);
-        expect(baselineFileNames).to.be.ok.and.to.not.eql([]);
+          // Sanity check baseline exists.
+          expect(baselineFixture).to.be.ok;
+          const baselineFileNames = Object.keys(baselineFixture);
+          expect(baselineFileNames).to.be.ok.and.to.not.eql([]);
 
-        baselineFileNames.forEach((fileName) => {
-          // Get all of the lines from our file lists.
-          const baselineLines = baselineFixture[fileName];
-          const baselineSet = new Set(baselineLines);
-          const pluginLines = (fixtures[`${combo}/jetpack`] || {})[fileName];
-          const pluginSet = new Set(pluginLines);
+          baselineFileNames.forEach((fileName) => {
+            // Get all of the lines from our file lists.
+            const baselineLines = baselineFixture[fileName];
+            const baselineSet = new Set(baselineLines);
+            const pluginLines = (fixtures[`${combo}/jetpack/deps`] || {})[fileName];
+            const pluginSet = new Set(pluginLines);
 
-          // Sanity check that we _generated_ lines for both jetpack + baseline.
-          // These being empty means most likely our test harness messed up
-          // and generated empty zips as **all** present scenarios should have
-          // at least one file.
-          expect(pluginLines).to.be.ok.and.to.not.eql([]);
+            // Sanity check that we _generated_ lines for both jetpack + baseline.
+            // These being empty means most likely our test harness messed up
+            // and generated empty zips as **all** present scenarios should have
+            // at least one file.
+            expect(pluginLines).to.be.ok.and.to.not.eql([]);
 
-          // Figure out what is missing from each.
-          const missingInBaseline = pluginLines
-            .filter((l) => !baselineSet.has(l))
-            .filter(keepMatchesAll);
+            // Figure out what is missing from each.
+            const missingInBaseline = pluginLines
+              .filter((l) => !baselineSet.has(l))
+              .filter(keepMatchesAll);
 
-          const missingInPlugin = baselineLines
-            .filter((l) => !pluginSet.has(l))
-            .filter(keepMatchesAll)
-            .filter(keepBaselineMatch({ scenario, mode }));
+            const missingInPlugin = baselineLines
+              .filter((l) => !pluginSet.has(l))
+              .filter(keepMatchesAll)
+              .filter(keepBaselineMatch({ scenario, pkg }));
 
-          expect(missingInBaseline, `extra files in jetpack for ${fileName}`).to.eql([]);
-          expect(missingInPlugin, `missing files in jetpack for ${fileName}`).to.eql([]);
+            expect(missingInBaseline, `extra files in jetpack for ${fileName}`).to.eql([]);
+            expect(missingInPlugin, `missing files in jetpack for ${fileName}`).to.eql([]);
+          });
+        });
+      });
+    });
+
+    describeScenario("monorepo", () => {
+      it("has same npm and yarn package contents for base.zip", () => {
+        let yarnFiles = fixtures["monorepo/yarn/jetpack/deps"]["base.zip"];
+        let npmFiles = fixtures["monorepo/npm/jetpack/deps"]["base.zip"];
+
+        expect(yarnFiles).to.be.ok;
+        expect(npmFiles).to.be.ok;
+
+        // Ignore some packages that have double vs. single flattened installation.
+        const IGNORE_PKGS = [
+          "node_modules/http-errors/",
+          "node_modules/safe-buffer/"
+        ];
+
+        // Now, normalize file lists before comparing.
+        yarnFiles = yarnFiles
+          .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
+          .sort();
+
+        // This diff dependency is expected to **stay** in place because we test
+        // forcing versions to prevent flattening by pinning
+        // `another/package.json` to `"diff": "^3.5.0`
+        const NESTED_DIFF = "functions/base/node_modules/diff/";
+
+        const NPM_NORMS = {
+          // Just differences in installation.
+          // eslint-disable-next-line max-len
+          "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/":
+            "node_modules/camelcase/",
+          "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
+            "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
+          "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
+          "functions/base/node_modules/ms/": "node_modules/debug/node_modules/ms/",
+          // Hoist everything to root (which is what yarn should do).
+          "functions/base/node_modules/": "node_modules/",
+          "lib/camel/node_modules/": "node_modules/"
+        };
+        npmFiles = npmFiles
+          .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
+          .map((dep) => {
+            for (const norm of Object.keys(NPM_NORMS)) {
+              if (dep.startsWith(norm) && !dep.startsWith(NESTED_DIFF)) {
+                return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
+              }
+            }
+
+            return dep;
+          })
+          .filter(Boolean)
+          .sort();
+
+        [
+          "functions/base/src/base.js",
+          "functions/base/node_modules/diff/package.json",
+          "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
+          "node_modules/camelcase/package.json"
+        ].forEach((f) => {
+          expect(yarnFiles).to.include(f);
+        });
+
+        [
+          "functions/base/src/exclude-me.js",
+          "functions/base/node_modules/diff/README.md",
+          "node_modules/diff/package.json",
+          "node_modules/diff/README.md",
+          "functions/base/node_modules/uuid/package.json",
+          "node_modules/uuid/package.json"
+        ].forEach((f) => {
+          expect(yarnFiles).to.not.include(f);
+        });
+
+        expect(npmFiles).to.eql(yarnFiles);
+      });
+
+      it("has same npm and yarn package contents for another.zip", () => {
+        let yarnFiles = fixtures["monorepo/yarn/jetpack/deps"]["another.zip"];
+        let npmFiles = fixtures["monorepo/npm/jetpack/deps"]["another.zip"];
+
+        expect(yarnFiles).to.be.ok;
+        expect(npmFiles).to.be.ok;
+
+        // Ignore some packages that have double vs. single flattened installation.
+        const IGNORE_PKGS = [
+          "node_modules/http-errors/",
+          "node_modules/safe-buffer/"
+        ];
+
+        // Now, normalize file lists before comparing.
+        yarnFiles = yarnFiles
+          .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
+          .sort();
+
+        const NPM_NORMS = {
+          // Just differences in installation.
+          // eslint-disable-next-line max-len
+          "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/":
+            "node_modules/camelcase/",
+          "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
+            "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
+          "functions/another/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
+          "functions/another/node_modules/ms/": "node_modules/debug/node_modules/ms/",
+          // Hoist everything to root (which is what yarn should do) includeing `diff`.
+          "functions/another/node_modules/": "node_modules/",
+          "lib/camel/node_modules/": "node_modules/"
+        };
+        npmFiles = npmFiles
+          .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
+          .map((dep) => {
+            for (const norm of Object.keys(NPM_NORMS)) {
+              if (dep.startsWith(norm)) {
+                return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
+              }
+            }
+
+            return dep;
+          })
+          .filter(Boolean)
+          .sort();
+
+        [
+          "functions/another/src/base.js",
+          "node_modules/diff/package.json",
+          "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
+          "node_modules/camelcase/package.json"
+        ].forEach((f) => {
+          expect(yarnFiles).to.include(f);
+        });
+
+        [
+          "functions/another/src/exclude-me.js",
+          "functions/another/node_modules/diff/package.json",
+          "functions/another/node_modules/diff/README.md",
+          "node_modules/diff/README.md",
+          "functions/base/node_modules/uuid/package.json",
+          "node_modules/uuid/package.json"
+        ].forEach((f) => {
+          expect(yarnFiles).to.not.include(f);
+        });
+
+        expect(npmFiles).to.eql(yarnFiles);
+      });
+    });
+
+    describeScenario("complex", () => {
+      it("has same npm and yarn layer package contents", () => {
+        let yarnFiles = fixtures["complex/yarn/jetpack/deps"]["with-deps-no-dev.zip"];
+        let npmFiles = fixtures["complex/npm/jetpack/deps"]["with-deps-no-dev.zip"];
+
+        expect(yarnFiles).to.be.ok;
+        expect(npmFiles).to.be.ok;
+
+        yarnFiles = yarnFiles.sort();
+        npmFiles = npmFiles.sort();
+
+        expect(yarnFiles)
+          .to.include.members([
+            "nodejs/package.json",
+            "nodejs/node_modules/figlet/package.json"
+          ]).and
+          .to.not.include.members([
+            "nodejs/node_modules/uuid/package.json"
+          ]);
+        expect(npmFiles).to.eql(yarnFiles);
+      });
+
+      it("excludes aws-sdk and other patterns from node modules", () => {
+        // Regex for expected exclusions in node_modules.
+        // These patterns in `serverless.yml` currently happen in `include`
+        // and we want to make sure they still hold true across refactoring.
+        const EXPECT_EXCLUDED = /(aws-sdk|README\.md$|LICENSE$)/;
+
+        [
+          "complex/yarn/jetpack/deps",
+          "complex/yarn/baseline",
+          "complex/npm/jetpack/deps",
+          "complex/npm/baseline"
+        ].forEach((fixture) => {
+          Object.keys(fixtures[fixture]).forEach((zipName) => {
+            const files = fixtures[fixture][zipName];
+            const badPatterns = files.filter((f) => EXPECT_EXCLUDED.test(f));
+
+            expect(badPatterns, `failed to exclude files in ${fixture}/${zipName}`).to.eql([]);
+          });
         });
       });
     });
   });
 
-  describeScenario("monorepo", () => {
-    it("has same npm and yarn package contents for base.zip", () => {
-      let yarnFiles = fixtures["monorepo/yarn/jetpack"]["base.zip"];
-      let npmFiles = fixtures["monorepo/npm/jetpack"]["base.zip"];
+  describe("trace mode", () => {
+    describe("baseline vs jetpack", () => {
+      // Baseline sls vs. jetpack validation.
+      //
+      // More limited than in dependencies mode. Here we just check:
+      // 1. Jetpack trace doesn't have extras
+      // 2. Jetpack non-node_modules match baseline
+      TEST_MATRIX.forEach(({ scenario, pkg }) => {
+        const combo = `${scenario}/${pkg}`;
 
-      expect(yarnFiles).to.be.ok;
-      expect(npmFiles).to.be.ok;
+        it(combo, async () => {
+          const baselineFixture = fixtures[`${combo}/baseline`];
 
-      // Ignore some packages that have double vs. single flattened installation.
-      const IGNORE_PKGS = [
-        "node_modules/http-errors/",
-        "node_modules/safe-buffer/"
-      ];
+          // Sanity check baseline exists.
+          expect(baselineFixture).to.be.ok;
+          const baselineFileNames = Object.keys(baselineFixture);
+          expect(baselineFileNames).to.be.ok.and.to.not.eql([]);
 
-      // Now, normalize file lists before comparing.
-      yarnFiles = yarnFiles
-        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
-        .sort();
+          baselineFileNames.forEach((fileName) => {
+            // Get all of the lines from our file lists.
+            const baselineLines = baselineFixture[fileName];
+            const baselineSet = new Set(baselineLines);
+            const pluginLines = (fixtures[`${combo}/jetpack/trace`] || {})[fileName];
+            const pluginSet = new Set(pluginLines);
 
-      // This diff dependency is expected to **stay** in place because we test
-      // forcing versions to prevent flattening by pinning
-      // `another/package.json` to `"diff": "^3.5.0`
-      const NESTED_DIFF = "functions/base/node_modules/diff/";
+            // Sanity check that we _generated_ lines for both jetpack + baseline.
+            // These being empty means most likely our test harness messed up
+            // and generated empty zips as **all** present scenarios should have
+            // at least one file.
+            expect(pluginLines).to.be.ok.and.to.not.eql([]);
 
-      const NPM_NORMS = {
-        // Just differences in installation.
-        "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/":
-          "node_modules/camelcase/",
-        "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
-          "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
-        "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-        "functions/base/node_modules/ms/": "node_modules/debug/node_modules/ms/",
-        // Hoist everything to root (which is what yarn should do).
-        "functions/base/node_modules/": "node_modules/",
-        "lib/camel/node_modules/": "node_modules/"
-      };
-      npmFiles = npmFiles
-        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
-        .map((dep) => {
-          for (const norm of Object.keys(NPM_NORMS)) {
-            if (dep.startsWith(norm) && !dep.startsWith(NESTED_DIFF)) {
-              return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
-            }
-          }
+            // Figure out what is missing from each.
+            const missingInBaseline = pluginLines
+              .filter((l) => !baselineSet.has(l))
+              .filter(keepMatchesAll);
 
-          return dep;
-        })
-        .filter(Boolean)
-        .sort();
+            // DIFFERENT: Only check **non**-node_modules
+            const missingInPlugin = baselineLines
+              .filter((l) => l.indexOf("node_modules") === -1)
+              .filter((l) => !pluginSet.has(l));
 
-      [
-        "functions/base/src/base.js",
-        "functions/base/node_modules/diff/package.json",
-        "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
-        "node_modules/camelcase/package.json"
-      ].forEach((f) => {
-        expect(yarnFiles).to.include(f);
-      });
-
-      [
-        "functions/base/src/exclude-me.js",
-        "functions/base/node_modules/diff/README.md",
-        "node_modules/diff/package.json",
-        "node_modules/diff/README.md",
-        "functions/base/node_modules/uuid/package.json",
-        "node_modules/uuid/package.json"
-      ].forEach((f) => {
-        expect(yarnFiles).to.not.include(f);
-      });
-
-      expect(npmFiles).to.eql(yarnFiles);
-    });
-
-    it("has same npm and yarn package contents for another.zip", () => {
-      let yarnFiles = fixtures["monorepo/yarn/jetpack"]["another.zip"];
-      let npmFiles = fixtures["monorepo/npm/jetpack"]["another.zip"];
-
-      expect(yarnFiles).to.be.ok;
-      expect(npmFiles).to.be.ok;
-
-      // Ignore some packages that have double vs. single flattened installation.
-      const IGNORE_PKGS = [
-        "node_modules/http-errors/",
-        "node_modules/safe-buffer/"
-      ];
-
-      // Now, normalize file lists before comparing.
-      yarnFiles = yarnFiles
-        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
-        .sort();
-
-      const NPM_NORMS = {
-        // Just differences in installation.
-        // eslint-disable-next-line max-len
-        "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/":
-          "node_modules/camelcase/",
-        "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
-          "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
-        "functions/another/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-        "functions/another/node_modules/ms/": "node_modules/debug/node_modules/ms/",
-        // Hoist everything to root (which is what yarn should do) includeing `diff`.
-        "functions/another/node_modules/": "node_modules/",
-        "lib/camel/node_modules/": "node_modules/"
-      };
-      npmFiles = npmFiles
-        .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
-        .map((dep) => {
-          for (const norm of Object.keys(NPM_NORMS)) {
-            if (dep.startsWith(norm)) {
-              return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
-            }
-          }
-
-          return dep;
-        })
-        .filter(Boolean)
-        .sort();
-
-      [
-        "functions/another/src/base.js",
-        "node_modules/diff/package.json",
-        "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
-        "node_modules/camelcase/package.json"
-      ].forEach((f) => {
-        expect(yarnFiles).to.include(f);
-      });
-
-      [
-        "functions/another/src/exclude-me.js",
-        "functions/another/node_modules/diff/package.json",
-        "functions/another/node_modules/diff/README.md",
-        "node_modules/diff/README.md",
-        "functions/base/node_modules/uuid/package.json",
-        "node_modules/uuid/package.json"
-      ].forEach((f) => {
-        expect(yarnFiles).to.not.include(f);
-      });
-
-      expect(npmFiles).to.eql(yarnFiles);
-    });
-  });
-
-  describeScenario("complex", () => {
-    it("has same npm and yarn layer package contents", () => {
-      let yarnFiles = fixtures["complex/yarn/jetpack"]["with-deps-no-dev.zip"];
-      let npmFiles = fixtures["complex/npm/jetpack"]["with-deps-no-dev.zip"];
-
-      expect(yarnFiles).to.be.ok;
-      expect(npmFiles).to.be.ok;
-
-      yarnFiles = yarnFiles.sort();
-      npmFiles = npmFiles.sort();
-
-      expect(yarnFiles)
-        .to.include.members([
-          "nodejs/package.json",
-          "nodejs/node_modules/figlet/package.json"
-        ]).and
-        .to.not.include.members([
-          "nodejs/node_modules/uuid/package.json"
-        ]);
-      expect(npmFiles).to.eql(yarnFiles);
-    });
-
-    it("excludes aws-sdk and other patterns from node modules", () => {
-      // Regex for expected exclusions in node_modules.
-      // These patterns in `serverless.yml` currently happen in `include`
-      // and we want to make sure they still hold true across refactoring.
-      const EXPECT_EXCLUDED = /(aws-sdk|README\.md$|LICENSE$)/;
-
-      [
-        "complex/yarn/jetpack",
-        "complex/yarn/baseline",
-        "complex/npm/jetpack",
-        "complex/npm/baseline"
-      ].forEach((fixture) => {
-        Object.keys(fixtures[fixture]).forEach((zipName) => {
-          const files = fixtures[fixture][zipName];
-          const badPatterns = files.filter((f) => EXPECT_EXCLUDED.test(f));
-
-          expect(badPatterns, `failed to exclude files in ${fixture}/${zipName}`).to.eql([]);
+            expect(missingInBaseline, `extra files in jetpack for ${fileName}`).to.eql([]);
+            expect(missingInPlugin, `missing files in jetpack for ${fileName}`).to.eql([]);
+          });
         });
+      });
+    });
+
+    describeScenario("webpack", () => {
+      it("traces the same files as webpack", () => {
+        // Trace files is "real" files and webpack files are from bundle control comments.
+        const traceFixture = fixtures["webpack/yarn/jetpack/trace"];
+        const traceFiles = traceFixture[Object.keys(traceFixture)[0]];
+
+        // Compare everything except package.json which Node.js needs, but webpack resolves away.
+        expect(traceFiles.filter((file) => !file.endsWith("package.json"))).to.eql(webpackFiles);
       });
     });
   });

@@ -1,17 +1,12 @@
 "use strict";
 
-const pkg = () => ({
-  individually: false,
-  excludeDevDependencies: true
-});
-
 const jetpack = () => ({
   service: {
+    preInclude: ["!**"],
     trace: process.env.MODE === "trace"
   }
 });
 
 module.exports = {
-  pkg,
   jetpack
 };

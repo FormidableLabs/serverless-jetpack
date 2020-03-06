@@ -1,6 +1,11 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Add dependency tracing feature and `jetpack.trace` configuration options.
+* Test: Change `test/packages/webpack` into a comparison scenario for trace mode rather than testing that it doesn't conflict with Jetpack.
+
 ## 0.9.0
 
 * Bug: Only package Node.js `runtime` service + functions.

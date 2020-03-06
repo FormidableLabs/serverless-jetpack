@@ -4,4 +4,5 @@
 const Jetpack = require("../../index");
 const NoopPlugin = require("./noop");
 
-module.exports = process.env.MODE ? Jetpack : NoopPlugin;
+// If we're in `deps` or `trace` mode, then use Jetpack
+module.exports = process.env.MODE !== "baseline" ? Jetpack : NoopPlugin;

@@ -8,10 +8,14 @@ const makeDir = require("make-dir");
 const archiver = require("archiver");
 const globby = require("globby");
 const nanomatch = require("nanomatch");
+const { traceFiles } = require("trace-deps");
 const { findProdInstalls } = require("inspectdep");
 
 const IS_WIN = process.platform === "win32";
 const EPOCH = new Date(0);
+
+// Stubbable container object.
+let bundle = {};
 
 // File helpers
 const readStat = promisify(fs.stat);
@@ -139,13 +143,6 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
     depRoots = cwdPkgExists ? [cwd] : [];
   }
 
-  // Starting base of Jetpack patterns.
-  // Remove all cwd-relative-root node_modules. (Specific `roots` can bring
-  // back in, and at least monorepo scenario needs the exclude.)
-  const basePatterns = [
-    "!node_modules/**"
-  ];
-
   return Promise
     // Find the production install paths
     .all(depRoots
@@ -178,7 +175,7 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
       )
     )
     // Flatten to final list with base default patterns applied.
-    .then((depsList) => depsList.reduce((m, a) => m.concat(a), basePatterns.slice(0)));
+    .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
 };
 
 const createZip = async ({ files, cwd, bundlePath }) => {
@@ -187,7 +184,7 @@ const createZip = async ({ files, cwd, bundlePath }) => {
 
   // Get all contents.
   //
-  // TODO(75): Review if this is too memmory-intensive or not performant and
+  // TODO(75): Review if this is too memory-intensive or not performant and
   // consider a more concurrency-optimized solution.
   // https://github.com/FormidableLabs/serverless-jetpack/issues/75
   const fileObjs = await Promise.all(files.map(
@@ -276,19 +273,24 @@ const createZip = async ({ files, cwd, bundlePath }) => {
  * @param {string}    opts.base         optional base directory (relative to `servicePath`)
  * @param {string[]}  opts.roots        optional dependency roots (relative to `servicePath`)
  * @param {string}    opts.bundleName   output bundle name
+ * @param {string[]}  opts.traceIgnores package paths to ignore in tracing mode
  * @param {string[]}  opts.preInclude   glob patterns to include first
+ * @param {string[]}  opts.traceInclude glob patterns from tracing mode
  * @param {string[]}  opts.include      glob patterns to include
  * @param {string[]}  opts.exclude      glob patterns to exclude
  * @param {Boolean}   opts.report       include extra report information?
  * @returns {Promise<Object>} Various information about the bundle
  */
+// eslint-disable-next-line max-statements
 const globAndZip = async ({
   cwd,
   servicePath,
   base,
   roots,
   bundleName,
+  traceIgnores,
   preInclude,
+  traceInclude,
   include,
   exclude,
   report
@@ -301,8 +303,28 @@ const globAndZip = async ({
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
-  // Iterate all dependency roots to gather production dependencies.
-  const depInclude = await createDepInclude({ cwd, rootPath, roots });
+  // Remove all cwd-relative-root node_modules first. Trace/package modes will
+  // then bring `node_modules` individual files back in after.
+  let depInclude = ["!node_modules/**"];
+  if (traceInclude) {
+    // [Trace Mode] Trace and introspect all individual dependency files.
+    // Add them as _patterns_ so that later globbing exclusions can apply.
+    const srcPaths = await globby(traceInclude, { cwd });
+    const traced = await traceFiles({ srcPaths, ignores: traceIgnores });
+
+    // Aggregate.
+    depInclude = depInclude.concat(
+      // Add all handler files first.
+      traceInclude,
+      // Convert to relative paths and include in patterns for bundling.
+      traced.map((depPath) => path.relative(servicePath, depPath))
+    );
+  } else {
+    // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
+    depInclude = depInclude.concat(
+      await createDepInclude({ cwd, rootPath, roots })
+    );
+  }
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(
@@ -310,11 +332,12 @@ const globAndZip = async ({
   );
 
   // Create package zip.
-  await createZip({
+  await bundle.createZip({
     files: included,
     cwd,
     bundlePath
   });
+
 
   let results = {
     numFiles: included.length,
@@ -327,10 +350,14 @@ const globAndZip = async ({
     results = {
       ...results,
       roots,
+      trace: {
+        ignores: traceIgnores || []
+      },
       patterns: {
         preInclude,
         include,
-        depInclude,
+        depInclude: traceInclude ? [] : depInclude,
+        traceInclude: traceInclude ? depInclude : [],
         exclude
       },
       files: {
@@ -343,8 +370,9 @@ const globAndZip = async ({
   return results;
 };
 
-module.exports = {
+module.exports = bundle = {
   resolveFilePathsFromPatterns,
+  createZip,
   globAndZip,
   exists
 };

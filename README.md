@@ -11,9 +11,10 @@ A faster JavaScript packager for [Serverless][] applications.
 - ⚡ Drop-in replacement for `serverless package|deploy`
 - 💻 Lambda Functions packaging
 - 🍰 Lambda Layers packaging
-- 🐉 Monorepo (`lerna`, `yarn workspace`) support
 - 📦 Per-function packaging
+- 🐉 Monorepo (`lerna`, `yarn workspace`) support
 - 🔀 Tunable, multi-cpu parallelization
+- 🔎 Dependency tracing options (faster packaging, slimmer bundles)
 
 ## Overview
 
@@ -219,39 +220,7 @@ layers:
         - "layers/vendor/nodejs"
 ```
 
-## Command Line Interface
-
-Jetpack also provides some CLI options.
-
-### `serverless jetpack package`
-
-Package a function like `serverless package` does, just with better options.
-
-```sh
-$ serverless jetpack package -h
-Plugin: Jetpack
-jetpack package ............... Packages a Serverless service or function
-    --function / -f .................... Function name. Packages a single function (see 'deploy function')
-```
-
-So, to package all service / functions like `serverless package` does, use:
-
-```sh
-$ serverless jetpack package # OR
-$ serverless package
-```
-
-... as this is basically the same built-in or custom.
-
-The neat addition that Jetpack provides is:
-
-```sh
-$ serverless jetpack package -f|--function {NAME}
-```
-
-which allows you to package just one named function exactly the same as `serverless deploy -f {NAME}` does. (Curiously `serverless deploy` implements the `-f {NAME}` option but `serverless package` does not.)
-
-## How it works
+## How Jetpack's faster dependency filtering works
 
 Serverless built-in packaging slows to a crawl in applications that have lots of files from `devDependencies`. Although the `excludeDevDependencies` option will ultimately remove these from the target zip bundle, it does so only **after** the files are read from disk, wasting a lot of disk I/O and time.
 
@@ -345,46 +314,251 @@ include:
   - "!**/node_modules/aws-sdk/**"
 ```
 
+## \[EXPERIMENTAL\] Tracing Mode
+
+> ℹ️ **Experimental**: Although we have a wide array of tests, tracing mode is still considered experimental as we roll out the feature. You should be sure to test all the execution code paths in your deployed serverless functions and verify your bundled package contents before using in production.
+
+Jetpack speeds up the underlying dependencies filtering approach of `serverless` packaging while providing completely equivalent bundles. However, this approach has some fundamental limitations:
+
+* **Over-inclusive**: All production dependencies include many individual files that are not needed at runtime.
+* **Speed**: For large sets of dependencies, copying lots of files is slow at packaging time.
+
+Thus, we pose the question: _What if we packaged **only** the files we needed at runtime?_
+
+Welcome to **tracing mode**!
+
+Tracing mode is an alternative way to include dependencies in a `serverless` application. It works by using [Acorn](https://github.com/browserify/acorn-node) to parse out all dependencies in entry point files (`require`, `require.resolve`, static `import`) and then resolves them with [resolve](https://github.com/browserify/resolve) according to the Node.js resolution algorithm. This produces a list of the files that will actually be used at runtime and Jetpack includes these instead of traversing production dependencies. The engine for all of this work is a small, dedicated library, [trace-deps][].
+
+### Tracing Configuration
+
+The most basic configuration is just to enable `custom.jetpack.trace` (service-wide) or `functions.{FN_NAME}.jetpack.trace` (per-function) set to `true`. By default, tracing mode will trace _just_ the entry point file specified in `functions.{FN_NAME}.handler`.
+
+```yml
+plugins:
+  - serverless-jetpack
+
+custom:
+  jetpack:
+    trace: true
+```
+
+The `trace` field can be a Boolean or object containing further configuration information.
+
+#### Tracing Options
+
+The basic `trace` Boolean field should hopefully work for most cases. Jetpack provides several additional options for more flexibility:
+
+**Service**-level configurations available via `custom.jetpack.trace`:
+
+* `trace` (`Boolean | Object`): If `trace: true` or `trace: { /* other options */ }` then tracing mode is activated at the service level.
+* `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing on. This is particularly useful when you are excluding a package like `aws-sdk` that is already provided for your lambda.
+* `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging.
+    * **Note**: These patterns are in _addition_ to the handler inferred file path. If you want to exclude the handler path you could technically do a `!file/path.js` exclusion, but that would be a strange case in that your handler files would no longer be present.
+
+The following **function**-level configurations available via `functions.{FN_NAME}.jetpack.trace` and  `layers.{LAYER_NAME}.jetpack.trace`:
+
+* `trace` (`Boolean | Object`): If `trace: true` or `trace: { /* other options */ }` then tracing mode is activated at the function level **if** the function is being packaged `individually`.
+* `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing **if** the function is being packaged `individually`. If there are service-level `trace.ignores` then the function-level ones will be **added** to the list.
+* `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging. If there are service-level `trace.include`s then the function-level ones will be **added** to the list.
+
+Let's see the advanced options in action:
+
+```yml
+plugins:
+  - serverless-jetpack
+
+custom:
+  jetpack:
+    preInclude:
+      - "!**"
+    trace:
+      ignores:
+        - "aws-sdk" # Ignore for all service + function tracing
+
+package:
+  include:
+    - "a/manual/file_i_want.js"
+
+functions:
+  # Functions in service package.
+  # - `jetpack.trace` option `ignores` does not apply.
+  # - `jetpack.include` **will** include and trace additional files.
+  service-packaged-app-1:
+    handler: app1.handler
+
+  service-packaged-app-2:
+    handler: app2.handler
+    jetpack:
+      trace:
+        # Trace and include: `app2.js` + `extra/**.js` patterns
+        include:
+          - "extra/**.js"
+
+  # Individually with no trace configuration will be traced from service-level config
+  individually-packaged-1:
+    handler: ind1.handler
+    package:
+      individually: true
+      # Normal package include|exclude work the same, but are not traced.
+      include:
+        - "some/stuff/**"
+    jetpack:
+      trace:
+        # When individually, `ignores` from fn are added: `["aws-sdk", "react-ssr-prepass"]`
+        ignores:
+          - "react-ssr-prepass"
+
+  # Individually with explicit `false` will not be traced
+  individually-packaged-1:
+    handler: ind1.handler
+    package:
+      individually: true
+    jetpack:
+      trace: false
+```
+
+### Tracing Caveats
+
+* **Works best for large, unused production dependencies**: Tracing mode is best suited for an application wherein many / most of the files specified in `package.json:dependencies` are not actually used. When there is a large descrepancy between "specific dependencies" and "actually used files" you'll see the biggest speedups. Conversely, when production dependencies are very tight and almost every file is used you won't see a large speedup versus Jetpack's normal dependency mode.
+    * An example of an application with lots of unused production dependencies is our `huge-prod` test fixture. Trace mode is significanly faster than Jetpack dependency mode and baseline serverless packaging.
+
+* **Only works with JavaScript handlers + code**: Tracing mode only works with `functions.{FN_NAME}.handler` and `trace.include` files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
+
+* **Only works with imports/requires**: [trace-deps][] only works with a supported set of `require`, `require.resolve` and `import` dependency specifiers. That means if your application code or a dependency does something like: `const styles = fs.readFileSync(path.join(__dirname, "styles.css"))` then the dependency of `node_modules/<pkg>/<path>/styles.css` will not be included in your serverless bundle. To remedy this you presently must manually detect and find any such missing files and use a standard service or function level `package.include` as appropriate to explicitly include the specific files in your bundle.
+
+* **Service/function-level Applications**: Tracing mode at the service level and `individually` configurations work as follows:
+    * If service level `custom.jetpack.trace` is set (`true` or config object), then the service will be traced. All functions are packaged in tracing mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace=false` explicitly.
+    * If service level `custom.jetpack.trace` is false or unset, then the service will not be traced. All functions are packaged in normal dependency-filtering mode except for those with both `individually` enabled (service or function level) and `functions.{FN_NAME}.jetpack.trace` is set which will be in tracing mode.
+
+* **Replaces Package Introspection**: Enabling tracing mode will replace all `package.json` production dependency inspection and add a blanket exclusion pattern for `node_modules` meaning things that are traced are the **only** thing that will be included by your bundle.
+
+* **Works with other `include|excludes`s**: The normal package `include|exclude`s work like normal and are a means of bring in other files as appropriate to your application. And for many cases, you **will** want to include other files via the normal `serverless` configurations, just without tracing and manually specified.
+
+* **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
+
+* **Static analysis only**: Tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
+
+### Tracing Results
+
+The following is a table of generated packages using vanilla Serverless vs Jetpack with tracing (using `yarn benchmark:sizes`). Even for our smallest `simple` scenario, the result is smaller total bundle size. For scenarios like the contrived `huge-prod` (with many unused production dependencies) the size difference is a significant 90+% decrease in size from `6.5 MB` to `0.5 MB`.
+
+The relevant portions of our measurement chart.
+
+- `Scenario`: Same benchmark scenarios
+- `Type`: `jetpack` is this plugin in `trace` mode and `baseline` is Serverless built-in packaging.
+- `Zips`: The number of zip files generated per scenario (e.g., service bundle + individually packaged function bundles).
+- `Files`: The aggregated number of indvidual files in **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in many less files.
+- `Size`: The aggregated total byte size of **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in smaller bundle packages.
+- `vs Base`: Percentage difference of the aggregated zip bundle byte sizes for a given scenario of Jetpack vs. Serverless built-in packaging.
+
+Results:
+
+| Scenario     | Type     | Zips | Files |    Size |      vs Base |
+| :----------- | :------- | ---: | ----: | ------: | -----------: |
+| simple       | jetpack  |    1 |   179 |  496863 | **-41.18 %** |
+| simple       | baseline |    1 |   369 |  844693 |              |
+| complex      | jetpack  |    6 |  2145 | 5358022 | **-11.16 %** |
+| complex      | baseline |    6 |  2525 | 6030822 |              |
+| individually | jetpack  |    3 |   365 |  999269 | **-32.49 %** |
+| individually | baseline |    3 |   618 | 1480191 |              |
+| monorepo     | jetpack  |    2 |   360 |  834652 | **-39.16 %** |
+| monorepo     | baseline |    2 |   531 | 1371924 |              |
+| webpack      | jetpack  |    1 |     3 |    1804 | **-20.21 %** |
+| webpack      | baseline |    1 |     1 |    2261 |              |
+| huge         | jetpack  |    1 |   179 |  613943 | **-72.52 %** |
+| huge         | baseline |    1 |   505 | 2234279 |              |
+| huge-prod    | jetpack  |    1 |   179 |  512997 | **-92.27 %** |
+| huge-prod    | baseline |    1 |  4044 | 6633028 |              |
+
+## Command Line Interface
+
+Jetpack also provides some CLI options.
+
+### `serverless jetpack package`
+
+Package a function like `serverless package` does, just with better options.
+
+```sh
+$ serverless jetpack package -h
+Plugin: Jetpack
+jetpack package ............... Packages a Serverless service or function
+    --function / -f .................... Function name. Packages a single function (see 'deploy function')
+```
+
+So, to package all service / functions like `serverless package` does, use:
+
+```sh
+$ serverless jetpack package # OR
+$ serverless package
+```
+
+... as this is basically the same built-in or custom.
+
+The neat addition that Jetpack provides is:
+
+```sh
+$ serverless jetpack package -f|--function {NAME}
+```
+
+which allows you to package just one named function exactly the same as `serverless deploy -f {NAME}` does. (Curiously `serverless deploy` implements the `-f {NAME}` option but `serverless package` does not.)
+
 ## Benchmarks
 
 The following is a simple, "on my machine" benchmark generated with `yarn benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
 
 As a quick guide to the results table:
 
-- `Scenario`: Contrived scenarios for the purpose of generating results.
+- `Scenario`: Contrived scenarios for the purpose of generating results. E.g.,
     - `simple`: Very small production and development dependencies.
     - `individually`: Same dependencies as `simple`, but with `individually` packaging.
     - `huge`: Lots and lots of development dependencies.
-- `Mode`: Project installed via `yarn` or `npm`? This really only matters in that `npm` and `yarn` may flatten dependencies differently, so we want to make sure Jetpack is correct in both cases.
+- `Pkg`: Project installed via `yarn` or `npm`? This really only matters in that `npm` and `yarn` may flatten dependencies differently, so we want to make sure Jetpack is correct in both cases.
 - `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
+- `Mode`: For `jetpack` benchmarks, either:
+    - `deps`: Dependency filtering with equivalent output to `serverless` (just faster).
+    - `trace`: Tracing dependencies from specified source files. Not equivalent to `serevrless` packaging, but functionally correct, way faster, and with smaller packages.
 - `Time`: Elapsed build time in milliseconds.
 - `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
 
 Machine information:
 
-* os:   `darwin 18.5.0 x64`
-* node: `v8.16.0`
+* os:   `darwin 18.7.0 x64`
+* node: `v12.14.1`
 
 Results:
 
-| Scenario     | Mode | Type     |  Time |      vs Base |
-| :----------- | :--- | :------- | ----: | -----------: |
-| simple       | yarn | jetpack  |  2151 | **-71.48 %** |
-| simple       | yarn | baseline |  7541 |              |
-| simple       | npm  | jetpack  |  3245 | **-62.83 %** |
-| simple       | npm  | baseline |  8730 |              |
-| complex      | yarn | jetpack  |  4219 | **-69.07 %** |
-| complex      | yarn | baseline | 13642 |              |
-| complex      | npm  | jetpack  |  4663 | **-71.11 %** |
-| complex      | npm  | baseline | 16142 |              |
-| individually | yarn | jetpack  |  3520 | **-73.57 %** |
-| individually | yarn | baseline | 13316 |              |
-| individually | npm  | jetpack  |  3759 | **-74.68 %** |
-| individually | npm  | baseline | 14848 |              |
-| huge         | yarn | jetpack  |  4799 | **-80.91 %** |
-| huge         | yarn | baseline | 25142 |              |
-| huge         | npm  | jetpack  |  3426 | **-88.46 %** |
-| huge         | npm  | baseline | 29684 |              |
+| Scenario     | Pkg  | Type     | Mode  |  Time |      vs Base |
+| :----------- | :--- | :------- | :---- | ----: | -----------: |
+| simple       | yarn | jetpack  | trace |  7630 | **-60.06 %** |
+| simple       | yarn | jetpack  | deps  |  2880 | **-84.92 %** |
+| simple       | yarn | baseline |       | 19102 |              |
+| simple       | npm  | jetpack  | trace |  7143 | **-62.61 %** |
+| simple       | npm  | jetpack  | deps  |  3465 | **-81.86 %** |
+| simple       | npm  | baseline |       | 19106 |              |
+| complex      | yarn | jetpack  | trace | 12988 | **-48.67 %** |
+| complex      | yarn | jetpack  | deps  | 10269 | **-59.41 %** |
+| complex      | yarn | baseline |       | 25302 |              |
+| complex      | npm  | jetpack  | trace | 10684 | **-59.44 %** |
+| complex      | npm  | jetpack  | deps  | 10496 | **-60.15 %** |
+| complex      | npm  | baseline |       | 26339 |              |
+| individually | yarn | jetpack  | trace | 16857 |  **-7.38 %** |
+| individually | yarn | jetpack  | deps  | 12759 | **-29.90 %** |
+| individually | yarn | baseline |       | 18201 |              |
+| individually | npm  | jetpack  | trace | 16024 | **-15.10 %** |
+| individually | npm  | jetpack  | deps  | 13067 | **-30.76 %** |
+| individually | npm  | baseline |       | 18873 |              |
+| huge         | yarn | jetpack  | trace |  5562 | **-86.02 %** |
+| huge         | yarn | jetpack  | deps  |  5079 | **-87.24 %** |
+| huge         | yarn | baseline |       | 39793 |              |
+| huge         | npm  | jetpack  | trace |  6790 | **-87.48 %** |
+| huge         | npm  | jetpack  | deps  |  4105 | **-92.43 %** |
+| huge         | npm  | baseline |       | 54254 |              |
+| huge-prod    | yarn | jetpack  | trace |  8987 | **-70.00 %** |
+| huge-prod    | yarn | jetpack  | deps  | 25348 | **-15.38 %** |
+| huge-prod    | yarn | baseline |       | 29954 |              |
+| huge-prod    | npm  | jetpack  | trace |  9766 | **-67.39 %** |
+| huge-prod    | npm  | jetpack  | deps  | 23121 | **-22.79 %** |
+| huge-prod    | npm  | baseline |       | 29947 |              |
 
 ## Maintenance Status
 
@@ -394,6 +568,7 @@ Results:
 [lerna]: https://lerna.js.org/
 [yarn workspaces]: https://yarnpkg.com/lang/en/docs/workspaces/
 [inspectdep]: https://github.com/FormidableLabs/inspectdep/
+[trace-deps]: https://github.com/FormidableLabs/trace-deps/
 [globby]: https://github.com/sindresorhus/globby
 [nanomatch]: https://github.com/micromatch/nanomatch
 

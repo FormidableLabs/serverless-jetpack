@@ -32,6 +32,8 @@ const LOCK_FILES = [
   "test/packages/dashboard/yarn/yarn.lock",
   "test/packages/huge/npm/package-lock.json",
   "test/packages/huge/yarn/yarn.lock",
+  "test/packages/huge-prod/npm/package-lock.json",
+  "test/packages/huge-prod/yarn/yarn.lock",
   "test/packages/individually/npm/package-lock.json",
   "test/packages/individually/yarn/yarn.lock",
   "test/packages/monorepo/npm/package-lock.json",
