@@ -314,7 +314,9 @@ include:
   - "!**/node_modules/aws-sdk/**"
 ```
 
-## Tracing Mode
+## \[EXPERIMENTAL\] Tracing Mode
+
+> ℹ️ **Experimental**: Although we have a wide array of tests, tracing mode is still considered experimental as we roll out the feature. You should be sure to test all the execution code paths in your deployed serverless functions and verify your bundled package contents before using in production.
 
 Jetpack speeds up the underlying dependencies filtering approach of `serverless` packaging while providing completely equivalent bundles. However, this approach has some fundamental limitations:
 
@@ -342,9 +344,7 @@ custom:
 
 The `trace` field can be a Boolean or object containing further configuration information.
 
-#### \[EXPERIMENTAL\] Tracing Options
-
-> ℹ️ **Experimental**: Although we have a wide array of tests, tracing mode is still considered experimental as we roll out the feature. You should be sure to test all the execution code paths in your deployed serverless functions and verify your bundled package contents before using in production.
+#### Tracing Options
 
 The basic `trace` Boolean field should hopefully work for most cases. Jetpack provides several additional options for more flexibility:
 
