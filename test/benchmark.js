@@ -405,11 +405,16 @@ const describeScenario = (scenario, callback) =>
     ? describe(scenario, callback)
     : describe.skip(scenario, callback);
 
+const toPosixPath = (name) => name.split("\\").join("/");
+const SETUP_TIMEOUT = 10000;
+
 describe("benchmark", () => {
   let fixtures;
   let webpackFiles;
 
-  before(async () => {
+  before(async function () {
+    this.timeout(SETUP_TIMEOUT); // eslint-disable-line no-invalid-this
+
     // Read lists of contents from zip files directly.
     const projRoot = path.resolve(__dirname, "..");
     const zipFiles = await globby([".test-zips/**/*.zip"], { cwd: projRoot });
@@ -439,7 +444,8 @@ describe("benchmark", () => {
       .split("\n")
       .filter((line) => (/\!\*\*\* .*? \*\*\*\!/).test(line))
       .map((line) => line.replace(/\!\*\*\*|\*\*\*\!/g, "").trim())
-      .map((file) => path.relative(".", file));
+      .map((file) => path.relative(".", file))
+      .map(toPosixPath);
   });
 
   describe("dependencies mode", () => {
