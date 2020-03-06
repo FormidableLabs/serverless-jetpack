@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.10.0
 
 * Add dependency tracing feature and `jetpack.trace` configuration options.
 * Test: Change `test/packages/webpack` into a comparison scenario for trace mode rather than testing that it doesn't conflict with Jetpack.
