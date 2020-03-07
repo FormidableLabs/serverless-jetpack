@@ -421,6 +421,7 @@ const topLevel = (filePath) => {
   // eslint-disable-next-line no-magic-numbers
   let pkgParts = parts.slice(0, nodeModulesIdx + 2);
   if (pkgParts[1].startsWith("@")) {
+    // eslint-disable-next-line no-magic-numbers
     pkgParts = parts.slice(0, nodeModulesIdx + 3); // Scoped
   }
 
