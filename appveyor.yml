@@ -66,6 +66,8 @@ cache:
   - test\packages\dashboard\yarn\node_modules -> test\packages\dashboard\yarn\yarn.lock
   - test\packages\huge\npm\node_modules -> test\packages\huge\npm\package-lock.json
   - test\packages\huge\yarn\node_modules -> test\packages\huge\yarn\yarn.lock
+  - test\packages\huge-prod\npm\node_modules -> test\packages\huge-prod\npm\package-lock.json
+  - test\packages\huge-prod\yarn\node_modules -> test\packages\huge-prod\yarn\yarn.lock
   - test\packages\individually\npm\node_modules -> test\packages\individually\npm\package-lock.json
   - test\packages\individually\yarn\node_modules -> test\packages\individually\yarn\yarn.lock
   - test\packages\monorepo\npm\node_modules -> test\packages\monorepo\npm\package-lock.json
