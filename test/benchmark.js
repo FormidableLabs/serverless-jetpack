@@ -172,9 +172,18 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid",
 
+    // $ $ yarn why @serverless/platform-client
+    // - "serverless#@serverless#components#@serverless#platform-client"
+    "node_modules/@serverless/platform-client",
+    "node_modules/@serverless/platform-client/node_modules/.bin/js-yaml",
+
     // $ yarn why abbrev
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
     "node_modules/abbrev",
+
+    // $ $ yarn why isomorphic-ws
+    // - "serverless#@serverless#components#@serverless#platform-client#isomorphic-ws"
+    "node_modules/isomorphic-ws",
 
     // Hoisted to `node_modules/.bin/mime`
     "node_modules/send/node_modules/.bin/mime"
@@ -189,6 +198,15 @@ const SLS_FALSE_POSITIVES = {
 
     // Hoisted to `node_modules/.bin/mime`
     "node_modules/send/node_modules/.bin/mime",
+
+    // $ $ yarn why @serverless/platform-client
+    // - "serverless#@serverless#components#@serverless#platform-client"
+    "node_modules/@serverless/platform-client",
+    "node_modules/@serverless/platform-client/node_modules/.bin/js-yaml",
+
+    // $ $ yarn why isomorphic-ws
+    // - "serverless#@serverless#components#@serverless#platform-client#isomorphic-ws"
+    "node_modules/isomorphic-ws",
 
     // devDependency
     // (`manual_test_websocket/scripts/serverless..yml`)
@@ -222,6 +240,15 @@ const SLS_FALSE_POSITIVES = {
 
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid",
+
+    // $ $ yarn why @serverless/platform-client
+    // - "serverless#@serverless#components#@serverless#platform-client"
+    "node_modules/@serverless/platform-client",
+    "node_modules/@serverless/platform-client/node_modules/.bin/js-yaml",
+
+    // $ $ yarn why isomorphic-ws
+    // - "serverless#@serverless#components#@serverless#platform-client#isomorphic-ws"
+    "node_modules/isomorphic-ws",
 
     // Hoisted to `node_modules/.bin/mime`
     "node_modules/send/node_modules/.bin/mime"
@@ -267,6 +294,11 @@ const SLS_FALSE_POSITIVES = {
     "node_modules/.bin/sshpk-verify",
     // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
     "node_modules/.bin/watch",
+
+    // $ $ yarn why @serverless/platform-client
+    // - "serverless#@serverless#components#@serverless#platform-client"
+    "node_modules/@serverless/platform-client",
+    "node_modules/@serverless/platform-client/node_modules/.bin/js-yaml",
 
     // Hoisted to `node_modules/.bin/loose-envify`
     "node_modules/react-dom/node_modules/.bin/loose-envify",
@@ -314,6 +346,10 @@ const SLS_FALSE_POSITIVES = {
     // $ yarn why ignore-walk
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npm-packlist"
     "node_modules/ignore-walk",
+
+    // $ $ yarn why isomorphic-ws
+    // - "serverless#@serverless#components#@serverless#platform-client#isomorphic-ws"
+    "node_modules/isomorphic-ws",
 
     // $ yarn why minipass
     // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#tar" depends on it
@@ -381,9 +417,14 @@ const topLevel = (filePath) => {
   const parts = filePath.split("/");
   const nodeModulesIdx = parts.indexOf("node_modules");
 
-  // Get `node_modules` directory and entry after.
+  // Get `node_modules` directory and entry after (scoped or normal).
   // eslint-disable-next-line no-magic-numbers
-  return parts.slice(0, nodeModulesIdx + 2).join("/");
+  let pkgParts = parts.slice(0, nodeModulesIdx + 2);
+  if (pkgParts[1].startsWith("@")) {
+    pkgParts = parts.slice(0, nodeModulesIdx + 3); // Scoped
+  }
+
+  return pkgParts.join("/");
 };
 
 // Applies to both plugin and baselines
