@@ -82,7 +82,7 @@ Most Serverless framework projects should be able to use Jetpack without any ext
 
 * `base` (`string`): The base directory (relative to `servicePath` / CWD) at which dependencies may be discovered by Jetpack. This is useful in some bespoke monorepo scenarios where dependencies may be hoisted/flattened to a root `node_modules` directory that is the parent of the directory `serverless` is run from. (default: Serverless' `servicePath` / CWD).
     * _WARNING_: If you don't **know** that you need this option, you probably don't want to set it. Setting the base dependency root outside of Serverless' `servicePath` / current working directory (e.g., `..`) may have some unintended side effects. Most notably, any discovered `node_modules` dependencies will be flattened into the zip at the same level as `servicePath` / CWD. E.g., if dependencies were included by Jetpack at `node_modules/foo` and then `../node_modules/foo` they would be collapsed in the resulting zip file package.
-    * **Layers**: Layers are a bit of an odddity with built-in Serverless Framework packaging in that the current working directory is `layer.NAME.path` (and not `servicePath` like usual), yet things like `include|exclude` apply relatively to the layer `path`, not the `servicePath`. Jetpack has a similar choice and applies `base` applies to the root `servicePath` for everything (layers, functions, and service packaging), which seems to be the best approach given that monorepo consumers may well lay out projects like `functions/*` and `layers/*` and need dependency inference to get all the way to the root irrespective of a child layer `path`.
+    * **Layers**: Layers are a bit of an oddity with built-in Serverless Framework packaging in that the current working directory is `layer.NAME.path` (and not `servicePath` like usual), yet things like `include|exclude` apply relatively to the layer `path`, not the `servicePath`. Jetpack has a similar choice and applies `base` applies to the root `servicePath` for everything (layers, functions, and service packaging), which seems to be the best approach given that monorepo consumers may well lay out projects like `functions/*` and `layers/*` and need dependency inference to get all the way to the root irrespective of a child layer `path`.
 * `roots` (`Array<string>`): A list of paths (relative to `servicePath` / CWD) at which there may additionally declared and/or installed `node_modules`. (default: [Serverless' `servicePath` / CWD]).
     * Setting a value here replaces the default `[servicePath]` with the new array, so if you want to additionally keep the `servicePath` in the roots array, set as: `[".", ADDITION_01, ADDITION_02, ...]`.
     * This typically occurs in a monorepo project, wherein dependencies may be located in e.g. `packages/{NAME}/node_modules` and/or hoisted to the `node_modules` at the project base. It is important to specify these additional dependency roots so that Jetpack can (1) find and include the right dependencies and (2) hone down these directories to just production dependencies when packaging. Otherwise, you risk having a slow `serverless package` execution and/or end up with additional/missing dependencies in your final application zip bundle.
@@ -281,7 +281,7 @@ Let's start with how `include|exclude` work for both Serverless built-in packagi
     3. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
     4. Add in service and function-level `package.include` patterns.
 
-2. **File filtering phase** with `nanomatch()`. Once we have a list of files read from disk, we apply patterns in order as follows to decide whether to include them (last postitive match wins).
+2. **File filtering phase** with `nanomatch()`. Once we have a list of files read from disk, we apply patterns in order as follows to decide whether to include them (last positive match wins).
 
     1. (_Jetpack only_) Add in service and function-level `jetpack.preInclude` patterns.
     2. (_Jetpack only_) Add in dynamic patterns to `include` production `node_modules`.
@@ -314,7 +314,7 @@ include:
   - "!**/node_modules/aws-sdk/**"
 ```
 
-## \[EXPERIMENTAL\] Tracing Mode
+## Tracing Mode
 
 > ℹ️ **Experimental**: Although we have a wide array of tests, tracing mode is still considered experimental as we roll out the feature. You should be sure to test all the execution code paths in your deployed serverless functions and verify your bundled package contents before using in production.
 
@@ -419,8 +419,8 @@ functions:
 
 ### Tracing Caveats
 
-* **Works best for large, unused production dependencies**: Tracing mode is best suited for an application wherein many / most of the files specified in `package.json:dependencies` are not actually used. When there is a large descrepancy between "specific dependencies" and "actually used files" you'll see the biggest speedups. Conversely, when production dependencies are very tight and almost every file is used you won't see a large speedup versus Jetpack's normal dependency mode.
-    * An example of an application with lots of unused production dependencies is our `huge-prod` test fixture. Trace mode is significanly faster than Jetpack dependency mode and baseline serverless packaging.
+* **Works best for large, unused production dependencies**: Tracing mode is best suited for an application wherein many / most of the files specified in `package.json:dependencies` are not actually used. When there is a large discrepancy between "specific dependencies" and "actually used files" you'll see the biggest speedups. Conversely, when production dependencies are very tight and almost every file is used you won't see a large speedup versus Jetpack's normal dependency mode.
+    * An example of an application with lots of unused production dependencies is our `huge-prod` test fixture. Trace mode is significantly faster than Jetpack dependency mode and baseline serverless packaging.
 
 * **Only works with JavaScript handlers + code**: Tracing mode only works with `functions.{FN_NAME}.handler` and `trace.include` files that are real JavaScript ending in the suffixes of `.js` or `.mjs`. If you have TypeScript, JSX, etc., please transpile it first and point your handler at that file. By default tracing mode will search on `PATH/TO/HANDLER_FILE.{js,mjs}` to then trace, and will throw an error if no matching files are found for a function that has `runtime: node*` when tracing mode is enabled.
 
@@ -447,7 +447,7 @@ The relevant portions of our measurement chart.
 - `Scenario`: Same benchmark scenarios
 - `Type`: `jetpack` is this plugin in `trace` mode and `baseline` is Serverless built-in packaging.
 - `Zips`: The number of zip files generated per scenario (e.g., service bundle + individually packaged function bundles).
-- `Files`: The aggregated number of indvidual files in **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in many less files.
+- `Files`: The aggregated number of individual files in **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in many less files.
 - `Size`: The aggregated total byte size of **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in smaller bundle packages.
 - `vs Base`: Percentage difference of the aggregated zip bundle byte sizes for a given scenario of Jetpack vs. Serverless built-in packaging.
 
@@ -516,7 +516,7 @@ As a quick guide to the results table:
 - `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
 - `Mode`: For `jetpack` benchmarks, either:
     - `deps`: Dependency filtering with equivalent output to `serverless` (just faster).
-    - `trace`: Tracing dependencies from specified source files. Not equivalent to `serevrless` packaging, but functionally correct, way faster, and with smaller packages.
+    - `trace`: Tracing dependencies from specified source files. Not equivalent to `serverless` packaging, but functionally correct, way faster, and with smaller packages.
 - `Time`: Elapsed build time in milliseconds.
 - `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
 
