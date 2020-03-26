@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "adm-zip": "^0.4.14",
-    "babel-eslint": "^10.0.3",
+    "babel-eslint": "^10.1.0",
     "chai": "^4.2.0",
     "chalk": "^3.0.0",
     "del": "^5.1.0",
