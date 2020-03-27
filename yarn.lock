@@ -5051,7 +5051,7 @@ semver@^6.0.0, semver@^6.1.1, semver@^6.1.2, semver@^6.2.0, semver@^6.3.0:
   resolved "https://registry.yarnpkg.com/semver/-/semver-6.3.0.tgz#ee0a64c8af5e8ceea67687b133761e1becbd1d3d"
   integrity sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw==
 
-serverless@^1.65.0:
+serverless@^1.67.0:
   version "1.67.0"
   resolved "https://registry.yarnpkg.com/serverless/-/serverless-1.67.0.tgz#001689ea607bb2364bc3207748f9c1d45f9e55cc"
   integrity sha512-ocnzEW2op4KrdjnZ7aeadnX1/E6PdlsW8vv67/3sGlni1ep8JiKSRU0aPQqUmood98kEIo/sKvUlHrJcAm3eXg==

@@ -18,7 +18,7 @@
     "moment": "^2.24.0",
     "moment-timezone": "^0.5.23",
     "next": "^9.2.1",
-    "serverless": "^1.65.0",
+    "serverless": "^1.67.0",
     "serverless-offline": "^5.12.1",
     "typescript": "^3.4.3"
   }
