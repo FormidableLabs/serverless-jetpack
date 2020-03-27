@@ -5266,9 +5266,10 @@ to-regex@^3.0.1, to-regex@^3.0.2:
     regex-not "^1.0.2"
     safe-regex "^1.1.0"
 
-trace-deps@FormidableLabs/trace-deps#feature/acceptable-import-failures:
-  version "0.2.2"
-  resolved "https://codeload.github.com/FormidableLabs/trace-deps/tar.gz/a7fedff022d0a4217a0001d0f361b8f2f394a745"
+trace-deps@^0.2.3:
+  version "0.2.3"
+  resolved "https://registry.yarnpkg.com/trace-deps/-/trace-deps-0.2.3.tgz#8ce07f0550fe9db24b5de5681be51a1d646f8da0"
+  integrity sha512-6XizL+QbayR2vC/9O49DErvNel6pheAIylbGYrB/+TIu9uznokHN1gkCSM5kjl2X8xsD9QgN00xb8jUMc/Ne8g==
   dependencies:
     acorn-node "^2.0.0"
     resolve "^1.15.1"
