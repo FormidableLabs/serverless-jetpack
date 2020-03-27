@@ -97,6 +97,7 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/msgpack",
   "node_modules/.bin/precinct",
   "node_modules/.bin/r_js",
+  "node_modules/.bin/r.js",
   "node_modules/.bin/sass-lookup",
   "node_modules/.bin/stylus-lookup",
   "node_modules/.bin/tsc",
