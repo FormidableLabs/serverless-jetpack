@@ -180,6 +180,126 @@ describe("index", () => {
           ] });
       });
 
+      it("allows missing when tracing", async () => {
+        mock({
+          "serverless.yml": `
+            service: sls-mocked
+
+            custom:
+              jetpack:
+                preInclude:
+                  - "!**"
+                trace:
+                  allowMissing:
+                    all-missing:
+                      - one-missing
+                    partially-missing:
+                      - one-missing
+
+            provider:
+              name: aws
+              runtime: nodejs12.x
+
+            functions:
+              numbers:
+                handler: numbers.handler
+              has-missings:
+                handler: has-missings.handler
+                package:
+                  individually: true
+                jetpack:
+                  trace:
+                    allowMissing:
+                      partially-missing:
+                        - two-missing
+                        - three-actually-on-disk
+          `,
+          "numbers.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({
+                one: require("one-pkg"),
+                oneMissing: require("all-missing"),
+                two: require("two-pkg")
+              })
+            });
+          `,
+          "has-missings.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({
+                someMissing: require("partially-missing")
+              })
+            });
+          `,
+          node_modules: {
+            "one-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'one';"
+            },
+            "two-pkg": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'two';"
+            },
+            "all-missing": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": `
+                module.exports = {
+                  oneMissing: require("one-missing")
+                };
+              `
+            },
+            "partially-missing": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": `
+                module.exports = {
+                  oneMissing: require("one-missing"),
+                  twoMissing: require("two-missing"),
+                  threeFound: require("three-actually-on-disk")
+                };
+              `
+            },
+            "three-actually-on-disk": {
+              "package.json": stringify({
+                main: "index.js"
+              }),
+              "index.js": "module.exports = 'Here I am!';"
+            }
+          }
+        });
+
+        const plugin = new Jetpack(await createServerless());
+        await plugin.package();
+        expect(Jetpack.prototype.globAndZip)
+          .to.have.callCount(2).and
+          .to.be.calledWithMatch({ traceInclude: ["numbers.js"] }).and
+          .to.be.calledWithMatch({ traceInclude: ["has-missings.js"] });
+        expect(bundle.createZip)
+          .to.have.callCount(2).and
+          .to.be.calledWithMatch({ files: [
+            "numbers.js",
+            "node_modules/all-missing/index.js",
+            "node_modules/all-missing/package.json",
+            "node_modules/one-pkg/index.js",
+            "node_modules/one-pkg/package.json",
+            "node_modules/two-pkg/index.js",
+            "node_modules/two-pkg/package.json"
+          ] }).and
+          .to.be.calledWithMatch({ files: [
+            "has-missings.js",
+            "node_modules/partially-missing/index.js",
+            "node_modules/partially-missing/package.json",
+            "node_modules/three-actually-on-disk/index.js",
+            "node_modules/three-actually-on-disk/package.json"
+          ] });
+      });
+
       it("traces with various trace.include options", async () => {
         mock({
           "serverless.yml": `

@@ -273,7 +273,7 @@ const createZip = async ({ files, cwd, bundlePath }) => {
  * @param {string}    opts.base         optional base directory (relative to `servicePath`)
  * @param {string[]}  opts.roots        optional dependency roots (relative to `servicePath`)
  * @param {string}    opts.bundleName   output bundle name
- * @param {string[]}  opts.traceIgnores package paths to ignore in tracing mode
+ * @param {object}    opts.traceParams  `trace-deps` options (ignores, allowMissing, ...)
  * @param {string[]}  opts.preInclude   glob patterns to include first
  * @param {string[]}  opts.traceInclude glob patterns from tracing mode
  * @param {string[]}  opts.include      glob patterns to include
@@ -288,7 +288,7 @@ const globAndZip = async ({
   base,
   roots,
   bundleName,
-  traceIgnores,
+  traceParams = {},
   preInclude,
   traceInclude,
   include,
@@ -310,7 +310,7 @@ const globAndZip = async ({
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
     const srcPaths = await globby(traceInclude, { cwd });
-    const traced = await traceFiles({ srcPaths, ignores: traceIgnores });
+    const traced = await traceFiles({ ...traceParams, srcPaths });
 
     // Aggregate.
     depInclude = depInclude.concat(
@@ -351,7 +351,8 @@ const globAndZip = async ({
       ...results,
       roots,
       trace: {
-        ignores: traceIgnores || []
+        ignores: traceParams.ignores || [],
+        allowMissing: traceParams.allowMissing || {}
       },
       patterns: {
         preInclude,

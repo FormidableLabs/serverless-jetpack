@@ -222,6 +222,7 @@ class Jetpack {
       .reduce((m, a) => m.concat(a), []);
     const serviceObj = {
       ignores: [],
+      allowMissing: {},
       include: [],
       ...typeof serviceTrace === "object" ? serviceTrace : {}
     };
@@ -236,6 +237,7 @@ class Jetpack {
     const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
     const functionObj = {
       ignores: [],
+      allowMissing: {},
       include: [],
       ...typeof functionTrace === "object" ? functionTrace : {}
     };
@@ -251,6 +253,28 @@ class Jetpack {
       // Make unique.
       .sort()
       .filter(uniq);
+
+    functionObj.allowMissing = []
+      // Get all unique missing package keys.
+      .concat(
+        Object.keys(serviceObj.allowMissing),
+        Object.keys(functionObj.allowMissing)
+      )
+      .sort()
+      .filter(uniq)
+      // Smart merge unique missing values
+      .reduce((obj, key) => {
+        // Aggregate service and function unique missing values.
+        obj[key] = []
+          .concat(
+            serviceObj.allowMissing[key] || [],
+            functionObj.allowMissing[key] || []
+          )
+          .sort()
+          .filter(uniq);
+
+        return obj;
+      }, {});
 
     return {
       service: {
@@ -270,19 +294,19 @@ class Jetpack {
   // eslint-disable-next-line max-statements
   async _traceOptions({ functionObject, functionObjects } = {}) {
     // Detect if in tracing mode
-    const traceCfg = this._traceConfig({ functionObject, functionObjects });
+    const traceConfig = this._traceConfig({ functionObject, functionObjects });
 
     // Filter to only the function objects we should trace.
     let fnObjs = [];
     let traceObj;
-    if (functionObjects && traceCfg.service.enabled) {
+    if (functionObjects && traceConfig.service.enabled) {
       // Service-level trace + service package.
       fnObjs = functionObjects;
-      traceObj = traceCfg.service.obj;
-    } else if (functionObject && traceCfg.function.enabled) {
+      traceObj = traceConfig.service.obj;
+    } else if (functionObject && traceConfig.function.enabled) {
       // `individually` function package with service or individual.
       fnObjs = [functionObject];
-      traceObj = traceCfg.function.obj;
+      traceObj = traceConfig.function.obj;
     }
 
     // Extract handler functions to trace and short-circuit if none.
@@ -320,7 +344,13 @@ class Jetpack {
       // Add in the user-configured extra includes.
       .then((matchedJsFiles) => [].concat(matchedJsFiles, traceObj.include));
 
-    return { traceInclude, traceIgnores: traceObj.ignores };
+    return {
+      traceInclude,
+      traceParams: {
+        ignores: traceObj.ignores,
+        allowMissing: traceObj.allowMissing
+      }
+    };
   }
 
   _report({ results }) {
@@ -338,6 +368,8 @@ class Jetpack {
 
       # Ignores (\`${trace.ignores.length}\`):
       ${trace.ignores.map((p) => `- '${p}'`).join("\n      ")}
+      # Allowed Missing (\`${Object.keys(trace.allowMissing).length}\`):
+      ${Object.keys(trace.allowMissing).map((k) => `- '${k}': ${JSON.stringify(trace.allowMissing[k])}`).join("\n      ")}
 
       ### Patterns: Include
 
@@ -454,7 +486,7 @@ class Jetpack {
   }
 
   async globAndZip({
-    bundleName, functionObject, layerObject, traceInclude, traceIgnores, worker, report
+    bundleName, functionObject, layerObject, traceInclude, traceParams, worker, report
   }) {
     const { config } = this.serverless;
     const servicePath = config.servicePath || ".";
@@ -471,7 +503,7 @@ class Jetpack {
       base,
       roots,
       bundleName,
-      traceIgnores,
+      traceParams,
       preInclude,
       traceInclude,
       include,
@@ -494,13 +526,13 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Get traces.
-    const { traceInclude, traceIgnores } = await this._traceOptions({ functionObject });
+    const { traceInclude, traceParams } = await this._traceOptions({ functionObject });
     const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
     this._logDebug(`Start packaging function: ${bundleName} in mode: ${mode}`);
     const results = await this.globAndZip({
-      bundleName, functionObject, traceInclude, traceIgnores, worker, report
+      bundleName, functionObject, traceInclude, traceParams, worker, report
     });
     const { buildTime } = results;
 
@@ -521,13 +553,13 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Get traces.
-    const { traceInclude, traceIgnores } = await this._traceOptions({ functionObjects });
+    const { traceInclude, traceParams } = await this._traceOptions({ functionObjects });
     const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
     this._logDebug(`Start packaging service: ${bundleName} in mode: ${mode}`);
     const results = await this.globAndZip({
-      bundleName, traceInclude, traceIgnores, worker, report
+      bundleName, traceInclude, traceParams, worker, report
     });
     const { buildTime } = results;
 

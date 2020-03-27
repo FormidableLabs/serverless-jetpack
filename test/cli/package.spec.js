@@ -129,7 +129,7 @@ describe("jetpack package", function () {
     });
 
     it("packages all functions with no options", async () => {
-      const { stdout } = await sls(["jetpack", "package"], { cwd });
+      const { stdout } = await sls(["jetpack", "package", "--report"], { cwd });
       expect(stdout)
         .to.contain(`Packaged service (dependency mode): ${SERVICE_PKG}`).and
         .to.contain(`Packaged function (dependency mode): ${INDIVIDUALLY_PKG}`).and
@@ -142,7 +142,7 @@ describe("jetpack package", function () {
 
     it("packages all functions with no options in trace mode", async () => {
       mode = "trace";
-      const { stdout } = await sls(["jetpack", "package"], { cwd });
+      const { stdout } = await sls(["jetpack", "package", "--report"], { cwd });
       expect(stdout)
         .to.contain(`Packaged service (trace mode): ${SERVICE_PKG}`).and
         .to.contain(`Packaged function (trace mode): ${INDIVIDUALLY_PKG}`).and
