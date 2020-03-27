@@ -44,7 +44,7 @@
     "make-dir": "^3.0.2",
     "nanomatch": "^1.2.13",
     "p-limit": "^2.2.2",
-    "trace-deps": "^0.2.0"
+    "trace-deps": "FormidableLabs/trace-deps#feature/acceptable-import-failures"
   },
   "devDependencies": {
     "adm-zip": "^0.4.14",

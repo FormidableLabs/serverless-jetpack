@@ -363,10 +363,10 @@ acorn-jsx@^5.1.0:
   resolved "https://registry.yarnpkg.com/acorn-jsx/-/acorn-jsx-5.1.0.tgz#294adb71b57398b0680015f0a38c563ee1db5384"
   integrity sha512-tMUqwBWfLFbJbizRmEcWSLw6HnFzfdJs2sOJEOwwtVPMoH/0Ay+E703oZz78VSXZiiDcZrQ5XKjPIUQixhmgVw==
 
-acorn-node@^1.8.2:
-  version "1.8.2"
-  resolved "https://registry.yarnpkg.com/acorn-node/-/acorn-node-1.8.2.tgz#114c95d64539e53dede23de8b9d96df7c7ae2af8"
-  integrity sha512-8mt+fslDufLYntIoPAaIMUe/lrbrehIiwmR3t2k9LljIzoigEPF27eLk2hy8zSGzmR/ogr7zbRKINMo1u0yh5A==
+acorn-node@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/acorn-node/-/acorn-node-2.0.0.tgz#166fdcbd5aeb3f1957a05c699911a26a9f5592c0"
+  integrity sha512-BKPICDOEXUF/q/ltRrXLW7QGi+06r68BSQr4BNFZnY8L04KsYRttFq7SDsCdBEwfuGVdBV9AgaQtUkAbHg5Qnw==
   dependencies:
     acorn "^7.0.0"
     acorn-walk "^7.0.0"
@@ -5266,12 +5266,11 @@ to-regex@^3.0.1, to-regex@^3.0.2:
     regex-not "^1.0.2"
     safe-regex "^1.1.0"
 
-trace-deps@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/trace-deps/-/trace-deps-0.2.0.tgz#18d3ea1c4c084f214d783ced13de92efda394f6f"
-  integrity sha512-xAFJN6xqjYZFMLqjwosXQnyOTFSuA7g7aysUTPPLxGUl2jE0N5DvcSrjJABXyrCEyo3tP8o26J4Ejr1B1e0RDg==
+trace-deps@FormidableLabs/trace-deps#feature/acceptable-import-failures:
+  version "0.2.2"
+  resolved "https://codeload.github.com/FormidableLabs/trace-deps/tar.gz/a7fedff022d0a4217a0001d0f361b8f2f394a745"
   dependencies:
-    acorn-node "^1.8.2"
+    acorn-node "^2.0.0"
     resolve "^1.15.1"
 
 traverse@^0.6.6:
