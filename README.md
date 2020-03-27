@@ -352,6 +352,7 @@ The basic `trace` Boolean field should hopefully work for most cases. Jetpack pr
 
 * `trace` (`Boolean | Object`): If `trace: true` or `trace: { /* other options */ }` then tracing mode is activated at the service level.
 * `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing on. This is particularly useful when you are excluding a package like `aws-sdk` that is already provided for your lambda.
+* `trace.allowMissing` (`Object.<string, Array<string>>`): A way to allow certain packages to have potentially failing dependencies. Specify each object key as a package name and value as an array of dependencies that _might_ be missing on disk. If the sub-dependency is found, then it is included in the bundle (this part distinguishes this option from `ignores`). If not, it is skipped without error.
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging.
     * **Note**: These patterns are in _addition_ to the handler inferred file path. If you want to exclude the handler path you could technically do a `!file/path.js` exclusion, but that would be a strange case in that your handler files would no longer be present.
 
@@ -359,6 +360,7 @@ The following **function**-level configurations available via `functions.{FN_NAM
 
 * `trace` (`Boolean | Object`): If `trace: true` or `trace: { /* other options */ }` then tracing mode is activated at the function level **if** the function is being packaged `individually`.
 * `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing **if** the function is being packaged `individually`. If there are service-level `trace.ignores` then the function-level ones will be **added** to the list.
+* `trace.allowMissing` (`Object.<string, Array<string>>`): An object of package path prefixes mapping to lists of packages that are allowed to be missing **if** the function is being packaged `individually`. If there is a service-level `trace.allowMissing` object then the function-level ones will be smart **merged** into the list.
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging. If there are service-level `trace.include`s then the function-level ones will be **added** to the list.
 
 Let's see the advanced options in action:
@@ -373,7 +375,15 @@ custom:
       - "!**"
     trace:
       ignores:
-        - "aws-sdk" # Ignore for all service + function tracing
+        # Unconditionally skip `aws-sdk` and all dependencies
+        # (Because it already is installed in target Lambda)
+        - "aws-sdk"
+      allowMissing:
+        # For just the `ws` package allow certain lazy dependencies to be
+        # skipped without error if not found on disk.
+        "ws":
+          - "bufferutil"
+          - "utf-8-validate"
 
 package:
   include:
