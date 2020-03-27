@@ -84,7 +84,23 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/css-has-pseudo",
   "node_modules/.bin/css-prefers-color-scheme",
   "node_modules/.bin/cssesc",
+  "node_modules/.bin/dependency-tree",
+  "node_modules/.bin/detective-amd",
+  "node_modules/.bin/errno",
+  "node_modules/.bin/escodegen",
+  "node_modules/.bin/esgenerate",
+  "node_modules/.bin/filing-cabinet",
+  "node_modules/.bin/find-process",
+  "node_modules/.bin/gonzales",
+  "node_modules/.bin/lookup-amd",
+  "node_modules/.bin/module-definition",
   "node_modules/.bin/msgpack",
+  "node_modules/.bin/precinct",
+  "node_modules/.bin/r_js",
+  "node_modules/.bin/sass-lookup",
+  "node_modules/.bin/stylus-lookup",
+  "node_modules/.bin/tsc",
+  "node_modules/.bin/tsserver",
 
   // Not exactly sure why, but consistently getting:
   // `node_modules/bin/<NAME>.ps1` extras. Just ignore.
