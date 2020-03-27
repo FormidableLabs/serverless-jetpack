@@ -169,6 +169,8 @@ const SLS_FALSE_POSITIVES = {
   "simple/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser",
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid",
 
@@ -190,11 +192,17 @@ const SLS_FALSE_POSITIVES = {
   ]),
 
   "simple/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser"
   ]),
 
   "complex/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser",
 
     // Hoisted to `node_modules/.bin/mime`
     "node_modules/send/node_modules/.bin/mime",
@@ -226,8 +234,11 @@ const SLS_FALSE_POSITIVES = {
   "complex/npm": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser",
+
     // devDependency
-    // (`manual_test_websocket/scripts/serverless..yml`)
+    // (`manual_test_websocket/scripts/serverless.yml`)
     "node_modules/serverless-offline",
 
     // Jetpack properly excludes with `roots` (not available in Serverless)
@@ -238,6 +249,8 @@ const SLS_FALSE_POSITIVES = {
   "individually/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser",
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid",
 
@@ -255,14 +268,17 @@ const SLS_FALSE_POSITIVES = {
   ]),
 
   "individually/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser"
   ]),
 
   "huge/npm": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
     ...SLS_FALSE_POSITIVES_WIN_HUGE,
 
-    // $ yarn why raven -> serverless
+    // $ yarn why @babel/parser -> serverless
     "node_modules/.bin/parser",
     // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
     "node_modules/.bin/watch",
@@ -286,7 +302,7 @@ const SLS_FALSE_POSITIVES = {
     "node_modules/.bin/node-which",
     // $ yarn why nopt -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
     "node_modules/.bin/nopt",
-    // $ yarn why raven -> serverless
+    // $ yarn why @babel/parser -> serverless
     "node_modules/.bin/parser",
     // $ yarn why sshpk -> cypress#request#http-signature
     "node_modules/.bin/sshpk-conv",
