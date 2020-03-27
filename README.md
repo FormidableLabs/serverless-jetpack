@@ -417,6 +417,11 @@ functions:
         # When individually, `ignores` from fn are added: `["aws-sdk", "react-ssr-prepass"]`
         ignores:
           - "react-ssr-prepass"
+        # When individually, `allowMissing` smart merges like:
+        # `{ "ws": ["bufferutil", "utf-8-validate", "another"] }`
+        allowMissing:
+          "ws":
+            - "another"
 
   # Individually with explicit `false` will not be traced
   individually-packaged-1:
