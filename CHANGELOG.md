@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.10.1
 
 * Add `jetpack.trace.allowMissing` configuration option.
 
