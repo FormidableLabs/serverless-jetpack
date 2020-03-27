@@ -561,7 +561,9 @@ describe("benchmark", () => {
         // Ignore some packages that have double vs. single flattened installation.
         const IGNORE_PKGS = [
           "node_modules/http-errors/",
-          "node_modules/safe-buffer/"
+          "node_modules/safe-buffer/",
+          "node_modules/debug/",
+          "node_modules/ms/"
         ];
 
         // Now, normalize file lists before comparing.
@@ -582,7 +584,6 @@ describe("benchmark", () => {
           "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
             "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
           "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-          "functions/base/node_modules/ms/": "node_modules/debug/node_modules/ms/",
           // Hoist everything to root (which is what yarn should do).
           "functions/base/node_modules/": "node_modules/",
           "lib/camel/node_modules/": "node_modules/"
@@ -634,7 +635,9 @@ describe("benchmark", () => {
         // Ignore some packages that have double vs. single flattened installation.
         const IGNORE_PKGS = [
           "node_modules/http-errors/",
-          "node_modules/safe-buffer/"
+          "node_modules/safe-buffer/",
+          "node_modules/debug/",
+          "node_modules/ms/"
         ];
 
         // Now, normalize file lists before comparing.
@@ -650,7 +653,6 @@ describe("benchmark", () => {
           "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
             "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
           "functions/another/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-          "functions/another/node_modules/ms/": "node_modules/debug/node_modules/ms/",
           // Hoist everything to root (which is what yarn should do) includeing `diff`.
           "functions/another/node_modules/": "node_modules/",
           "lib/camel/node_modules/": "node_modules/"
