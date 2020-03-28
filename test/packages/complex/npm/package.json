@@ -11,7 +11,7 @@
     "serverless-http": "^2.3.0"
   },
   "devDependencies": {
-    "serverless": "^1.65.0",
+    "serverless": "^1.67.0",
     "serverless-offline": "^5.12.1"
   },
   "scripts": {

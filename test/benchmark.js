@@ -84,7 +84,24 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/css-has-pseudo",
   "node_modules/.bin/css-prefers-color-scheme",
   "node_modules/.bin/cssesc",
+  "node_modules/.bin/dependency-tree",
+  "node_modules/.bin/detective-amd",
+  "node_modules/.bin/errno",
+  "node_modules/.bin/escodegen",
+  "node_modules/.bin/esgenerate",
+  "node_modules/.bin/filing-cabinet",
+  "node_modules/.bin/find-process",
+  "node_modules/.bin/gonzales",
+  "node_modules/.bin/lookup-amd",
+  "node_modules/.bin/module-definition",
   "node_modules/.bin/msgpack",
+  "node_modules/.bin/precinct",
+  "node_modules/.bin/r_js",
+  "node_modules/.bin/r.js",
+  "node_modules/.bin/sass-lookup",
+  "node_modules/.bin/stylus-lookup",
+  "node_modules/.bin/tsc",
+  "node_modules/.bin/tsserver",
 
   // Not exactly sure why, but consistently getting:
   // `node_modules/bin/<NAME>.ps1` extras. Just ignore.
@@ -169,6 +186,8 @@ const SLS_FALSE_POSITIVES = {
   "simple/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser",
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid",
 
@@ -190,11 +209,17 @@ const SLS_FALSE_POSITIVES = {
   ]),
 
   "simple/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser"
   ]),
 
   "complex/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser",
 
     // Hoisted to `node_modules/.bin/mime`
     "node_modules/send/node_modules/.bin/mime",
@@ -226,8 +251,11 @@ const SLS_FALSE_POSITIVES = {
   "complex/npm": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser",
+
     // devDependency
-    // (`manual_test_websocket/scripts/serverless..yml`)
+    // (`manual_test_websocket/scripts/serverless.yml`)
     "node_modules/serverless-offline",
 
     // Jetpack properly excludes with `roots` (not available in Serverless)
@@ -238,6 +266,8 @@ const SLS_FALSE_POSITIVES = {
   "individually/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser",
     // $ yarn why uuid -> serverless
     "node_modules/.bin/uuid",
 
@@ -255,14 +285,17 @@ const SLS_FALSE_POSITIVES = {
   ]),
 
   "individually/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE
+    ...SLS_FALSE_POSITIVES_WIN_BASE,
+
+    // $ yarn why @babel/parser -> serverless
+    "node_modules/.bin/parser"
   ]),
 
   "huge/npm": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
     ...SLS_FALSE_POSITIVES_WIN_HUGE,
 
-    // $ yarn why raven -> serverless
+    // $ yarn why @babel/parser -> serverless
     "node_modules/.bin/parser",
     // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
     "node_modules/.bin/watch",
@@ -286,7 +319,7 @@ const SLS_FALSE_POSITIVES = {
     "node_modules/.bin/node-which",
     // $ yarn why nopt -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
     "node_modules/.bin/nopt",
-    // $ yarn why raven -> serverless
+    // $ yarn why @babel/parser -> serverless
     "node_modules/.bin/parser",
     // $ yarn why sshpk -> cypress#request#http-signature
     "node_modules/.bin/sshpk-conv",
@@ -545,7 +578,9 @@ describe("benchmark", () => {
         // Ignore some packages that have double vs. single flattened installation.
         const IGNORE_PKGS = [
           "node_modules/http-errors/",
-          "node_modules/safe-buffer/"
+          "node_modules/safe-buffer/",
+          "node_modules/debug/",
+          "node_modules/ms/"
         ];
 
         // Now, normalize file lists before comparing.
@@ -566,7 +601,6 @@ describe("benchmark", () => {
           "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
             "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
           "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-          "functions/base/node_modules/ms/": "node_modules/debug/node_modules/ms/",
           // Hoist everything to root (which is what yarn should do).
           "functions/base/node_modules/": "node_modules/",
           "lib/camel/node_modules/": "node_modules/"
@@ -618,7 +652,9 @@ describe("benchmark", () => {
         // Ignore some packages that have double vs. single flattened installation.
         const IGNORE_PKGS = [
           "node_modules/http-errors/",
-          "node_modules/safe-buffer/"
+          "node_modules/safe-buffer/",
+          "node_modules/debug/",
+          "node_modules/ms/"
         ];
 
         // Now, normalize file lists before comparing.
@@ -634,7 +670,6 @@ describe("benchmark", () => {
           "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
             "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
           "functions/another/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-          "functions/another/node_modules/ms/": "node_modules/debug/node_modules/ms/",
           // Hoist everything to root (which is what yarn should do) includeing `diff`.
           "functions/another/node_modules/": "node_modules/",
           "lib/camel/node_modules/": "node_modules/"
