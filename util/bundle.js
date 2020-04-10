@@ -216,32 +216,36 @@ const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
     .filter(([, filesMap]) => Object.values(filesMap).some((list) => list.length > 1))
     .reduce((memo, [group, filesMap]) => ({ ...memo, [group]: filesMap }), {});
 
-  return Promise.all(Object.entries(dupsMap)
-    .map(async ([group, filesMap]) => {
-      let packages;
-      if (isPackages) {
-        const pkgJsonPaths = filesMap[path.join(group, "package.json")];
-        packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
-          const pkgString = await readFile(path.resolve(cwd, pkgJsonPath));
-          const { version } = JSON.parse(pkgString);
-          return {
-            path: pkgJsonPath,
-            version
-          };
-        }));
-      }
+  return Promise
+    .all(Object.entries(dupsMap)
+      .map(async ([group, filesMap]) => {
+        let packages;
+        if (isPackages) {
+          const pkgJsonPaths = filesMap[path.join(group, "package.json")];
+          packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
+            const pkgString = await readFile(path.resolve(cwd, pkgJsonPath));
+            const { version } = JSON.parse(pkgString);
+            return {
+              path: pkgJsonPath,
+              version
+            };
+          }));
+        }
 
-      const numUniquePaths = Object.keys(filesMap).length;
-      const numTotalFiles = Object.values(filesMap)
-        .reduce((memo, list) => memo + list.length, 0);
+        const numUniquePaths = Object.keys(filesMap).length;
+        const numTotalFiles = Object.values(filesMap)
+          .reduce((memo, list) => memo + list.length, 0);
 
-      return [group, {
-        packages,
-        numUniquePaths,
-        numTotalFiles
-      }];
-    })
-  );
+        return [group, {
+          packages,
+          numUniquePaths,
+          numTotalFiles
+        }];
+      })
+    )
+    .then((summaries) => summaries
+      .reduce((memo, [group, summary]) => ({ ...memo, [group]: summary }), {})
+    );
 };
 
 // Detect collapsed duplicate packages
@@ -451,10 +455,7 @@ const globAndZip = async ({
   // https://github.com/FormidableLabs/serverless-jetpack/issues/109
   const collapsed = await findCollapsed({ files: included, cwd });
 
-  console.log("TODO HERE collapsed", JSON.stringify(
-    collapsed,
-    null, 2
-  ));
+  // TODO(collapsed): Consider option to throw exception here?
 
   // Create package zip.
   await bundle.createZip({
@@ -466,7 +467,8 @@ const globAndZip = async ({
   let results = {
     numFiles: included.length,
     bundlePath,
-    buildTime: new Date() - start
+    buildTime: new Date() - start,
+    collapsed
   };
 
   // Report information.
