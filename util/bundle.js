@@ -228,8 +228,14 @@ const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
         if (isPackages) {
           const pkgJsonPaths = filesMap[path.join(group, "package.json")];
           base.packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
-            const pkgString = await readFile(path.resolve(cwd, pkgJsonPath));
-            const { version } = JSON.parse(pkgString);
+            const version = await readFile(path.resolve(cwd, pkgJsonPath))
+              .then((pkgString) => JSON.parse(pkgString).version)
+              .catch((err) => {
+                // Shouldn't really happen, but allow missing package.json from disk.
+                if (err.code === "ENOENT") { return null; }
+                throw err;
+              });
+
             return {
               path: pkgJsonPath,
               version

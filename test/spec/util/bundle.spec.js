@@ -156,7 +156,58 @@ describe("util/bundle", () => {
       });
     });
 
-    it("should handle missing package.json in collapsed packages"); // TODO
+    it("should handle missing package.json in collapsed packages", async () => {
+      /* eslint-disable camelcase */
+      mock({
+        node_modules: {
+          smooshed: {
+            "package.json": JSON.stringify({ version: "1.0.0" })
+          }
+        }
+      });
+      /* eslint-enable camelcase */
+
+      const files = [
+        "src/server/index.js",
+        "src/server/dates.js",
+        "node_modules/lodash/index.js",
+        "node_modules/lodash/package.json",
+        "node_modules/smooshed/index.js",
+        "node_modules/smooshed/also-no-duplicate.js",
+        "node_modules/smooshed/package.json",
+        "../node_modules/smooshed/index.js",
+        "../node_modules/smooshed/no-duplicate.js",
+        "../node_modules/smooshed/package.json",
+        "../../node_modules/smooshed/index.js",
+        "../../node_modules/smooshed/package.json"
+      ];
+
+      const cwd = path.resolve("level1/level2");
+
+      expect(await findCollapsed({ files, cwd })).to.eql({
+        srcs: {},
+        pkgs: {
+          "node_modules/smooshed": {
+            numTotalFiles: 6,
+            numUniquePaths: 2,
+            packages: [
+              {
+                path: "node_modules/smooshed/package.json",
+                version: null
+              },
+              {
+                path: "../node_modules/smooshed/package.json",
+                version: null
+              },
+              {
+                path: "../../node_modules/smooshed/package.json",
+                version: "1.0.0"
+              }
+            ]
+          }
+        }
+      });
+    });
 
     it("should find collapsed sources", async () => {
       const files = [
