@@ -120,8 +120,10 @@ describe("util/bundle", () => {
         "node_modules/lodash/index.js",
         "node_modules/lodash/package.json",
         "node_modules/smooshed/index.js",
+        "node_modules/smooshed/also-no-duplicate.js",
         "node_modules/smooshed/package.json",
         "../node_modules/smooshed/index.js",
+        "../node_modules/smooshed/no-duplicate.js",
         "../node_modules/smooshed/package.json",
         "../../node_modules/smooshed/index.js",
         "../../node_modules/smooshed/package.json"
@@ -155,7 +157,30 @@ describe("util/bundle", () => {
     });
 
     it("should handle missing package.json in collapsed packages"); // TODO
-    it("should find collapsed sources"); // TODO
+
+    it("should find collapsed sources", async () => {
+      const files = [
+        "src/server/index.js",
+        "src/server/dates.js",
+        "src/server/no-duplicate.js",
+        "../../wut/../src/server/index.js",
+        "../../wut/../src/server/also-no-dups.js",
+        "node_modules/lodash/index.js",
+        "node_modules/lodash/package.json",
+        "../node_modules/up-a-level/index.js",
+        "../node_modules/up-a-level/package.json"
+      ];
+
+      expect(await findCollapsed({ files })).to.eql({
+        srcs: {
+          "src/server": {
+            numTotalFiles: 2,
+            numUniquePaths: 1
+          }
+        },
+        pkgs: {}
+      });
+    });
   });
 
   describe("#resolveFilePathsFromPatterns", () => {

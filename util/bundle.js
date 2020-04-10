@@ -211,18 +211,23 @@ const collapsedPath = (filePath) => {
 
 // Convert to summary object.
 const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
-  // Keep only duplicates.
+  // Keep only (1) groups with duplicates, (2) duplicate unique paths within group.
   const dupsMap = Object.entries(map)
     .filter(([, filesMap]) => Object.values(filesMap).some((list) => list.length > 1))
-    .reduce((memo, [group, filesMap]) => ({ ...memo, [group]: filesMap }), {});
+    .reduce((memo, [group, filesMap]) => ({
+      ...memo,
+      [group]: Object.entries(filesMap)
+        .filter(([, list]) => list.length > 1)
+        .reduce((m, [key, list]) => ({ ...m, [key]: list }), {})
+    }), {});
 
   return Promise
     .all(Object.entries(dupsMap)
       .map(async ([group, filesMap]) => {
-        let packages;
+        const base = {};
         if (isPackages) {
           const pkgJsonPaths = filesMap[path.join(group, "package.json")];
-          packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
+          base.packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
             const pkgString = await readFile(path.resolve(cwd, pkgJsonPath));
             const { version } = JSON.parse(pkgString);
             return {
@@ -237,7 +242,7 @@ const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
           .reduce((memo, list) => memo + list.length, 0);
 
         return [group, {
-          packages,
+          ...base,
           numUniquePaths,
           numTotalFiles
         }];
