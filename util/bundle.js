@@ -226,7 +226,7 @@ const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
       .map(async ([group, filesMap]) => {
         const base = {};
         if (isPackages) {
-          const pkgJsonPaths = filesMap[path.join("node_modules", group, "package.json")];
+          const pkgJsonPaths = filesMap[path.join("node_modules", group, "package.json")] || [];
           base.packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
             const version = await readFile(path.resolve(cwd, pkgJsonPath))
               .then((pkgString) => JSON.parse(pkgString).version)

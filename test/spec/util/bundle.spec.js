@@ -134,7 +134,7 @@ describe("util/bundle", () => {
       expect(await findCollapsed({ files, cwd })).to.eql({
         srcs: {},
         pkgs: {
-          "smooshed": {
+          smooshed: {
             numTotalFiles: 6,
             numUniquePaths: 2,
             packages: [
@@ -160,6 +160,11 @@ describe("util/bundle", () => {
       /* eslint-disable camelcase */
       mock({
         node_modules: {
+          "@scope": {
+            dupsy: {
+              "package.json": JSON.stringify({ version: "1.0.0" })
+            }
+          },
           smooshed: {
             "package.json": JSON.stringify({ version: "1.0.0" })
           }
@@ -179,7 +184,13 @@ describe("util/bundle", () => {
         "../node_modules/smooshed/no-duplicate.js",
         "../node_modules/smooshed/package.json",
         "../../node_modules/smooshed/index.js",
-        "../../node_modules/smooshed/package.json"
+        "../../node_modules/smooshed/package.json",
+        "node_modules/@scope/dupsy/index.js",
+        "node_modules/@scope/dupsy/package.json",
+        "../node_modules/@scope/dupsy/index.js",
+        "../node_modules/@scope/dupsy/package.json",
+        "../mid/../../node_modules/@scope/dupsy/index.js",
+        "../mid/../../node_modules/@scope/dupsy/package.json"
       ];
 
       const cwd = path.resolve("level1/level2");
@@ -187,7 +198,25 @@ describe("util/bundle", () => {
       expect(await findCollapsed({ files, cwd })).to.eql({
         srcs: {},
         pkgs: {
-          "smooshed": {
+          "@scope/dupsy": {
+            numTotalFiles: 6,
+            numUniquePaths: 2,
+            packages: [
+              {
+                path: "node_modules/@scope/dupsy",
+                version: null
+              },
+              {
+                path: "../node_modules/@scope/dupsy",
+                version: null
+              },
+              {
+                path: "../mid/../../node_modules/@scope/dupsy",
+                version: "1.0.0"
+              }
+            ]
+          },
+          smooshed: {
             numTotalFiles: 6,
             numUniquePaths: 2,
             packages: [
