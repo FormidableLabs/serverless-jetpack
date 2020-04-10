@@ -153,6 +153,11 @@ class Jetpack {
     }
   }
 
+  _logWarning(msg) {
+    const { cli } = this.serverless;
+    cli.log(`[${PLUGIN_NAME}][WARNING] ${msg}`, null, { color: "red" });
+  }
+
   // Root options.
   get _serviceOptions() {
     if (this.__options) { return this.__options; }
@@ -353,6 +358,35 @@ class Jetpack {
     };
   }
 
+  // Handle collapsed duplicates.
+  _handleCollapsed({ collapsed, bundleName }) {
+    const haveSrcs = !!Object.keys(collapsed.srcs).length;
+    const havePkgs = !!Object.keys(collapsed.pkgs).length;
+
+    // Nothing collapsed. Yay!
+    if (!haveSrcs && !havePkgs) { return; }
+
+    if (haveSrcs) {
+      console.log("TODO IMPLEMENT");
+    }
+
+    if (havePkgs) {
+      const pkgReport = Object.entries(collapsed.pkgs)
+        .map(([group, { packages, numUniquePaths, numTotalFiles }]) => [
+          `${group} (${numUniquePaths} unique, ${numTotalFiles} total): [${
+            Object.values(packages).map((obj) => `${obj.path}@${obj.version}`).join(",")
+          }]`
+        ])
+        .join(",");
+
+      this._logWarning(
+        `Found collapsed dependencies in ${bundleName}: ${pkgReport}. `
+        + "Please see report (`jetpack package --report`) and fix collapsed files. "
+        + "See: TODO_LINK"
+      );
+    }
+  }
+
   _report({ results }) {
     const INDENT = 6;
     /* eslint-disable max-len*/
@@ -534,7 +568,8 @@ class Jetpack {
     const results = await this.globAndZip({
       bundleName, functionObject, traceInclude, traceParams, worker, report
     });
-    const { buildTime } = results;
+    const { buildTime, collapsed } = results;
+    this._handleCollapsed({ collapsed, bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -561,7 +596,8 @@ class Jetpack {
     const results = await this.globAndZip({
       bundleName, traceInclude, traceParams, worker, report
     });
-    const { buildTime } = results;
+    const { buildTime, collapsed } = results;
+    this._handleCollapsed({ collapsed, bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
@@ -576,7 +612,8 @@ class Jetpack {
     // Package. (Not traced)
     this._logDebug(`Start packaging layer: ${bundleName}`);
     const results = await this.globAndZip({ bundleName, layerObject, worker, report });
-    const { buildTime } = results;
+    const { buildTime, collapsed } = results;
+    this._handleCollapsed({ collapsed, bundleName });
 
     // Mutate serverless configuration to use our artifacts.
     layerObject.package = layerObject.package || {};

@@ -473,7 +473,8 @@ describe("index", () => {
       beforeEach(() => {
         // Don't actually read disk and bundle.
         sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
-          buildTime: 0
+          buildTime: 0,
+          collapsed: { srcs: {}, pkgs: {} }
         }));
       });
 

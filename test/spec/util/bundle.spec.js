@@ -134,20 +134,20 @@ describe("util/bundle", () => {
       expect(await findCollapsed({ files, cwd })).to.eql({
         srcs: {},
         pkgs: {
-          "node_modules/smooshed": {
+          "smooshed": {
             numTotalFiles: 6,
             numUniquePaths: 2,
             packages: [
               {
-                path: "node_modules/smooshed/package.json",
+                path: "node_modules/smooshed",
                 version: "3.0.0"
               },
               {
-                path: "../node_modules/smooshed/package.json",
+                path: "../node_modules/smooshed",
                 version: "2.0.0"
               },
               {
-                path: "../../node_modules/smooshed/package.json",
+                path: "../../node_modules/smooshed",
                 version: "1.0.0"
               }
             ]
@@ -187,20 +187,20 @@ describe("util/bundle", () => {
       expect(await findCollapsed({ files, cwd })).to.eql({
         srcs: {},
         pkgs: {
-          "node_modules/smooshed": {
+          "smooshed": {
             numTotalFiles: 6,
             numUniquePaths: 2,
             packages: [
               {
-                path: "node_modules/smooshed/package.json",
+                path: "node_modules/smooshed",
                 version: null
               },
               {
-                path: "../node_modules/smooshed/package.json",
+                path: "../node_modules/smooshed",
                 version: null
               },
               {
-                path: "../../node_modules/smooshed/package.json",
+                path: "../../node_modules/smooshed",
                 version: "1.0.0"
               }
             ]

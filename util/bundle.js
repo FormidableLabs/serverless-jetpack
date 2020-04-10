@@ -195,10 +195,10 @@ const collapsedPath = (filePath) => {
   if (parts[0] === "node_modules") {
     if (parts.length >= PKG_SCOPED_PARTS && parts[1][0] === "@") {
       // Scoped.
-      pkg = parts.slice(0, PKG_SCOPED_PARTS).join(path.sep);
+      pkg = parts.slice(1, PKG_SCOPED_PARTS).join(path.sep);
     } else if (parts.length >= PKG_NORMAL_PARTS && parts[1][0] !== "@") {
       // Unscoped.
-      pkg = parts.slice(0, PKG_NORMAL_PARTS).join(path.sep);
+      pkg = parts[1];
     }
   }
 
@@ -226,7 +226,7 @@ const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
       .map(async ([group, filesMap]) => {
         const base = {};
         if (isPackages) {
-          const pkgJsonPaths = filesMap[path.join(group, "package.json")];
+          const pkgJsonPaths = filesMap[path.join("node_modules", group, "package.json")];
           base.packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
             const version = await readFile(path.resolve(cwd, pkgJsonPath))
               .then((pkgString) => JSON.parse(pkgString).version)
@@ -237,7 +237,7 @@ const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
               });
 
             return {
-              path: pkgJsonPath,
+              path: path.dirname(pkgJsonPath),
               version
             };
           }));
