@@ -209,6 +209,41 @@ const collapsedPath = (filePath) => {
   };
 };
 
+// Convert to summary object.
+const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
+  // Keep only duplicates.
+  const dupsMap = Object.entries(map)
+    .filter(([, filesMap]) => Object.values(filesMap).some((list) => list.length > 1))
+    .reduce((memo, [group, filesMap]) => ({ ...memo, [group]: filesMap }), {});
+
+  return Promise.all(Object.entries(dupsMap)
+    .map(async ([group, filesMap]) => {
+      let packages;
+      if (isPackages) {
+        const pkgJsonPaths = filesMap[path.join(group, "package.json")];
+        packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
+          const pkgString = await readFile(path.resolve(cwd, pkgJsonPath));
+          const { version } = JSON.parse(pkgString);
+          return {
+            path: pkgJsonPath,
+            version
+          };
+        }));
+      }
+
+      const numUniquePaths = Object.keys(filesMap).length;
+      const numTotalFiles = Object.values(filesMap)
+        .reduce((memo, list) => memo + list.length, 0);
+
+      return [group, {
+        packages,
+        numUniquePaths,
+        numTotalFiles
+      }];
+    })
+  );
+};
+
 // Detect collapsed duplicate packages
 const findCollapsed = async ({ files, cwd }) => {
   // E.g.
@@ -216,10 +251,12 @@ const findCollapsed = async ({ files, cwd }) => {
   // ```
   // const srcsMap = {
   //   // ...
-  //   "src/foo/bar.js": [
-  //     "src/foo/bar.js",
-  //     "../src/foo/bar.js"
-  //   ],
+  //   "src/foo": {
+  //     "src/foo/bar.js": [
+  //       "src/foo/bar.js",
+  //       "../src/foo/bar.js"
+  //     ],
+  //   }
   //   // ...
   // };
   // const pkgsMap = {
@@ -233,13 +270,15 @@ const findCollapsed = async ({ files, cwd }) => {
   //   }
   // };
   // ```
-  let srcsMap = {};
-  let pkgsMap = {};
+  const srcsMap = {};
+  const pkgsMap = {};
   files.forEach((filePath) => {
     const { pkg, file } = collapsedPath(filePath);
     if (!pkg) {
-      srcsMap[file] = srcsMap[file] || [];
-      srcsMap[file].push(filePath);
+      const dir = path.dirname(file);
+      srcsMap[dir] = srcsMap[dir] || {};
+      srcsMap[dir][file] = srcsMap[dir][file] || [];
+      srcsMap[dir][file].push(filePath);
       return;
     }
 
@@ -248,44 +287,10 @@ const findCollapsed = async ({ files, cwd }) => {
     pkgsMap[pkg][file].push(filePath);
   });
 
-  // Filter to just duplicates.
-  srcsMap = Object.entries(srcsMap)
-    .filter(([, list]) => list.length > 1)
-    .reduce((memo, [key, list]) => ({ ...memo, [key]: list }), {});
-  pkgsMap = Object.entries(pkgsMap)
-    .filter(([, filesMap]) => Object.values(filesMap).some((list) => list.length > 1))
-    .reduce((memo, [group, filesMap]) => ({ ...memo, [group]: filesMap }), {});
-
-  // Retrieve packages information.
-  const pkgs = await Promise.all(Object.entries(pkgsMap)
-    .map(async ([group, filesMap]) => {
-      const pkgJsonPaths = filesMap[path.join(group, "package.json")];
-      const packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
-        const pkgString = await readFile(path.resolve(cwd, pkgJsonPath));
-        const { version } = JSON.parse(pkgString);
-        return {
-          path: pkgJsonPath,
-          version
-        };
-      }));
-
-      const numUniquePaths = Object.keys(filesMap).length;
-      const numTotalFiles = Object.values(filesMap)
-        .reduce((memo, list) => memo + list.length, 0);
-
-      return [group, {
-        packages,
-        numUniquePaths,
-        numTotalFiles
-      }];
-    })
-  );
-
   // Convert to more useful report object.
   return {
-    srcsMap,
-    pkgsMap,
-    pkgs
+    srcs: await summarizeCollapsed({ map: srcsMap, cwd }),
+    pkgs: await summarizeCollapsed({ map: pkgsMap, cwd, isPackages: true })
   };
 };
 
@@ -492,6 +497,7 @@ const globAndZip = async ({
 
 module.exports = bundle = {
   resolveFilePathsFromPatterns,
+  findCollapsed,
   createZip,
   globAndZip,
   exists
