@@ -178,6 +178,117 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
     .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
 };
 
+const PKG_NORMAL_PARTS = 2;
+const PKG_SCOPED_PARTS = 3;
+
+// Return what the zip destination _collapsed_ path will be.
+const collapsedPath = (filePath) => {
+  const parts = path.normalize(filePath).split(path.sep);
+
+  // Remove leading `..`.
+  while (parts[0] === "..") {
+    parts.shift();
+  }
+
+  // Extract base package if present.
+  let pkg;
+  if (parts[0] === "node_modules") {
+    if (parts.length >= PKG_SCOPED_PARTS && parts[1][0] === "@") {
+      // Scoped.
+      pkg = parts.slice(0, PKG_SCOPED_PARTS).join(path.sep);
+    } else if (parts.length >= PKG_NORMAL_PARTS && parts[1][0] !== "@") {
+      // Unscoped.
+      pkg = parts.slice(0, PKG_NORMAL_PARTS).join(path.sep);
+    }
+  }
+
+  // Reconstitute with new, collapsed path.
+  return {
+    pkg,
+    file: parts.join(path.sep)
+  };
+};
+
+// Detect collapsed duplicate packages
+const findCollapsed = async ({ files, cwd }) => {
+  // E.g.
+  //
+  // ```
+  // const srcsMap = {
+  //   // ...
+  //   "src/foo/bar.js": [
+  //     "src/foo/bar.js",
+  //     "../src/foo/bar.js"
+  //   ],
+  //   // ...
+  // };
+  // const pkgsMap = {
+  //   "node_modules/lodash": {
+  //     // ...
+  //     "node_modules/lodash/package.json": [
+  //       "node_modules/lodash/package.json",
+  //       "../node_modules/lodash/package.json"
+  //     ],
+  //     // ...
+  //   }
+  // };
+  // ```
+  let srcsMap = {};
+  let pkgsMap = {};
+  files.forEach((filePath) => {
+    const { pkg, file } = collapsedPath(filePath);
+    if (!pkg) {
+      srcsMap[file] = srcsMap[file] || [];
+      srcsMap[file].push(filePath);
+      return;
+    }
+
+    pkgsMap[pkg] = pkgsMap[pkg] || {};
+    pkgsMap[pkg][file] = pkgsMap[pkg][file] || [];
+    pkgsMap[pkg][file].push(filePath);
+  });
+
+  // Filter to just duplicates.
+  srcsMap = Object.entries(srcsMap)
+    .filter(([, list]) => list.length > 1)
+    .reduce((memo, [key, list]) => ({ ...memo, [key]: list }), {});
+  pkgsMap = Object.entries(pkgsMap)
+    .filter(([, filesMap]) => Object.values(filesMap).some((list) => list.length > 1))
+    .reduce((memo, [group, filesMap]) => ({ ...memo, [group]: filesMap }), {});
+
+  // Retrieve packages information.
+  const pkgs = await Promise.all(Object.entries(pkgsMap)
+    .map(async ([group, filesMap]) => {
+      const pkgJsonPaths = filesMap[path.join(group, "package.json")];
+      const packages = await Promise.all(pkgJsonPaths.map(async (pkgJsonPath) => {
+        const pkgString = await readFile(path.resolve(cwd, pkgJsonPath));
+        const { version } = JSON.parse(pkgString);
+        return {
+          path: pkgJsonPath,
+          version
+        };
+      }));
+
+      const numUniquePaths = Object.keys(filesMap).length;
+      const numTotalFiles = Object.values(filesMap)
+        .reduce((memo, list) => memo + list.length, 0);
+
+      return [group, {
+        packages,
+        numUniquePaths,
+        numTotalFiles
+      }];
+    })
+  );
+
+  // Convert to more useful report object.
+  return {
+    srcsMap,
+    pkgsMap,
+    pkgs
+  };
+};
+
 const createZip = async ({ files, cwd, bundlePath }) => {
   // Sort by name (mutating) to make deterministic.
   files.sort();
@@ -331,13 +442,21 @@ const globAndZip = async ({
     { cwd, servicePath, preInclude, depInclude, include, exclude }
   );
 
+  // Detect collapsed duplicates.
+  // https://github.com/FormidableLabs/serverless-jetpack/issues/109
+  const collapsed = await findCollapsed({ files: included, cwd });
+
+  console.log("TODO HERE collapsed", JSON.stringify(
+    collapsed,
+    null, 2
+  ));
+
   // Create package zip.
   await bundle.createZip({
     files: included,
     cwd,
     bundlePath
   });
-
 
   let results = {
     numFiles: included.length,
