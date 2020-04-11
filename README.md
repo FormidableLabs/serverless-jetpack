@@ -376,12 +376,23 @@ Serverless: [serverless-jetpack] .serverless/graphql.zip collapsed files:
 - lodash (108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]
 ```
 
-In the above example, two different versions of lodash were installed and their files were collapsed into the same path space.
+In the above example, two different versions of lodash were installed and their files were collapsed into the same path space. So how do we fix the problem?
 
-<!--
-TODO_REMOVE_OLD
-If you don't **know** that you need this option, you probably don't want to set it. Setting the base dependency root outside of Serverless' `servicePath` / current working directory (e.g., `..`) may have some unintended side effects. Most notably, any discovered `node_modules` dependencies will be flattened into the zip at the same level as `servicePath` / CWD. E.g., if dependencies were included by Jetpack at `node_modules/foo` and then `../node_modules/foo` they would be collapsed in the resulting zip file package.
--->
+A first starting point is to generate a full report of the packaging step. Instead of running `serverless deploy|package <OPTIONS>`, try out `serverless jetpack package --report <OPTIONS>`. This will produce a report at the end of packaging that gives a full list of files. You can then use the logged message above as a starting point to examine the actual files collapsed in the zip file. Then, spend a little time figuring out the dependencies of how things ended up where.
+
+With a better understanding of what the files are and why we can turn to avoiding collapses. Some options:
+
+* **Don't allow `node_modules` in intermediate directories**: Typically, a monorepo has `ROOT/package.json` and `packages/NAME/package.json` or something, which doesn't typically lead to collapsed files. A situation that runs into trouble is something like:
+
+    ```
+    ROOT/package.json
+    ROOT/backend/package.json
+    ROOT/backend/functions/NAME/package.json
+    ```
+
+    with `serverless` being run from `backend` as CWD then `ROOT/node_modules` and `ROOT/backend/node_modules` will present potential collapsing conflicts. So, if possible, just remove the `backend/package.json` dependencies and stick them all either in the root or further nested into the functions/packages of the monorepo.
+* **Mirror exact same dependencies in `package.json`s**: In our above example, even if `lodash` isn't declared in either `../package.json` or `package.json` we can manually add it to both at the same pinned version (e.g., `"lodash": "4.17.15") to force it to be the same no matter where npm or Yarn place the dependency on disk.
+* **Use Yarn Resolutions**: If you are using Yarn and [resolutions](https://classic.yarnpkg.com/en/docs/selective-version-resolutions/) are an option that works for your project, they are a straightforward way to ensure that only one of a dependency exists on disk, solving collapsing problems.
 
 ## Tracing Mode
 
