@@ -367,7 +367,18 @@ class Jetpack {
     if (!srcsLen && !pkgsLen) { return; }
 
     if (srcsLen) {
-      console.log("TODO IMPLEMENT");
+      const srcsReport = Object.entries(collapsed.srcs)
+        .map(([group, { numUniquePaths, numTotalFiles }]) =>
+          `- ${group} (${numUniquePaths} unique, ${numTotalFiles} total)`
+        )
+        .join("\n");
+
+      this._logWarning(
+        `Found ${srcsLen} collapsed source files in ${bundleName}! `
+        + "Please fix, with hints at: "
+        + "https://npm.im/serverless-jetpack#packaging-files-outside-cwd"
+      );
+      this._log(`${bundleName} collapsed source files:\n${srcsReport}`, { color: "gray" });
     }
 
     if (pkgsLen) {
@@ -384,7 +395,7 @@ class Jetpack {
         + "Please fix, with hints at: "
         + "https://npm.im/serverless-jetpack#packaging-files-outside-cwd"
       );
-      this._log(`${bundleName} collapsed files:\n${pkgReport}`, { color: "gray" });
+      this._log(`${bundleName} collapsed dependencies:\n${pkgReport}`, { color: "gray" });
     }
   }
 
