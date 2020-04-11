@@ -358,6 +358,18 @@ class Jetpack {
     };
   }
 
+  _collapsedReport(summary) {
+    const pkgsReport = (packages) => packages ? `: [${
+      Object.values(packages).map((obj) => `${obj.path}@${obj.version}`).join(", ")
+    }]` : "";
+
+    return Object.entries(summary)
+      .map(([group, { packages, numUniquePaths, numTotalFiles }]) =>
+        `- ${group} (${numUniquePaths} unique, ${numTotalFiles} total)${pkgsReport(packages)}`
+      )
+      .join("\n");
+  }
+
   // Handle collapsed duplicates.
   _handleCollapsed({ collapsed, bundleName }) {
     const srcsLen = Object.keys(collapsed.srcs).length;
@@ -367,11 +379,7 @@ class Jetpack {
     if (!srcsLen && !pkgsLen) { return; }
 
     if (srcsLen) {
-      const srcsReport = Object.entries(collapsed.srcs)
-        .map(([group, { numUniquePaths, numTotalFiles }]) =>
-          `- ${group} (${numUniquePaths} unique, ${numTotalFiles} total)`
-        )
-        .join("\n");
+      const srcsReport = this._collapsedReport(collapsed.srcs);
 
       this._logWarning(
         `Found ${srcsLen} collapsed source files in ${bundleName}! `
@@ -382,13 +390,7 @@ class Jetpack {
     }
 
     if (pkgsLen) {
-      const pkgReport = Object.entries(collapsed.pkgs)
-        .map(([group, { packages, numUniquePaths, numTotalFiles }]) =>
-          `- ${group} (${numUniquePaths} unique, ${numTotalFiles} total): [${
-            Object.values(packages).map((obj) => `${obj.path}@${obj.version}`).join(", ")
-          }]`
-        )
-        .join("\n");
+      const pkgReport = this._collapsedReport(collapsed.pkgs);
 
       this._logWarning(
         `Found ${pkgsLen} collapsed dependencies in ${bundleName}! `
@@ -403,7 +405,7 @@ class Jetpack {
     const INDENT = 6;
     /* eslint-disable max-len*/
     const bundles = results
-      .map(({ bundlePath, roots, patterns, files, trace }) => `
+      .map(({ bundlePath, roots, patterns, files, trace, collapsed }) => `
       ## ${path.basename(bundlePath)}
 
       - Path: ${bundlePath}
@@ -446,6 +448,14 @@ class Jetpack {
       ### Files (\`${files.excluded.length}\`): Excluded
 
       ${files.excluded.sort().map((p) => `- ${p}`).join("\n      ")}
+
+      ### Collapsed (\`${Object.keys(collapsed.srcs).length}\`): Sources
+
+      ${this._collapsedReport(collapsed.srcs)}
+
+      ### Collapsed (\`${Object.keys(collapsed.pkgs).length}\`): Dependencies
+
+      ${this._collapsedReport(collapsed.pkgs)}
       `)
       .join("\n");
     /* eslint-enable max-len*/

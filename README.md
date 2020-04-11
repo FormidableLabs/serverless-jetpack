@@ -393,8 +393,12 @@ With a better understanding of what the files are and why we can turn to avoidin
     ```
 
     with `serverless` being run from `backend` as CWD then `ROOT/node_modules` and `ROOT/backend/node_modules` will present potential collapsing conflicts. So, if possible, just remove the `backend/package.json` dependencies and stick them all either in the root or further nested into the functions/packages of the monorepo.
+
 * **Mirror exact same dependencies in `package.json`s**: In our above example, even if `lodash` isn't declared in either `../package.json` or `package.json` we can manually add it to both at the same pinned version (e.g., `"lodash": "4.17.15"`) to force it to be the same no matter where npm or Yarn place the dependency on disk.
+
 * **Use Yarn Resolutions**: If you are using Yarn and [resolutions](https://classic.yarnpkg.com/en/docs/selective-version-resolutions/) are an option that works for your project, they are a straightforward way to ensure that only one of a dependency exists on disk, solving collapsing problems.
+
+* **Use `package.include|exclude`**: You can manually adjust packaging by excluding files that would be collapsed and then allowing the other ones to come into play. In our example above, a negative `package.include` for `!node_modules/lodash/**` would solve our problem in a semver-acceptable way by leaving only root-level lodash.
 
 ## Tracing Mode
 
