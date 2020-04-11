@@ -142,9 +142,9 @@ class Jetpack {
     };
   }
 
-  _log(msg) {
+  _log(msg, opts) {
     const { cli } = this.serverless;
-    cli.log(`[${PLUGIN_NAME}] ${msg}`);
+    cli.log(`[${PLUGIN_NAME}] ${msg}`, null, opts);
   }
 
   _logDebug(msg) {
@@ -155,7 +155,7 @@ class Jetpack {
 
   _logWarning(msg) {
     const { cli } = this.serverless;
-    cli.log(`[${PLUGIN_NAME}][WARNING] ${msg}`, null, { color: "red" });
+    cli.log(`[${PLUGIN_NAME}] WARNING: ${msg}`, null, { color: "red" });
   }
 
   // Root options.
@@ -360,30 +360,31 @@ class Jetpack {
 
   // Handle collapsed duplicates.
   _handleCollapsed({ collapsed, bundleName }) {
-    const haveSrcs = !!Object.keys(collapsed.srcs).length;
-    const havePkgs = !!Object.keys(collapsed.pkgs).length;
+    const srcsLen = Object.keys(collapsed.srcs).length;
+    const pkgsLen = Object.keys(collapsed.pkgs).length;
 
     // Nothing collapsed. Yay!
-    if (!haveSrcs && !havePkgs) { return; }
+    if (!srcsLen && !pkgsLen) { return; }
 
-    if (haveSrcs) {
+    if (srcsLen) {
       console.log("TODO IMPLEMENT");
     }
 
-    if (havePkgs) {
+    if (pkgsLen) {
       const pkgReport = Object.entries(collapsed.pkgs)
-        .map(([group, { packages, numUniquePaths, numTotalFiles }]) => [
-          `${group} (${numUniquePaths} unique, ${numTotalFiles} total): [${
-            Object.values(packages).map((obj) => `${obj.path}@${obj.version}`).join(",")
+        .map(([group, { packages, numUniquePaths, numTotalFiles }]) =>
+          `- ${group} (${numUniquePaths} unique, ${numTotalFiles} total): [${
+            Object.values(packages).map((obj) => `${obj.path}@${obj.version}`).join(", ")
           }]`
-        ])
-        .join(",");
+        )
+        .join("\n");
 
       this._logWarning(
-        `Found collapsed dependencies in ${bundleName}: ${pkgReport}. `
-        + "Please see report (`jetpack package --report`) and fix collapsed files. "
-        + "See: TODO_LINK"
+        `Found ${pkgsLen} collapsed dependencies in ${bundleName}! `
+        + "Please fix, with hints at: "
+        + "https://npm.im/serverless-jetpack#packaging-files-outside-cwd"
       );
+      this._log(`${bundleName} collapsed files:\n${pkgReport}`, { color: "gray" });
     }
   }
 
