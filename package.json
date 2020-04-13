@@ -50,6 +50,7 @@
     "adm-zip": "^0.4.14",
     "babel-eslint": "^10.1.0",
     "chai": "^4.2.0",
+    "chai-as-promised": "^7.1.1",
     "chalk": "^4.0.0",
     "del": "^5.1.0",
     "del-cli": "^3.0.0",

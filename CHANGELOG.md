@@ -3,7 +3,7 @@ Changes
 
 ## UNRELEASED
 
-* Feature: Detect and issue warnings for collapsed files in package.
+* Feature: Detect and issue warnings for collapsed files in package. Add `jetpack.collapsed.bail` option to kill serverless on detected conflicts.
   [#109](https://github.com/FormidableLabs/serverless-jetpack/pull/109)
 
 ## 0.10.1

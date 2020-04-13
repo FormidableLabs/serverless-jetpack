@@ -91,11 +91,13 @@ Most Serverless framework projects should be able to use Jetpack without any ext
 * `preInclude` (`Array<string>`): A list of glob patterns to be added _before_ Jetpack's dependency pattern inclusion and Serverless' built-in service-level and then function-level `package.include`s. This option most typically comes up in a monorepo scenario where you want a broad base exclusion like `!functions/**` or `!packages/**` at the service level and then inclusions in later functions.
 * `concurrency` (`Number`): The number of independent package tasks (per function and service) to run off the main execution thread. If `1`, then run tasks serially in main thread. If `2+` run off main thread with `concurrency` number of workers. (default: `1`).
     * This option is most useful for Serverless projects that (1) have many individually packaged functions, and (2) large numbers of files and dependencies. E.g., start considering this option if your per-function packaging time takes more than 10 seconds and you have more than one service and/or function package.
+* `collapsed.bail` (`Boolean`): Terminate `serverless` program with an error if collapsed file conflicts are detected. See [discussion below](#packaging-files-outside-cwd) regarding collapsed files.
 
 The following **function** and **layer**-level configurations available via `functions.{FN_NAME}.jetpack` and  `layers.{LAYER_NAME}.jetpack`:
 
 * `roots` (`Array<string>`): This option **adds** more dependency roots to the service-level `roots` option.
 * `preInclude` (`Array<string>`): This option **adds** more glob patterns to the service-level `preInclude` option.
+* `collapsed.bail` (`Boolean`): Terminate `serverless` program with an error if collapsed file conflicts are detected **if** the function is being packaged `individually`.
 
 Here are some example configurations:
 
@@ -366,7 +368,7 @@ this will append files with the same path in the zip file:
 
 that when expanded leave only **one** file actually on disk!
 
-##### How to Solve Zipping Problems
+##### How to Detect Zipping Problems
 
 The first level is _detecting_ potentially collapsed files that conflict. Jetpack does this automatically with log warnings like:
 
@@ -377,6 +379,10 @@ Serverless: [serverless-jetpack] .serverless/graphql.zip collapsed files:
 ```
 
 In the above example, two different versions of lodash were installed and their files were collapsed into the same path space. A total of 216 files will end up collapsed into 108 when expanded on disk in your cloud function. Yikes!
+
+A good practice if you are using tracing mode is to set: `jetpack.collapsed.bail = true` so that Jetpack will throw an error and kill the `serverless` program if any collapsed conflicts are detected.
+
+##### How to Solve Zipping Problems
 
 So how do we fix the problem?
 

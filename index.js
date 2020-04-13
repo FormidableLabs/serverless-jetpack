@@ -168,11 +168,15 @@ class Jetpack {
       roots: null,
       preInclude: [],
       trace: false,
-      concurrency: 1
+      concurrency: 1,
+      collapsed: {}
     };
 
     const custom = (service.custom || {}).jetpack;
     this.__options = Object.assign({}, defaults, custom, this.options);
+    this.__options.collapsed = {
+      bail: !!this.__options.collapsed.bail
+    };
 
     return this.__options;
   }
@@ -194,6 +198,19 @@ class Jetpack {
       opts.roots = (opts.roots || [])
         .concat(fnOpts.roots || [])
         .concat(layerOpts.roots || []);
+    }
+
+    if (fnOpts.collapsed || layerOpts.collapsed) {
+      // Assume only one of function / layer provided.
+      const collapsedOpts = {
+        ...fnOpts.collapsed,
+        ...layerOpts.collapsed
+      };
+      opts.collapsed = {
+        bail: typeof collapsedOpts.bail === "boolean"
+          ? collapsedOpts.bail
+          : opts.collapsed.bail
+      };
     }
 
     opts.preInclude = opts.preInclude.concat(fnOpts.preInclude || []);
@@ -229,6 +246,7 @@ class Jetpack {
       ignores: [],
       allowMissing: {},
       include: [],
+      collapsed: {},
       ...typeof serviceTrace === "object" ? serviceTrace : {}
     };
     serviceObj.include = []
@@ -244,6 +262,7 @@ class Jetpack {
       ignores: [],
       allowMissing: {},
       include: [],
+      collapsed: {},
       ...typeof functionTrace === "object" ? functionTrace : {}
     };
     functionObj.include = []
@@ -258,7 +277,6 @@ class Jetpack {
       // Make unique.
       .sort()
       .filter(uniq);
-
     functionObj.allowMissing = []
       // Get all unique missing package keys.
       .concat(
@@ -371,7 +389,7 @@ class Jetpack {
   }
 
   // Handle collapsed duplicates.
-  _handleCollapsed({ collapsed, bundleName }) {
+  _handleCollapsed({ collapsed, bundleName, bail }) {
     const srcsLen = Object.keys(collapsed.srcs).length;
     const pkgsLen = Object.keys(collapsed.pkgs).length;
 
@@ -398,6 +416,14 @@ class Jetpack {
         + "https://npm.im/serverless-jetpack#packaging-files-outside-cwd"
       );
       this._log(`${bundleName} collapsed dependencies:\n${pkgReport}`, { color: "gray" });
+    }
+
+    if (bail) {
+      throw new Error(
+        "Bailing on collapsed files. "
+        + `Source Files: ${srcsLen}, Dependencies: ${pkgsLen}. `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#packaging-files-outside-cwd"
+      );
     }
   }
 
@@ -591,7 +617,9 @@ class Jetpack {
       bundleName, functionObject, traceInclude, traceParams, worker, report
     });
     const { buildTime, collapsed } = results;
-    this._handleCollapsed({ collapsed, bundleName });
+
+    const { bail } = this._extraOptions({ functionObject }).collapsed;
+    this._handleCollapsed({ collapsed, bundleName, bail });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -619,7 +647,9 @@ class Jetpack {
       bundleName, traceInclude, traceParams, worker, report
     });
     const { buildTime, collapsed } = results;
-    this._handleCollapsed({ collapsed, bundleName });
+
+    const { bail } = this._serviceOptions.collapsed;
+    this._handleCollapsed({ collapsed, bundleName, bail });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
@@ -635,7 +665,9 @@ class Jetpack {
     this._logDebug(`Start packaging layer: ${bundleName}`);
     const results = await this.globAndZip({ bundleName, layerObject, worker, report });
     const { buildTime, collapsed } = results;
-    this._handleCollapsed({ collapsed, bundleName });
+
+    const { bail } = this._extraOptions({ layerObject }).collapsed;
+    this._handleCollapsed({ collapsed, bundleName, bail });
 
     // Mutate serverless configuration to use our artifacts.
     layerObject.package = layerObject.package || {};
