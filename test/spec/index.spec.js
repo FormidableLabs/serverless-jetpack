@@ -473,7 +473,8 @@ describe("index", () => {
       beforeEach(() => {
         // Don't actually read disk and bundle.
         sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
-          buildTime: 0
+          buildTime: 0,
+          collapsed: { srcs: {}, pkgs: {} }
         }));
       });
 
@@ -661,6 +662,267 @@ describe("index", () => {
           .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
           .to.be.calledWithMatch({ traceInclude: undefined }).and
           .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
+      });
+    });
+  });
+
+  describe("collapsed zip", () => {
+    it("warns on collapsed files", async () => {
+      // Don't actually read disk and bundle.
+      sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
+        buildTime: 0,
+        collapsed: { srcs: {}, pkgs: {} }
+      }));
+
+      mock({
+        "serverless.yml": `
+          service: sls-mocked
+
+          custom:
+            jetpack:
+              trace: true
+
+          provider:
+            name: aws
+            runtime: nodejs12.x
+
+          functions:
+            one:
+              handler: one.handler
+        `,
+        "one.js": `
+          exports.handler = async () => ({
+            body: JSON.stringify({ message: "one" })
+          });
+        `
+      });
+
+      const collapsed = {
+        srcs: {
+          "src/foo": {
+            numUniquePaths: 2,
+            numTotalFiles: 4
+          },
+          "src/foo/one": {
+            numUniquePaths: 1,
+            numTotalFiles: 2
+          }
+        },
+        pkgs: {
+          lodash: {
+            packages: [
+              {
+                path: "node_modules/lodash",
+                version: "4.17.11"
+              },
+              {
+                path: "../node_modules/lodash",
+                version: "4.17.15"
+              }
+            ],
+            numUniquePaths: 108,
+            numTotalFiles: 216
+          }
+        }
+      };
+      const plugin = new Jetpack(await createServerless());
+      plugin._handleCollapsed({ collapsed, bundleName: "one.zip" });
+      /* eslint-disable max-len*/
+      expect(serverless.cli.log)
+        .to.have.callCount(4).and // eslint-disable-line no-magic-numbers
+        .to.be.calledWithMatch("WARNING: Found 2 collapsed source files in one.zip!").and
+        .to.be.calledWithMatch(`one.zip collapsed source files:
+        - src/foo (2 unique, 4 total)
+        - src/foo/one (1 unique, 2 total)`.replace(/^[ ]*/gm, "")).and
+        .to.be.calledWithMatch("WARNING: Found 1 collapsed dependencies in one.zip!").and
+        .to.be.calledWithMatch(
+          `one.zip collapsed dependencies:
+          - lodash (108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]`
+            .replace(/^[ ]*/gm, "")
+        );
+      /* eslint-enable max-len*/
+    });
+
+    describe("collapsed.bail configurations", () => {
+      beforeEach(() => {
+        // Don't actually read disk and bundle.
+        sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
+          buildTime: 0,
+          collapsed: { srcs: {},
+            pkgs: {
+              lodash: {
+                packages: [
+                  {
+                    path: "node_modules/lodash",
+                    version: "4.17.11"
+                  },
+                  {
+                    path: "../node_modules/lodash",
+                    version: "4.17.15"
+                  }
+                ],
+                numUniquePaths: 108,
+                numTotalFiles: 216
+              }
+            }
+          }
+        }));
+      });
+
+      it("does not error on collapsed conflicts by default", async () => {
+        mock({
+          "serverless.yml": `
+            service: sls-mocked
+
+            custom:
+              jetpack:
+                trace: true
+
+            provider:
+              name: aws
+              runtime: nodejs12.x
+
+            functions:
+              one:
+                handler: one.handler
+              two:
+                handler: two.handler
+                # Because not individually packaged, collapsed.bail=true will have no effect.
+                jetpack:
+                  collapsed:
+                    bail: true
+          `,
+          "one.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ message: "one" })
+            });
+          `,
+          "two.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ message: "two" })
+            });
+          `
+        });
+
+        const plugin = new Jetpack(await createServerless());
+        await plugin.package();
+        expect(Jetpack.prototype.globAndZip)
+          .to.have.callCount(1).and
+          .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
+      });
+
+      it("errors on service-level bail", async () => {
+        mock({
+          "serverless.yml": `
+            service: sls-mocked
+
+            custom:
+              jetpack:
+                collapsed:
+                  bail: true
+
+            provider:
+              name: aws
+              runtime: nodejs12.x
+
+            functions:
+              one:
+                handler: one.handler
+              two:
+                handler: two.handler
+          `,
+          "one.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ message: "one" })
+            });
+          `,
+          "two.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ message: "two" })
+            });
+          `
+        });
+
+        const plugin = new Jetpack(await createServerless());
+        await expect(plugin.package()).to.be.rejectedWith(
+          "Bailing on collapsed files. Source Files: 0, Dependencies: 1."
+        );
+      });
+
+      it("errors on function-level bail", async () => {
+        mock({
+          "serverless.yml": `
+            service: sls-mocked
+
+            provider:
+              name: aws
+              runtime: nodejs12.x
+
+            functions:
+              one:
+                handler: one.handler
+              two:
+                handler: two.handler
+                package:
+                  individually: true
+                jetpack:
+                  collapsed:
+                    bail: true
+          `,
+          "one.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ message: "one" })
+            });
+          `,
+          "two.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ message: "two" })
+            });
+          `
+        });
+
+        const plugin = new Jetpack(await createServerless());
+        await expect(plugin.package()).to.be.rejectedWith(
+          "Bailing on collapsed files. Source Files: 0, Dependencies: 1."
+        );
+      });
+
+      it("errors on layer-level bail", async () => {
+        mock({
+          "serverless.yml": `
+            service: sls-mocked
+
+            provider:
+              name: aws
+              runtime: nodejs12.x
+
+            functions:
+              one:
+                handler: one.handler
+
+            layers:
+              two:
+                path: two
+                jetpack:
+                  collapsed:
+                    bail: true
+          `,
+          "one.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ message: "one" })
+            });
+          `,
+          "two.js": `
+            exports.handler = async () => ({
+              body: JSON.stringify({ message: "two" })
+            });
+          `
+        });
+
+        const plugin = new Jetpack(await createServerless());
+        await expect(plugin.package()).to.be.rejectedWith(
+          "Bailing on collapsed files. Source Files: 0, Dependencies: 1."
+        );
       });
     });
   });

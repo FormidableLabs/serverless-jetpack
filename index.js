@@ -142,15 +142,20 @@ class Jetpack {
     };
   }
 
-  _log(msg) {
+  _log(msg, opts) {
     const { cli } = this.serverless;
-    cli.log(`[${PLUGIN_NAME}] ${msg}`);
+    cli.log(`[${PLUGIN_NAME}] ${msg}`, null, opts);
   }
 
   _logDebug(msg) {
     if (process.env.SLS_DEBUG) {
       this._log(msg);
     }
+  }
+
+  _logWarning(msg) {
+    const { cli } = this.serverless;
+    cli.log(`[${PLUGIN_NAME}] WARNING: ${msg}`, null, { color: "red" });
   }
 
   // Root options.
@@ -163,11 +168,15 @@ class Jetpack {
       roots: null,
       preInclude: [],
       trace: false,
-      concurrency: 1
+      concurrency: 1,
+      collapsed: {}
     };
 
     const custom = (service.custom || {}).jetpack;
     this.__options = Object.assign({}, defaults, custom, this.options);
+    this.__options.collapsed = {
+      bail: !!this.__options.collapsed.bail
+    };
 
     return this.__options;
   }
@@ -189,6 +198,19 @@ class Jetpack {
       opts.roots = (opts.roots || [])
         .concat(fnOpts.roots || [])
         .concat(layerOpts.roots || []);
+    }
+
+    if (fnOpts.collapsed || layerOpts.collapsed) {
+      // Assume only one of function / layer provided.
+      const collapsedOpts = {
+        ...fnOpts.collapsed,
+        ...layerOpts.collapsed
+      };
+      opts.collapsed = {
+        bail: typeof collapsedOpts.bail === "boolean"
+          ? collapsedOpts.bail
+          : opts.collapsed.bail
+      };
     }
 
     opts.preInclude = opts.preInclude.concat(fnOpts.preInclude || []);
@@ -224,6 +246,7 @@ class Jetpack {
       ignores: [],
       allowMissing: {},
       include: [],
+      collapsed: {},
       ...typeof serviceTrace === "object" ? serviceTrace : {}
     };
     serviceObj.include = []
@@ -239,6 +262,7 @@ class Jetpack {
       ignores: [],
       allowMissing: {},
       include: [],
+      collapsed: {},
       ...typeof functionTrace === "object" ? functionTrace : {}
     };
     functionObj.include = []
@@ -253,7 +277,6 @@ class Jetpack {
       // Make unique.
       .sort()
       .filter(uniq);
-
     functionObj.allowMissing = []
       // Get all unique missing package keys.
       .concat(
@@ -353,11 +376,62 @@ class Jetpack {
     };
   }
 
+  _collapsedReport(summary) {
+    const pkgsReport = (packages) => packages ? `: [${
+      Object.values(packages).map((obj) => `${obj.path}@${obj.version}`).join(", ")
+    }]` : "";
+
+    return Object.entries(summary)
+      .map(([group, { packages, numUniquePaths, numTotalFiles }]) =>
+        `- ${group} (${numUniquePaths} unique, ${numTotalFiles} total)${pkgsReport(packages)}`
+      )
+      .join("\n");
+  }
+
+  // Handle collapsed duplicates.
+  _handleCollapsed({ collapsed, bundleName, bail }) {
+    const srcsLen = Object.keys(collapsed.srcs).length;
+    const pkgsLen = Object.keys(collapsed.pkgs).length;
+
+    // Nothing collapsed. Yay!
+    if (!srcsLen && !pkgsLen) { return; }
+
+    if (srcsLen) {
+      const srcsReport = this._collapsedReport(collapsed.srcs);
+
+      this._logWarning(
+        `Found ${srcsLen} collapsed source files in ${bundleName}! `
+        + "Please fix, with hints at: "
+        + "https://npm.im/serverless-jetpack#packaging-files-outside-cwd"
+      );
+      this._log(`${bundleName} collapsed source files:\n${srcsReport}`, { color: "gray" });
+    }
+
+    if (pkgsLen) {
+      const pkgReport = this._collapsedReport(collapsed.pkgs);
+
+      this._logWarning(
+        `Found ${pkgsLen} collapsed dependencies in ${bundleName}! `
+        + "Please fix, with hints at: "
+        + "https://npm.im/serverless-jetpack#packaging-files-outside-cwd"
+      );
+      this._log(`${bundleName} collapsed dependencies:\n${pkgReport}`, { color: "gray" });
+    }
+
+    if (bail) {
+      throw new Error(
+        "Bailing on collapsed files. "
+        + `Source Files: ${srcsLen}, Dependencies: ${pkgsLen}. `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#packaging-files-outside-cwd"
+      );
+    }
+  }
+
   _report({ results }) {
     const INDENT = 6;
     /* eslint-disable max-len*/
     const bundles = results
-      .map(({ bundlePath, roots, patterns, files, trace }) => `
+      .map(({ bundlePath, roots, patterns, files, trace, collapsed }) => `
       ## ${path.basename(bundlePath)}
 
       - Path: ${bundlePath}
@@ -400,6 +474,14 @@ class Jetpack {
       ### Files (\`${files.excluded.length}\`): Excluded
 
       ${files.excluded.sort().map((p) => `- ${p}`).join("\n      ")}
+
+      ### Collapsed (\`${Object.keys(collapsed.srcs).length}\`): Sources
+
+      ${this._collapsedReport(collapsed.srcs)}
+
+      ### Collapsed (\`${Object.keys(collapsed.pkgs).length}\`): Dependencies
+
+      ${this._collapsedReport(collapsed.pkgs)}
       `)
       .join("\n");
     /* eslint-enable max-len*/
@@ -534,7 +616,10 @@ class Jetpack {
     const results = await this.globAndZip({
       bundleName, functionObject, traceInclude, traceParams, worker, report
     });
-    const { buildTime } = results;
+    const { buildTime, collapsed } = results;
+
+    const { bail } = this._extraOptions({ functionObject }).collapsed;
+    this._handleCollapsed({ collapsed, bundleName, bail });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -561,7 +646,10 @@ class Jetpack {
     const results = await this.globAndZip({
       bundleName, traceInclude, traceParams, worker, report
     });
-    const { buildTime } = results;
+    const { buildTime, collapsed } = results;
+
+    const { bail } = this._serviceOptions.collapsed;
+    this._handleCollapsed({ collapsed, bundleName, bail });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
@@ -576,7 +664,10 @@ class Jetpack {
     // Package. (Not traced)
     this._logDebug(`Start packaging layer: ${bundleName}`);
     const results = await this.globAndZip({ bundleName, layerObject, worker, report });
-    const { buildTime } = results;
+    const { buildTime, collapsed } = results;
+
+    const { bail } = this._extraOptions({ layerObject }).collapsed;
+    this._handleCollapsed({ collapsed, bundleName, bail });
 
     // Mutate serverless configuration to use our artifacts.
     layerObject.package = layerObject.package || {};

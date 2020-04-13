@@ -81,7 +81,7 @@ Most Serverless framework projects should be able to use Jetpack without any ext
 **Service**-level configurations available via `custom.jetpack`:
 
 * `base` (`string`): The base directory (relative to `servicePath` / CWD) at which dependencies may be discovered by Jetpack. This is useful in some bespoke monorepo scenarios where dependencies may be hoisted/flattened to a root `node_modules` directory that is the parent of the directory `serverless` is run from. (default: Serverless' `servicePath` / CWD).
-    * _WARNING_: If you don't **know** that you need this option, you probably don't want to set it. Setting the base dependency root outside of Serverless' `servicePath` / current working directory (e.g., `..`) may have some unintended side effects. Most notably, any discovered `node_modules` dependencies will be flattened into the zip at the same level as `servicePath` / CWD. E.g., if dependencies were included by Jetpack at `node_modules/foo` and then `../node_modules/foo` they would be collapsed in the resulting zip file package.
+    * _WARNING_: See our [discussion below](#packaging-files-outside-cwd) about the dangers of including files below the current working directory / Serverless `servicePath`.
     * **Layers**: Layers are a bit of an oddity with built-in Serverless Framework packaging in that the current working directory is `layer.NAME.path` (and not `servicePath` like usual), yet things like `include|exclude` apply relatively to the layer `path`, not the `servicePath`. Jetpack has a similar choice and applies `base` applies to the root `servicePath` for everything (layers, functions, and service packaging), which seems to be the best approach given that monorepo consumers may well lay out projects like `functions/*` and `layers/*` and need dependency inference to get all the way to the root irrespective of a child layer `path`.
 * `roots` (`Array<string>`): A list of paths (relative to `servicePath` / CWD) at which there may additionally declared and/or installed `node_modules`. (default: [Serverless' `servicePath` / CWD]).
     * Setting a value here replaces the default `[servicePath]` with the new array, so if you want to additionally keep the `servicePath` in the roots array, set as: `[".", ADDITION_01, ADDITION_02, ...]`.
@@ -91,11 +91,13 @@ Most Serverless framework projects should be able to use Jetpack without any ext
 * `preInclude` (`Array<string>`): A list of glob patterns to be added _before_ Jetpack's dependency pattern inclusion and Serverless' built-in service-level and then function-level `package.include`s. This option most typically comes up in a monorepo scenario where you want a broad base exclusion like `!functions/**` or `!packages/**` at the service level and then inclusions in later functions.
 * `concurrency` (`Number`): The number of independent package tasks (per function and service) to run off the main execution thread. If `1`, then run tasks serially in main thread. If `2+` run off main thread with `concurrency` number of workers. (default: `1`).
     * This option is most useful for Serverless projects that (1) have many individually packaged functions, and (2) large numbers of files and dependencies. E.g., start considering this option if your per-function packaging time takes more than 10 seconds and you have more than one service and/or function package.
+* `collapsed.bail` (`Boolean`): Terminate `serverless` program with an error if collapsed file conflicts are detected. See [discussion below](#packaging-files-outside-cwd) regarding collapsed files.
 
 The following **function** and **layer**-level configurations available via `functions.{FN_NAME}.jetpack` and  `layers.{LAYER_NAME}.jetpack`:
 
 * `roots` (`Array<string>`): This option **adds** more dependency roots to the service-level `roots` option.
 * `preInclude` (`Array<string>`): This option **adds** more glob patterns to the service-level `preInclude` option.
+* `collapsed.bail` (`Boolean`): Terminate `serverless` program with an error if collapsed file conflicts are detected **if** the function is being packaged `individually`.
 
 Here are some example configurations:
 
@@ -314,6 +316,96 @@ include:
   - "!**/node_modules/aws-sdk/**"
 ```
 
+#### Packaging Files Outside CWD
+
+##### How Files Are Zipped
+
+A potentially serious situation that comes up with adding files to a Serverless package zip file is if any included files are outside of Serverless' `servicePath` / current working directory. For example, if you have files like:
+
+```yml
+- src/foo/bar.js
+- ../node_modules/lodash/index.js
+```
+
+Any file below CWD is collapsed into starting at CWD and not outside. So, for the above example, we package / later expand:
+
+```yml
+- src/foo/bar.js                # The same.
+- node_modules/lodash/index.js  # Removed `../`!!!
+```
+
+This most often happens with `node_modules` in monorepos where `node_modules` roots are scattered across different directories and nested. In particular, if you are using the `custom.jetpack.base` option this is likely going to come into play. Fortunately, in most cases, it's not that big of a deal. For example:
+
+```yml
+- node_modules/chalk/index.js
+- ../node_modules/lodash/index.js
+```
+
+will collapse when zipped to:
+
+```yml
+- node_modules/chalk/index.js
+- node_modules/lodash/index.js
+```
+
+... but Node.js [resolution rules](https://nodejs.org/api/modules.html#modules_all_together) should resolve and load the collapsed package the same as if it were in the original location.
+
+##### Zipping Problems
+
+The real problems occur if there is a path conflict where files collapse to the **same location**. For example, if we have:
+
+```yml
+- node_modules/lodash/index.js
+- ../node_modules/lodash/index.js
+```
+
+this will append files with the same path in the zip file:
+
+```yml
+- node_modules/lodash/index.js
+- node_modules/lodash/index.js
+```
+
+that when expanded leave only **one** file actually on disk!
+
+##### How to Detect Zipping Problems
+
+The first level is _detecting_ potentially collapsed files that conflict. Jetpack does this automatically with log warnings like:
+
+```
+Serverless: [serverless-jetpack] WARNING: Found 1 collapsed dependencies in .serverless/my-function.zip! Please fix, with hints at: https://npm.im/serverless-jetpack#packaging-files-outside-cwd
+Serverless: [serverless-jetpack] .serverless/graphql.zip collapsed files:
+- lodash (108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]
+```
+
+In the above example, two different versions of lodash were installed and their files were collapsed into the same path space. A total of 216 files will end up collapsed into 108 when expanded on disk in your cloud function. Yikes!
+
+A good practice if you are using tracing mode is to set: `jetpack.collapsed.bail = true` so that Jetpack will throw an error and kill the `serverless` program if any collapsed conflicts are detected.
+
+##### How to Solve Zipping Problems
+
+So how do we fix the problem?
+
+A first starting point is to generate a full report of the packaging step. Instead of running `serverless deploy|package <OPTIONS>`, try out `serverless jetpack package --report <OPTIONS>`. This will produce a report at the end of packaging that gives a full list of files. You can then use the logged message above as a starting point to examine the actual files collapsed in the zip file. Then, spend a little time figuring out the dependencies of how things ended up where.
+
+With a better understanding of what the files are and why we can turn to avoiding collapses. Some options:
+
+* **Don't allow `node_modules` in intermediate directories**: Typically, a monorepo has `ROOT/package.json` and `packages/NAME/package.json` or something, which doesn't typically lead to collapsed files. A situation that runs into trouble is something like:
+
+    ```
+    ROOT/package.json
+    ROOT/backend/package.json
+    ROOT/backend/functions/NAME/package.json
+    ```
+
+    with `serverless` being run from `backend` as CWD then `ROOT/node_modules` and `ROOT/backend/node_modules` will present potential collapsing conflicts. So, if possible, just remove the `backend/package.json` dependencies and stick them all either in the root or further nested into the functions/packages of the monorepo.
+
+* **Mirror exact same dependencies in `package.json`s**: In our above example, even if `lodash` isn't declared in either `../package.json` or `package.json` we can manually add it to both at the same pinned version (e.g., `"lodash": "4.17.15"`) to force it to be the same no matter where npm or Yarn place the dependency on disk.
+
+* **Use Yarn Resolutions**: If you are using Yarn and [resolutions](https://classic.yarnpkg.com/en/docs/selective-version-resolutions/) are an option that works for your project, they are a straightforward way to ensure that only one of a dependency exists on disk, solving collapsing problems.
+
+* **Use `package.include|exclude`**: You can manually adjust packaging by excluding files that would be collapsed and then allowing the other ones to come into play. In our example above, a negative `package.include` for `!node_modules/lodash/**` would solve our problem in a semver-acceptable way by leaving only root-level lodash.
+
 ## Tracing Mode
 
 > ℹ️ **Experimental**: Although we have a wide array of tests, tracing mode is still considered experimental as we roll out the feature. You should be sure to test all the execution code paths in your deployed serverless functions and verify your bundled package contents before using in production.
@@ -498,6 +590,7 @@ $ serverless jetpack package -h
 Plugin: Jetpack
 jetpack package ............... Packages a Serverless service or function
     --function / -f .................... Function name. Packages a single function (see 'deploy function')
+    --report / -r ...................... Generate full bundle report
 ```
 
 So, to package all service / functions like `serverless package` does, use:
