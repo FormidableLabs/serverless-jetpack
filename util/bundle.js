@@ -466,8 +466,6 @@ const globAndZip = async ({
   // https://github.com/FormidableLabs/serverless-jetpack/issues/109
   const collapsed = await findCollapsed({ files: included, cwd });
 
-  // TODO(collapsed): Consider option to throw exception here?
-
   // Create package zip.
   await bundle.createZip({
     files: included,
