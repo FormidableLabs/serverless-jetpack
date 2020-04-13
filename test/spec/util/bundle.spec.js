@@ -6,6 +6,7 @@
  */
 
 const path = require("path");
+const { normalize } = path;
 const mock = require("mock-fs");
 
 const Jetpack = require("../../..");
@@ -198,7 +199,7 @@ describe("util/bundle", () => {
       expect(await findCollapsed({ files, cwd })).to.eql({
         srcs: {},
         pkgs: {
-          "@scope/dupsy": {
+          [normalize("@scope/dupsy")]: {
             numTotalFiles: 6,
             numUniquePaths: 2,
             packages: [
@@ -253,7 +254,7 @@ describe("util/bundle", () => {
 
       expect(await findCollapsed({ files })).to.eql({
         srcs: {
-          "src/server": {
+          [normalize("src/server")]: {
             numTotalFiles: 2,
             numUniquePaths: 1
           }
