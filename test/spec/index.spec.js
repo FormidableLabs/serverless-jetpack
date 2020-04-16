@@ -670,7 +670,7 @@ describe("index", () => {
   });
 
   describe("collapsed zip", () => {
-    it.only("warns on collapsed files", async () => {
+    it("warns on collapsed files", async () => {
       // Don't actually read disk and bundle.
       sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
         buildTime: 0,

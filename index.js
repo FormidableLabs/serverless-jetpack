@@ -421,7 +421,7 @@ class Jetpack {
     if (!srcsLen && !pkgsLen) { return; }
 
     if (srcsLen) {
-      const srcsReport = this._collapsedReport(collapsed.srcs);
+      const srcsReport = this._collapsedReport(collapsed.srcs).join("\n");
 
       this._logWarning(
         `Found ${srcsLen} collapsed source files in ${bundleName}! `
@@ -432,7 +432,7 @@ class Jetpack {
     }
 
     if (pkgsLen) {
-      const pkgReport = this._collapsedReport(collapsed.pkgs);
+      const pkgReport = this._collapsedReport(collapsed.pkgs).join("\n");
 
       this._logWarning(
         `Found ${pkgsLen} collapsed dependencies in ${bundleName}! `
