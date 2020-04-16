@@ -544,6 +544,7 @@ functions:
 * **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
 
 * **Static analysis only**: Tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
+    * **Note**: Jetpack will log warnings for files found that have imports that tracing missed. See `WARNING` log output for the list of files. You can then run a full report (e.g., `serverless jetpack package --report`) for a full list of each missed import with file path, source code, and line + column numbers provided for your review. You should take this output that then manually inspect the files in question to see if you need to include additional hidden dependencies via `package.include` (straight inclusion) or `jetpack.trace.include` (inclusion that traces dependencies).
 
 ### Tracing Results
 
