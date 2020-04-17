@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.10.3
 
 * Feature: Add log warnings and `--report` information for missed dynamic imports in tracing mode.
 * Bug: Fix `--report` on collapsed sources and dependencies.
