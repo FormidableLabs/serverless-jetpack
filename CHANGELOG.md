@@ -1,6 +1,11 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Feature: Add log warnings and `--report` information for missed dynamic imports in tracing mode.
+* Bug: Fix `--report` on collapsed sources and dependencies.
+
 ## 0.10.2
 
 * Feature: Detect and issue warnings for collapsed files in package. Add `jetpack.collapsed.bail` option to kill serverless on detected conflicts.

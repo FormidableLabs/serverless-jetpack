@@ -474,7 +474,10 @@ describe("index", () => {
         // Don't actually read disk and bundle.
         sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
           buildTime: 0,
-          collapsed: { srcs: {}, pkgs: {} }
+          collapsed: { srcs: {}, pkgs: {} },
+          trace: {
+            misses: {}
+          }
         }));
       });
 
@@ -671,7 +674,10 @@ describe("index", () => {
       // Don't actually read disk and bundle.
       sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
         buildTime: 0,
-        collapsed: { srcs: {}, pkgs: {} }
+        collapsed: { srcs: {}, pkgs: {} },
+        trace: {
+          misses: {}
+        }
       }));
 
       mock({
@@ -765,6 +771,9 @@ describe("index", () => {
                 numTotalFiles: 216
               }
             }
+          },
+          trace: {
+            misses: {}
           }
         }));
       });

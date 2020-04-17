@@ -437,6 +437,7 @@ const globAndZip = async ({
   // Remove all cwd-relative-root node_modules first. Trace/package modes will
   // then bring `node_modules` individual files back in after.
   let depInclude = ["!node_modules/**"];
+  let traceMisses = {};
   if (traceInclude) {
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
@@ -444,11 +445,15 @@ const globAndZip = async ({
     const traced = await traceFiles({ ...traceParams, srcPaths });
 
     // Aggregate.
+    traceMisses = Object.entries(traced.misses).reduce((memo, [depPath, val]) => {
+      memo[path.relative(servicePath, depPath)] = val;
+      return memo;
+    }, {});
     depInclude = depInclude.concat(
       // Add all handler files first.
       traceInclude,
       // Convert to relative paths and include in patterns for bundling.
-      traced.map((depPath) => path.relative(servicePath, depPath))
+      traced.dependencies.map((depPath) => path.relative(servicePath, depPath))
     );
   } else {
     // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
@@ -477,7 +482,10 @@ const globAndZip = async ({
     numFiles: included.length,
     bundlePath,
     buildTime: new Date() - start,
-    collapsed
+    collapsed,
+    trace: {
+      misses: traceMisses
+    }
   };
 
   // Report information.
@@ -486,6 +494,7 @@ const globAndZip = async ({
       ...results,
       roots,
       trace: {
+        ...results.trace,
         ignores: traceParams.ignores || [],
         allowMissing: traceParams.allowMissing || {}
       },

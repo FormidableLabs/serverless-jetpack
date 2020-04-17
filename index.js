@@ -376,6 +376,16 @@ class Jetpack {
     };
   }
 
+  _traceMissesReport(misses) {
+    return Object.entries(misses)
+      .map(([depPath, missList]) =>
+        missList.map(({ src, loc: { start: { line, column } } }) =>
+          `- ${depPath} [${line}:${column}]: ${src}`
+        )
+      )
+      .reduce((arr, missList) => arr.concat(missList), []);
+  }
+
   _collapsedReport(summary) {
     const pkgsReport = (packages) => packages ? `: [${
       Object.values(packages).map((obj) => `${obj.path}@${obj.version}`).join(", ")
@@ -384,8 +394,22 @@ class Jetpack {
     return Object.entries(summary)
       .map(([group, { packages, numUniquePaths, numTotalFiles }]) =>
         `- ${group} (${numUniquePaths} unique, ${numTotalFiles} total)${pkgsReport(packages)}`
-      )
-      .join("\n");
+      );
+  }
+
+  // Handle tracing misses
+  _handleTraceMisses({ misses, bundleName }) {
+    const files = Object.keys(misses);
+    if (files.length) {
+      this._logWarning(
+        `Found ${files.length} source files with tracing misses in ${bundleName}! `
+        + "Please review report (`serverless jetpack package --report`) for details."
+      );
+      this._log(
+        `${bundleName} source files with tracing misses: ${JSON.stringify(files)}`,
+        { color: "gray" }
+      );
+    }
   }
 
   // Handle collapsed duplicates.
@@ -397,7 +421,7 @@ class Jetpack {
     if (!srcsLen && !pkgsLen) { return; }
 
     if (srcsLen) {
-      const srcsReport = this._collapsedReport(collapsed.srcs);
+      const srcsReport = this._collapsedReport(collapsed.srcs).join("\n");
 
       this._logWarning(
         `Found ${srcsLen} collapsed source files in ${bundleName}! `
@@ -408,7 +432,7 @@ class Jetpack {
     }
 
     if (pkgsLen) {
-      const pkgReport = this._collapsedReport(collapsed.pkgs);
+      const pkgReport = this._collapsedReport(collapsed.pkgs).join("\n");
 
       this._logWarning(
         `Found ${pkgsLen} collapsed dependencies in ${bundleName}! `
@@ -429,6 +453,7 @@ class Jetpack {
 
   _report({ results }) {
     const INDENT = 6;
+    const JOIN_STR = `${"\n"}${" ".repeat(INDENT)}`;
     /* eslint-disable max-len*/
     const bundles = results
       .map(({ bundlePath, roots, patterns, files, trace, collapsed }) => `
@@ -436,14 +461,14 @@ class Jetpack {
 
       - Path: ${bundlePath}
       - Roots: ${roots ? "" : "(None)"}
-      ${(roots || []).map((p) => `    - '${p}'`).join("\n      ")}
+      ${(roots || []).map((p) => `    - '${p}'`).join(JOIN_STR)}
 
       ### Trace: Configuration
 
       # Ignores (\`${trace.ignores.length}\`):
-      ${trace.ignores.map((p) => `- '${p}'`).join("\n      ")}
+      ${trace.ignores.map((p) => `- '${p}'`).join(JOIN_STR)}
       # Allowed Missing (\`${Object.keys(trace.allowMissing).length}\`):
-      ${Object.keys(trace.allowMissing).map((k) => `- '${k}': ${JSON.stringify(trace.allowMissing[k])}`).join("\n      ")}
+      ${Object.keys(trace.allowMissing).map((k) => `- '${k}': ${JSON.stringify(trace.allowMissing[k])}`).join(JOIN_STR)}
 
       ### Patterns: Include
 
@@ -451,37 +476,41 @@ class Jetpack {
       # Automatically added
       - '**'
       # Jetpack (\`${patterns.preInclude.length}\`): \`custom.jetpack.preInclude\` + \`function.{NAME}.jetpack.preInclude\`
-      ${patterns.preInclude.map((p) => `- '${p}'`).join("\n      ")}
+      ${patterns.preInclude.map((p) => `- '${p}'`).join(JOIN_STR)}
       # Jetpack (\`${patterns.depInclude.length}\`): dependency filtering mode additions
-      ${patterns.depInclude.map((p) => `- '${p}'`).join("\n      ")}
+      ${patterns.depInclude.map((p) => `- '${p}'`).join(JOIN_STR)}
       # Jetpack (\`${patterns.traceInclude.length}\`): trace mode additions
-      ${patterns.traceInclude.map((p) => `- '${p}'`).join("\n      ")}
+      ${patterns.traceInclude.map((p) => `- '${p}'`).join(JOIN_STR)}
       # Serverless (\`${patterns.include.length}\`): \`package.include\` + \`function.{NAME}.package.include\` + internal extras
-      ${patterns.include.map((p) => `- '${p}'`).join("\n      ")}
+      ${patterns.include.map((p) => `- '${p}'`).join(JOIN_STR)}
       \`\`\`
 
       ### Patterns: Exclude
 
       \`\`\`yml
       # Serverless (\`${patterns.exclude.length}\`): \`package.exclude\` + \`function.{NAME}.exclude\` + internal extras
-      ${patterns.exclude.map((p) => `- '${p}'`).join("\n      ")}
+      ${patterns.exclude.map((p) => `- '${p}'`).join(JOIN_STR)}
       \`\`\`
 
       ### Files (\`${files.included.length}\`): Included
 
-      ${files.included.sort().map((p) => `- ${p}`).join("\n      ")}
+      ${files.included.sort().map((p) => `- ${p}`).join(JOIN_STR)}
 
       ### Files (\`${files.excluded.length}\`): Excluded
 
-      ${files.excluded.sort().map((p) => `- ${p}`).join("\n      ")}
+      ${files.excluded.sort().map((p) => `- ${p}`).join(JOIN_STR)}
+
+      ### Trace Misses (\`${Object.keys(trace.misses).length}\` files)
+
+      ${this._traceMissesReport(trace.misses).join(JOIN_STR)}
 
       ### Collapsed (\`${Object.keys(collapsed.srcs).length}\`): Sources
 
-      ${this._collapsedReport(collapsed.srcs)}
+      ${this._collapsedReport(collapsed.srcs).join(JOIN_STR)}
 
       ### Collapsed (\`${Object.keys(collapsed.pkgs).length}\`): Dependencies
 
-      ${this._collapsedReport(collapsed.pkgs)}
+      ${this._collapsedReport(collapsed.pkgs).join(JOIN_STR)}
       `)
       .join("\n");
     /* eslint-enable max-len*/
@@ -616,7 +645,10 @@ class Jetpack {
     const results = await this.globAndZip({
       bundleName, functionObject, traceInclude, traceParams, worker, report
     });
-    const { buildTime, collapsed } = results;
+    const { buildTime, collapsed, trace } = results;
+    if (mode === "trace") {
+      this._handleTraceMisses({ misses: trace.misses, bundleName });
+    }
 
     const { bail } = this._extraOptions({ functionObject }).collapsed;
     this._handleCollapsed({ collapsed, bundleName, bail });
@@ -629,6 +661,7 @@ class Jetpack {
     return { packageType: "function", ...results };
   }
 
+  // eslint-disable-next-line max-statements
   async packageService({ functionObjects, worker, report }) {
     const { service } = this.serverless;
     const serviceName = service.service;
@@ -646,7 +679,10 @@ class Jetpack {
     const results = await this.globAndZip({
       bundleName, traceInclude, traceParams, worker, report
     });
-    const { buildTime, collapsed } = results;
+    const { buildTime, collapsed, trace } = results;
+    if (mode === "trace") {
+      this._handleTraceMisses({ misses: trace.misses, bundleName });
+    }
 
     const { bail } = this._serviceOptions.collapsed;
     this._handleCollapsed({ collapsed, bundleName, bail });
