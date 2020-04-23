@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.10.4
 
 * Misc: Add better collapsed packages log information.
 
