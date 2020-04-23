@@ -6370,10 +6370,10 @@ tough-cookie@^2.3.3, tough-cookie@~2.5.0:
     psl "^1.1.28"
     punycode "^2.1.1"
 
-trace-deps@^0.3.0:
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/trace-deps/-/trace-deps-0.3.0.tgz#ac53b04d4c89c80b7ae4057de14d509b53657523"
-  integrity sha512-XZuFVyiBTynufC5TRfD5JBDJR4r3fwekMyJtoCT/xG/uwkhoQ6S2cG1ZDxfsyjjy96gc5F1p+8QFb0SvDW/fwg==
+trace-deps@^0.3.2:
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/trace-deps/-/trace-deps-0.3.2.tgz#edf81d0511412aebb806b4b4bd06668ceb530c93"
+  integrity sha512-qzfWmHT3ajGs6xLpHKhNl+UH+6xVsNFQEnVY/nWztjAYVgwkSgQmxbp3VypT67kKpCU13RO+rVce1MJladUOEg==
   dependencies:
     acorn-node "^2.0.0"
     resolve "^1.15.1"

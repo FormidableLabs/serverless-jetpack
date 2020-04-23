@@ -738,12 +738,12 @@ describe("index", () => {
         .to.have.callCount(4).and // eslint-disable-line no-magic-numbers
         .to.be.calledWithMatch("WARNING: Found 2 collapsed source files in one.zip!").and
         .to.be.calledWithMatch(`one.zip collapsed source files:
-        - src/foo (2 unique, 4 total)
-        - src/foo/one (1 unique, 2 total)`.replace(/^[ ]*/gm, "")).and
+        - src/foo (Files: 2 unique, 4 total)
+        - src/foo/one (Files: 1 unique, 2 total)`.replace(/^[ ]*/gm, "")).and
         .to.be.calledWithMatch("WARNING: Found 1 collapsed dependencies in one.zip!").and
         .to.be.calledWithMatch(
           `one.zip collapsed dependencies:
-          - lodash (108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]`
+          - lodash (Packages: 2, Files: 108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]`
             .replace(/^[ ]*/gm, "")
         );
       /* eslint-enable max-len*/

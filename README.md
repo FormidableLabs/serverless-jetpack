@@ -374,11 +374,11 @@ The first level is _detecting_ potentially collapsed files that conflict. Jetpac
 
 ```
 Serverless: [serverless-jetpack] WARNING: Found 1 collapsed dependencies in .serverless/my-function.zip! Please fix, with hints at: https://npm.im/serverless-jetpack#packaging-files-outside-cwd
-Serverless: [serverless-jetpack] .serverless/graphql.zip collapsed files:
-- lodash (108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]
+Serverless: [serverless-jetpack] .serverless/graphql.zip collapsed dependencies:
+- lodash (Packages: 2, Files: 108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]`
 ```
 
-In the above example, two different versions of lodash were installed and their files were collapsed into the same path space. A total of 216 files will end up collapsed into 108 when expanded on disk in your cloud function. Yikes!
+In the above example, `2` different versions of lodash were installed and their files were collapsed into the same path space. A total of `216` files will end up collapsed into `108` when expanded on disk in your cloud function. Yikes!
 
 A good practice if you are using tracing mode is to set: `jetpack.collapsed.bail = true` so that Jetpack will throw an error and kill the `serverless` program if any collapsed conflicts are detected.
 

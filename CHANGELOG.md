@@ -1,6 +1,10 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Misc: Add better collapsed packages log information.
+
 ## 0.10.3
 
 * Feature: Add log warnings and `--report` information for missed dynamic imports in tracing mode.
