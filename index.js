@@ -387,13 +387,15 @@ class Jetpack {
   }
 
   _collapsedReport(summary) {
+    const pkgsSummary = (packages) => packages ? `Packages: ${packages.length}, ` : "";
     const pkgsReport = (packages) => packages ? `: [${
       Object.values(packages).map((obj) => `${obj.path}@${obj.version}`).join(", ")
     }]` : "";
 
     return Object.entries(summary)
       .map(([group, { packages, numUniquePaths, numTotalFiles }]) =>
-        `- ${group} (${numUniquePaths} unique, ${numTotalFiles} total)${pkgsReport(packages)}`
+        `- ${group} (${pkgsSummary(packages)}`
+        + `Files: ${numUniquePaths} unique, ${numTotalFiles} total)${pkgsReport(packages)}`
       );
   }
 
