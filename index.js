@@ -642,6 +642,8 @@ class Jetpack {
   }
 
   async packageFunction({ functionName, functionObject, worker, report }) {
+    const opts = this._extraOptions({ functionObject });
+
     // Mimic built-in serverless naming.
     // **Note**: We _do_ append ".serverless" in path skipping serverless'
     // internal copying logic.
@@ -661,8 +663,7 @@ class Jetpack {
       this._handleTraceMisses({ misses: trace.misses, bundleName });
     }
 
-    const { bail } = this._extraOptions({ functionObject }).collapsed;
-    this._handleCollapsed({ collapsed, bundleName, bail });
+    this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -677,6 +678,7 @@ class Jetpack {
     const { service } = this.serverless;
     const serviceName = service.service;
     const servicePackage = service.package;
+    const opts = this._serviceOptions;
 
     // Mimic built-in serverless naming.
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
@@ -695,8 +697,7 @@ class Jetpack {
       this._handleTraceMisses({ misses: trace.misses, bundleName });
     }
 
-    const { bail } = this._serviceOptions.collapsed;
-    this._handleCollapsed({ collapsed, bundleName, bail });
+    this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
@@ -706,6 +707,7 @@ class Jetpack {
   }
 
   async packageLayer({ layerName, layerObject, worker, report }) {
+    const opts = this._extraOptions({ layerObject });
     const bundleName = path.join(SLS_TMP_DIR, `${layerName}.zip`);
 
     // Package. (Not traced)
@@ -713,8 +715,7 @@ class Jetpack {
     const results = await this.globAndZip({ bundleName, layerObject, worker, report });
     const { buildTime, collapsed } = results;
 
-    const { bail } = this._extraOptions({ layerObject }).collapsed;
-    this._handleCollapsed({ collapsed, bundleName, bail });
+    this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
 
     // Mutate serverless configuration to use our artifacts.
     layerObject.package = layerObject.package || {};
