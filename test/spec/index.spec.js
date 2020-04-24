@@ -666,6 +666,14 @@ describe("index", () => {
           .to.be.calledWithMatch({ traceInclude: undefined }).and
           .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
       });
+
+      it("bails on misses at service-level"); // TODO(trace-options)
+
+      it("bails on misses at function-level"); // TODO(trace-options)
+
+      it("resolves misses at service-level"); // TODO(trace-options)
+
+      it("resolves misses at function-level"); // TODO(trace-options)
     });
   });
 
