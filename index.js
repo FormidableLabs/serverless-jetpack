@@ -403,6 +403,10 @@ class Jetpack {
   _handleTraceMisses({ misses, bundleName, bail }) {
     const files = Object.keys(misses);
 
+    // console.log("TODO HERE _handleTraceMisses", JSON.stringify({
+    //   misses
+    // }, null, 2));
+
     // No trace misses. Yay!
     if (files.length) { return; }
 

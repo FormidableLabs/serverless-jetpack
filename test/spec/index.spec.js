@@ -676,9 +676,85 @@ describe("index", () => {
             buildTime: 0,
             collapsed: { srcs: {}, pkgs: {} },
             trace: {
-              misses: {}
+              misses: {
+                "node_modules/@heroku/socksv5/index.js": [
+                  {
+                    start: 118,
+                    end: 150,
+                    loc: {
+                      start: {
+                        line: 5,
+                        column: 12
+                      },
+                      end: {
+                        line: 5,
+                        column: 44
+                      }
+                    },
+                    src: "require(__dirname + '/lib/' + f)"
+                  },
+                  {
+                    start: 400,
+                    end: 437,
+                    loc: {
+                      start: {
+                        line: 14,
+                        column: 42
+                      },
+                      end: {
+                        line: 14,
+                        column: 79
+                      }
+                    },
+                    src: "require(__dirname + '/lib/auth/' + f)"
+                  }
+                ]
+              }
             }
           }));
+        });
+
+        it("does not error on dynamic misses by default", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  trace: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Because not individually packaged, dynamic.bail=true will have no effect.
+                  jetpack:
+                    trace:
+                      dynamic:
+                        bail: true
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(1).and
+            .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
         });
 
         // TODO: HERE
