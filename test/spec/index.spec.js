@@ -732,9 +732,9 @@ describe("index", () => {
                   handler: one.handler
                 two:
                   handler: two.handler
-                  # Because not individually packaged, dynamic.bail=true will have no effect.
                   jetpack:
                     trace:
+                      # Because not individually packaged, dynamic.bail=true will have no effect.
                       dynamic:
                         bail: true
             `,
@@ -796,8 +796,50 @@ describe("index", () => {
           );
         });
 
-        // TODO: HERE
-        it("bails on misses at function-level"); // TODO(trace-options)
+        it("bails on misses at function-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  trace: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  package:
+                    individually: true
+                  jetpack:
+                    trace:
+                      # Because individually packaged, dynamic.bail=true will throw error
+                      dynamic:
+                        bail: true
+
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await expect(plugin.package()).to.be.rejectedWith(
+            "Bailing on 1 missed dynamic imports."
+          );
+        });
 
         it("resolves misses at service-level"); // TODO(trace-options)
 
