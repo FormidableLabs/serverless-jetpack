@@ -470,210 +470,226 @@ describe("index", () => {
     });
 
     describe("configurations", () => {
-      beforeEach(() => {
-        // Don't actually read disk and bundle.
-        sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
-          buildTime: 0,
-          collapsed: { srcs: {}, pkgs: {} },
-          trace: {
-            misses: {}
-          }
-        }));
-      });
-
-      it("traces with service config even if non-individually function is false", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            custom:
-              jetpack:
-                trace: true
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-              two:
-                handler: two.handler
-                # Because not individually packaged, trace=false will have no effect.
-                jetpack:
-                  trace: false
-          `,
-          "one.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "one" })
-            });
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
+      describe("trace", () => {
+        beforeEach(() => {
+          // Don't actually read disk and bundle.
+          sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
+            buildTime: 0,
+            collapsed: { srcs: {}, pkgs: {} },
+            trace: {
+              misses: {}
+            }
+          }));
         });
 
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(1).and
-          .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
-      });
+        it("traces with service config even if non-individually function is false", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
 
-      it("traces with service config and skips individually + trace=false functions", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            custom:
-              jetpack:
-                trace: true
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-              two:
-                handler: two.handler
-                # Because individually packaged, service trace=true will apply.
-                package:
-                  individually: true
-              three:
-                handler: three.handler
-                # Because individually packaged, fn trace=false will apply.
-                package:
-                  individually: true
-                jetpack:
-                  trace: false
-          `,
-          "one.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "one" })
-            });
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
-        });
-
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(3).and
-          .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: undefined });
-      });
-
-      it("pattern matches service and traces individually + trace=true functions", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            package:
-              individually: true
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-              two:
-                handler: two.handler
-                # Default service-level false for individually. This will trace.
+              custom:
                 jetpack:
                   trace: true
-              three:
-                handler: three.handler
-                # Explicit false should also not trace.
-                jetpack:
-                  trace: false
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Because not individually packaged, trace=false will have no effect.
+                  jetpack:
+                    trace: false
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(1).and
+            .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
         });
 
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(3).and
-          .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: undefined }).and
-          .to.not.be.calledWithMatch({ traceInclude: ["one.js"] }).and
-          .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
-      });
+        it("traces with service and skips individually + trace=false functions", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
 
-      it("traces for service-level individually and trace", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            package:
-              individually: true
-
-            custom:
-              jetpack:
-                trace: true
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-              two:
-                handler: two.handler
-                # Explicit true should trace.
+              custom:
                 jetpack:
                   trace: true
-              three:
-                handler: three.handler
-                # Explicit false should not trace.
-                jetpack:
-                  trace: false
-          `,
-          "one.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "one" })
-            });
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Because individually packaged, service trace=true will apply.
+                  package:
+                    individually: true
+                three:
+                  handler: three.handler
+                  # Because individually packaged, fn trace=false will apply.
+                  package:
+                    individually: true
+                  jetpack:
+                    trace: false
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(3).and
+            .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: undefined });
         });
 
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(3).and
-          .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: undefined }).and
-          .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
+        it("pattern matches service and traces individually + trace=true functions", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              package:
+                individually: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Default service-level false for individually. This will trace.
+                  jetpack:
+                    trace: true
+                three:
+                  handler: three.handler
+                  # Explicit false should also not trace.
+                  jetpack:
+                    trace: false
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(3).and
+            .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: undefined }).and
+            .to.not.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+            .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
+        });
+
+        it("traces for service-level individually and trace", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              package:
+                individually: true
+
+              custom:
+                jetpack:
+                  trace: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Explicit true should trace.
+                  jetpack:
+                    trace: true
+                three:
+                  handler: three.handler
+                  # Explicit false should not trace.
+                  jetpack:
+                    trace: false
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(3).and
+            .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: undefined }).and
+            .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
+        });
       });
 
-      it("bails on misses at service-level"); // TODO(trace-options)
+      describe("trace.dynamic.bail", () => {
+        beforeEach(() => {
+          // Don't actually read disk and bundle.
+          sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
+            buildTime: 0,
+            collapsed: { srcs: {}, pkgs: {} },
+            trace: {
+              misses: {}
+            }
+          }));
+        });
 
-      it("bails on misses at function-level"); // TODO(trace-options)
+        // TODO: HERE
+        it("bails on misses at service-level"); // TODO(trace-options)
 
-      it("resolves misses at service-level"); // TODO(trace-options)
+        it("bails on misses at function-level"); // TODO(trace-options)
 
-      it("resolves misses at function-level"); // TODO(trace-options)
+        it("resolves misses at service-level"); // TODO(trace-options)
+
+        it("resolves misses at function-level"); // TODO(trace-options)
+      });
     });
   });
 
@@ -757,7 +773,7 @@ describe("index", () => {
       /* eslint-enable max-len*/
     });
 
-    describe("collapsed.bail configurations", () => {
+    describe("collapsed.bail", () => {
       beforeEach(() => {
         // Don't actually read disk and bundle.
         sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({

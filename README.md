@@ -577,7 +577,7 @@ functions:
 
 ### Handling Dynamic Import Misses
 
-Dynamic imports that use variables like `require(A_VARIABLE)` or ``import(`template_${VARIABLE}`)`` cannot be used by Jetpack to infer what the underlying dependency files are for inclusion in the bundle. That means some level of developer work to handle.
+Dynamic imports that use variables or runtime execution like `require(A_VARIABLE)` or ``import(`template_${VARIABLE}`)`` cannot be used by Jetpack to infer what the underlying dependency files are for inclusion in the bundle. That means some level of developer work to handle.
 
 **Identify**
 
@@ -604,7 +604,7 @@ and produces combined `--report` output like:
 
 which gives you the line + column number of the dynamic dependency in a given source file and snippet of the code in question.
 
-In addition to just logging this information, you can ensure you have no unaccounted for dynamic import misses by setting `jetpack.trace.misses.bail = true` in your applicable service or function-level configuration.
+In addition to just logging this information, you can ensure you have no unaccounted for dynamic import misses by setting `jetpack.trace.dynamic.bail = true` in your applicable service or function-level configuration.
 
 **Diagnose**
 

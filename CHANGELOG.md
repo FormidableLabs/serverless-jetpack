@@ -3,8 +3,8 @@ Changes
 
 ## UNRELEASED
 
-* Feature: Add `jetpack.trace.misses.bail` option.
-* TODO(trace-options): `jetpack.trace.misses.resolutions`
+* Feature: Add `jetpack.trace.dynamic.bail` option.
+* TODO(trace-options): `jetpack.trace.dynamic.resolutions`
 
 ## 0.10.4
 
