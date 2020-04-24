@@ -1,6 +1,11 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Feature: Add `jetpack.trace.misses.bail` option.
+* TODO(trace-options): `jetpack.trace.misses.resolutions`
+
 ## 0.10.4
 
 * Misc: Add better collapsed packages log information.

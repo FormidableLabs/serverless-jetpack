@@ -404,11 +404,11 @@ class Jetpack {
     const files = Object.keys(misses);
     if (files.length) {
       this._logWarning(
-        `Found ${files.length} source files with tracing misses in ${bundleName}! `
+        `Found ${files.length} source files with tracing dynamic misses in ${bundleName}! `
         + "Please review report (`serverless jetpack package --report`) for details."
       );
       this._log(
-        `${bundleName} source files with tracing misses: ${JSON.stringify(files)}`,
+        `${bundleName} source files with tracing dynamic misses: ${JSON.stringify(files)}`,
         { color: "gray" }
       );
     }
@@ -502,7 +502,7 @@ class Jetpack {
 
       ${files.excluded.sort().map((p) => `- ${p}`).join(JOIN_STR)}
 
-      ### Trace Misses (\`${Object.keys(trace.misses).length}\` files)
+      ### Trace Dynamic Misses (\`${Object.keys(trace.misses).length}\` files)
 
       ${this._traceMissesReport(trace.misses).join(JOIN_STR)}
 
