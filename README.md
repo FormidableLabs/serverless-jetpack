@@ -22,6 +22,34 @@ The Serverless framework is a **fantastic** one-stop-shop for taking your code a
 
 With the `serverless-jetpack` plugin, many common, slow Serverless packaging scenarios can be dramatically sped up. All with a very easy, seamless integration into your existing Serverless projects.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Usage](#usage)
+  - [The short, short version](#the-short-short-version)
+  - [A little more detail...](#a-little-more-detail)
+  - [Configuration](#configuration)
+- [How Jetpack's faster dependency filtering works](#how-jetpacks-faster-dependency-filtering-works)
+  - [The nitty gritty of why it's faster](#the-nitty-gritty-of-why-its-faster)
+  - [Complexities](#complexities)
+    - [Other Serverless plugins that set `package.artifact`](#other-serverless-plugins-that-set-packageartifact)
+    - [Minor differences vs. Serverless globbing](#minor-differences-vs-serverless-globbing)
+    - [Layers](#layers)
+    - [Be careful with `include` configurations and `node_modules`](#be-careful-with-include-configurations-and-node_modules)
+    - [Packaging Files Outside CWD](#packaging-files-outside-cwd)
+- [Tracing Mode](#tracing-mode)
+  - [Tracing Configuration](#tracing-configuration)
+    - [Tracing Options](#tracing-options)
+  - [Tracing Caveats](#tracing-caveats)
+  - [Handling Dynamic Import Misses](#handling-dynamic-import-misses)
+  - [Tracing Results](#tracing-results)
+- [Command Line Interface](#command-line-interface)
+- [Benchmarks](#benchmarks)
+- [Maintenance Status](#maintenance-status)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Usage
 
 ### The short, short version
@@ -625,7 +653,7 @@ Results:
 
 Jetpack also provides some CLI options.
 
-### `serverless jetpack package`
+**`serverless jetpack package`**
 
 Package a function like `serverless package` does, just with better options.
 
