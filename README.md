@@ -374,7 +374,7 @@ The first level is _detecting_ potentially collapsed files that conflict. Jetpac
 
 ```
 Serverless: [serverless-jetpack] WARNING: Found 1 collapsed dependencies in .serverless/my-function.zip! Please fix, with hints at: https://npm.im/serverless-jetpack#packaging-files-outside-cwd
-Serverless: [serverless-jetpack] .serverless/graphql.zip collapsed dependencies:
+Serverless: [serverless-jetpack] .serverless/FN_NAME.zip collapsed dependencies:
 - lodash (Packages: 2, Files: 108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]`
 ```
 
@@ -545,11 +545,49 @@ functions:
 * **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
 
 * **Static analysis by default**: Out of the box, tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
-    * **Note**: Jetpack will log warnings for files found that have dynamic imports that tracing missed. See `WARNING` log output for the list of files. You can then run a full report (e.g., `serverless jetpack package --report`) for a full list of each missed import with file path, source code, and line + column numbers provided for your review.
+    * **Note**: Jetpack will log warnings for files found that have dynamic imports that tracing missed. See `WARNING` log output for the list of files and read our [section below](#packaging-files-outside-cwd) on handling dynamic imports.
 
-* **Dynamic imports**: Whenever you encounter log messages / report summaries for dynamic import misses, then you will need to custom configure how to address the situation.
-    * **Normal Includes**: One option is to manually inspect the files in question to see if you need to include additional hidden dependencies via `package.include` (straight inclusion) or `jetpack.trace.include` (inclusion that traces dependencies).
-    * TODO(trace-options): INSERT_TRACE_MISSES_OPTIONS_HERE
+### Handling Dynamic Import Misses
+
+Dynamic imports that use variables like `require(A_VARIABLE)` or ``import(`template_${VARIABLE}`)`` cannot be used by Jetpack to infer what the underlying dependency files are for inclusion in the bundle. That means some level of developer work to handle.
+
+**Identify**
+
+The first step is to be aware and watch for dynamic import misses. Conveniently, Jetpack logs warnings like the following:
+
+```
+Serverless: [serverless-jetpack] WARNING: Found 10 source files with tracing dynamic import misses in .serverless/FN_NAME.zip! Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses
+Serverless: [serverless-jetpack] .serverless/FN_NAME.zip source files with tracing dynamic import misses: [/* ... */,"../node_modules/bindings/bindings.js","../node_modules/bunyan/lib/bunyan.js",/* ... */]
+```
+
+and produces combined `--report` output like:
+
+```md
+### Trace Dynamic Misses (`10` files)
+
+...
+- ../node_modules/bindings/bindings.js [76:22]: require.resolve(n)
+- ../node_modules/bindings/bindings.js [76:43]: require(n)
+- ../node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
+- ../node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
+- ../node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
+...
+```
+
+which gives you the line + column number of the dynamic dependency in a given source file and snippet of the code in question.
+
+In addition to just logging this information, you can ensure you have no unaccounted for dynamic import misses by setting `jetpack.trace.misses.bail = true` in your applicable service or function-level configuration.
+
+**Diagnose**
+
+With the `--report` output in hand, the recommended course is to identify what the impact is of these missed dynamic imports. For example, in `node_modules/bunyan/lib/bunyan.js` the interesting `require('mv' + '')` import is within a permissive try/catch block to allow conditional import of the library if found (and prevent `browserify` from bundling the library). For our Serverless application we could choose to ignore these dynamic imports or manually add in the imported libraries.
+
+For other dependencies, there may well be "hidden" dependencies that you will need to add to your Serverless bundle for runtime correctness. Things like `node-config` which dynamically imports various configuration files from environment variable information, etc.
+
+**Remedy**
+
+TODO(tracing-options): INSERT REMEDY SECTION
+
 
 ### Tracing Results
 

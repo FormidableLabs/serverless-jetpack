@@ -400,16 +400,23 @@ class Jetpack {
   }
 
   // Handle tracing misses
-  _handleTraceMisses({ misses, bundleName }) {
+  _handleTraceMisses({ misses, bundleName, bail }) {
     const files = Object.keys(misses);
     if (files.length) {
       this._logWarning(
-        `Found ${files.length} source files with tracing dynamic misses in ${bundleName}! `
-        + "Please review report (`serverless jetpack package --report`) for details."
+        `Found ${files.length} source files with tracing dynamic import misses in ${bundleName}! `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
       );
       this._log(
-        `${bundleName} source files with tracing dynamic misses: ${JSON.stringify(files)}`,
+        `${bundleName} source files with tracing dynamic import misses: ${JSON.stringify(files)}`,
         { color: "gray" }
+      );
+    }
+
+    if (bail) {
+      throw new Error(
+        `Bailing on ${files.length} missed dynamic imports. `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
       );
     }
   }
