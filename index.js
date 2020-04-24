@@ -402,16 +402,18 @@ class Jetpack {
   // Handle tracing misses
   _handleTraceMisses({ misses, bundleName, bail }) {
     const files = Object.keys(misses);
-    if (files.length) {
-      this._logWarning(
-        `Found ${files.length} source files with tracing dynamic import misses in ${bundleName}! `
-        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
-      );
-      this._log(
-        `${bundleName} source files with tracing dynamic import misses: ${JSON.stringify(files)}`,
-        { color: "gray" }
-      );
-    }
+
+    // No trace misses. Yay!
+    if (files.length) { return; }
+
+    this._logWarning(
+      `Found ${files.length} source files with tracing dynamic import misses in ${bundleName}! `
+      + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
+    );
+    this._log(
+      `${bundleName} source files with tracing dynamic import misses: ${JSON.stringify(files)}`,
+      { color: "gray" }
+    );
 
     if (bail) {
       throw new Error(
