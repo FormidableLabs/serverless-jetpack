@@ -483,14 +483,15 @@ package:
 
 functions:
   # Functions in service package.
-  # - `jetpack.trace` option `ignores` does not apply.
-  # - `jetpack.include` **will** include and trace additional files.
+  # - `jetpack.trace.ignores` does not apply.
+  # - `jetpack.trace.include` **will** include and trace additional files.
   service-packaged-app-1:
     handler: app1.handler
 
   service-packaged-app-2:
     handler: app2.handler
     jetpack:
+      # - `jetpack.trace.allowMissing` additions are merged into service level
       trace:
         # Trace and include: `app2.js` + `extra/**.js` patterns
         include:
