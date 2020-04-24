@@ -757,9 +757,46 @@ describe("index", () => {
             .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
         });
 
-        // TODO: HERE
-        it("bails on misses at service-level"); // TODO(trace-options)
+        it("bails on misses at service-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
 
+              custom:
+                jetpack:
+                  trace:
+                    dynamic:
+                      bail: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await expect(plugin.package()).to.be.rejectedWith(
+            "Bailing on 1 missed dynamic imports."
+          );
+        });
+
+        // TODO: HERE
         it("bails on misses at function-level"); // TODO(trace-options)
 
         it("resolves misses at service-level"); // TODO(trace-options)

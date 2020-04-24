@@ -247,6 +247,7 @@ class Jetpack {
       allowMissing: {},
       include: [],
       collapsed: {},
+      dynamic: {},
       ...typeof serviceTrace === "object" ? serviceTrace : {}
     };
     serviceObj.include = []
@@ -255,6 +256,10 @@ class Jetpack {
       // Make unique.
       .sort()
       .filter(uniq);
+    serviceObj.dynamic = {
+      bail: false,
+      ...serviceObj.dynamic
+    };
 
     // Mode: trace individual function.
     const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
@@ -263,6 +268,7 @@ class Jetpack {
       allowMissing: {},
       include: [],
       collapsed: {},
+      dynamic: {},
       ...typeof functionTrace === "object" ? functionTrace : {}
     };
     functionObj.include = []
@@ -298,6 +304,13 @@ class Jetpack {
 
         return obj;
       }, {});
+    functionObj.dynamic = {
+      bail: typeof functionObj.dynamic.bail !== "undefined"
+        ? functionObj.dynamic.bail
+        : serviceObj.dynamic.bail,
+      // TODO(trace-options): Dynamic merge `dynamic.resolutions`
+      ...functionObj.dynamic
+    };
 
     return {
       service: {
@@ -371,7 +384,8 @@ class Jetpack {
       traceInclude,
       traceParams: {
         ignores: traceObj.ignores,
-        allowMissing: traceObj.allowMissing
+        allowMissing: traceObj.allowMissing,
+        dynamic: traceObj.dynamic
       }
     };
   }
@@ -403,12 +417,8 @@ class Jetpack {
   _handleTraceMisses({ misses, bundleName, bail }) {
     const files = Object.keys(misses);
 
-    // console.log("TODO HERE _handleTraceMisses", JSON.stringify({
-    //   misses
-    // }, null, 2));
-
     // No trace misses. Yay!
-    if (files.length) { return; }
+    if (!files.length) { return; }
 
     this._logWarning(
       `Found ${files.length} source files with tracing dynamic import misses in ${bundleName}! `
@@ -664,7 +674,7 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({ misses: trace.misses, bundleName });
+      this._handleTraceMisses({ misses: trace.misses, bundleName, bail: traceParams.dynamic.bail });
     }
 
     this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
@@ -698,7 +708,7 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({ misses: trace.misses, bundleName });
+      this._handleTraceMisses({ misses: trace.misses, bundleName, bail: traceParams.dynamic.bail });
     }
 
     this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
