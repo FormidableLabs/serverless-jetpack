@@ -490,10 +490,12 @@ class Jetpack {
 
       ### Trace: Configuration
 
+      \`\`\`yml
       # Ignores (\`${trace.ignores.length}\`):
       ${trace.ignores.map((p) => `- '${p}'`).join(JOIN_STR)}
       # Allowed Missing (\`${Object.keys(trace.allowMissing).length}\`):
       ${Object.keys(trace.allowMissing).map((k) => `- '${k}': ${JSON.stringify(trace.allowMissing[k])}`).join(JOIN_STR)}
+      \`\`\`
 
       ### Patterns: Include
 
