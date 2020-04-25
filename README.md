@@ -37,16 +37,16 @@ With the `serverless-jetpack` plugin, many common, slow Serverless packaging sce
     - [Minor differences vs. Serverless globbing](#minor-differences-vs-serverless-globbing)
     - [Layers](#layers)
     - [Be careful with `include` configurations and `node_modules`](#be-careful-with-include-configurations-and-node_modules)
-    - [Packaging Files Outside CWD](#packaging-files-outside-cwd)
-- [Tracing Mode](#tracing-mode)
-  - [Tracing Configuration](#tracing-configuration)
-    - [Tracing Options](#tracing-options)
-  - [Tracing Caveats](#tracing-caveats)
-  - [Handling Dynamic Import Misses](#handling-dynamic-import-misses)
-  - [Tracing Results](#tracing-results)
+    - [Packaging files Outside CWD](#packaging-files-outside-cwd)
+- [Tracing mode](#tracing-mode)
+  - [Tracing configuration](#tracing-configuration)
+    - [Tracing options](#tracing-options)
+  - [Tracing caveats](#tracing-caveats)
+  - [Handling dynamic import misses](#handling-dynamic-import-misses)
+  - [Tracing results](#tracing-results)
 - [Command Line Interface](#command-line-interface)
 - [Benchmarks](#benchmarks)
-- [Maintenance Status](#maintenance-status)
+- [Maintenance status](#maintenance-status)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -344,9 +344,9 @@ include:
   - "!**/node_modules/aws-sdk/**"
 ```
 
-#### Packaging Files Outside CWD
+#### Packaging files Outside CWD
 
-##### How Files Are Zipped
+##### How files are zipped
 
 A potentially serious situation that comes up with adding files to a Serverless package zip file is if any included files are outside of Serverless' `servicePath` / current working directory. For example, if you have files like:
 
@@ -378,7 +378,7 @@ will collapse when zipped to:
 
 ... but Node.js [resolution rules](https://nodejs.org/api/modules.html#modules_all_together) should resolve and load the collapsed package the same as if it were in the original location.
 
-##### Zipping Problems
+##### Zipping problems
 
 The real problems occur if there is a path conflict where files collapse to the **same location**. For example, if we have:
 
@@ -396,7 +396,7 @@ this will append files with the same path in the zip file:
 
 that when expanded leave only **one** file actually on disk!
 
-##### How to Detect Zipping Problems
+##### How to detect zipping problems
 
 The first level is _detecting_ potentially collapsed files that conflict. Jetpack does this automatically with log warnings like:
 
@@ -410,7 +410,7 @@ In the above example, `2` different versions of lodash were installed and their 
 
 A good practice if you are using tracing mode is to set: `jetpack.collapsed.bail = true` so that Jetpack will throw an error and kill the `serverless` program if any collapsed conflicts are detected.
 
-##### How to Solve Zipping Problems
+##### How to solve zipping problems
 
 So how do we fix the problem?
 
@@ -434,7 +434,7 @@ With a better understanding of what the files are and why we can turn to avoidin
 
 * **Use `package.include|exclude`**: You can manually adjust packaging by excluding files that would be collapsed and then allowing the other ones to come into play. In our example above, a negative `package.include` for `!node_modules/lodash/**` would solve our problem in a semver-acceptable way by leaving only root-level lodash.
 
-## Tracing Mode
+## Tracing mode
 
 > ℹ️ **Experimental**: Although we have a wide array of tests, tracing mode is still considered experimental as we roll out the feature. You should be sure to test all the execution code paths in your deployed serverless functions and verify your bundled package contents before using in production.
 
@@ -449,7 +449,7 @@ Welcome to **tracing mode**!
 
 Tracing mode is an alternative way to include dependencies in a `serverless` application. It works by using [Acorn](https://github.com/browserify/acorn-node) to parse out all dependencies in entry point files (`require`, `require.resolve`, static `import`) and then resolves them with [resolve](https://github.com/browserify/resolve) according to the Node.js resolution algorithm. This produces a list of the files that will actually be used at runtime and Jetpack includes these instead of traversing production dependencies. The engine for all of this work is a small, dedicated library, [trace-deps][].
 
-### Tracing Configuration
+### Tracing configuration
 
 The most basic configuration is just to enable `custom.jetpack.trace` (service-wide) or `functions.{FN_NAME}.jetpack.trace` (per-function) set to `true`. By default, tracing mode will trace _just_ the entry point file specified in `functions.{FN_NAME}.handler`.
 
@@ -464,7 +464,7 @@ custom:
 
 The `trace` field can be a Boolean or object containing further configuration information.
 
-#### Tracing Options
+#### Tracing options
 
 The basic `trace` Boolean field should hopefully work for most cases. Jetpack provides several additional options for more flexibility:
 
@@ -475,6 +475,8 @@ The basic `trace` Boolean field should hopefully work for most cases. Jetpack pr
 * `trace.allowMissing` (`Object.<string, Array<string>>`): A way to allow certain packages to have potentially failing dependencies. Specify each object key as a package name and value as an array of dependencies that _might_ be missing on disk. If the sub-dependency is found, then it is included in the bundle (this part distinguishes this option from `ignores`). If not, it is skipped without error.
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging.
     * **Note**: These patterns are in _addition_ to the handler inferred file path. If you want to exclude the handler path you could technically do a `!file/path.js` exclusion, but that would be a strange case in that your handler files would no longer be present.
+* `trace.dynamic.bail` (`Boolean`): Terminate `serverless` program with an error if dynamic import misses are detected. See [discussion below](#handling-dynamic-import-misses) regarding handling.
+* TODO(tracing-options) `trace.dynamic.resolutions`
 
 The following **function**-level configurations available via `functions.{FN_NAME}.jetpack.trace` and  `layers.{LAYER_NAME}.jetpack.trace`:
 
@@ -482,6 +484,8 @@ The following **function**-level configurations available via `functions.{FN_NAM
 * `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing **if** the function is being packaged `individually`. If there are service-level `trace.ignores` then the function-level ones will be **added** to the list.
 * `trace.allowMissing` (`Object.<string, Array<string>>`): An object of package path prefixes mapping to lists of packages that are allowed to be missing **if** the function is being packaged `individually`. If there is a service-level `trace.allowMissing` object then the function-level ones will be smart **merged** into the list.
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging. If there are service-level `trace.include`s then the function-level ones will be **added** to the list.
+* `trace.dynamic.bail` (`Boolean`): Terminate `serverless` program with an error if dynamic import misses are detected **if** the function is being packaged `individually`.
+* TODO(tracing-options) `trace.dynamic.resolutions`
 
 Let's see the advanced options in action:
 
@@ -553,7 +557,7 @@ functions:
       trace: false
 ```
 
-### Tracing Caveats
+### Tracing caveats
 
 * **Works best for large, unused production dependencies**: Tracing mode is best suited for an application wherein many / most of the files specified in `package.json:dependencies` are not actually used. When there is a large discrepancy between "specific dependencies" and "actually used files" you'll see the biggest speedups. Conversely, when production dependencies are very tight and almost every file is used you won't see a large speedup versus Jetpack's normal dependency mode.
     * An example of an application with lots of unused production dependencies is our `huge-prod` test fixture. Trace mode is significantly faster than Jetpack dependency mode and baseline serverless packaging.
@@ -573,9 +577,9 @@ functions:
 * **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
 
 * **Static analysis by default**: Out of the box, tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
-    * **Note**: Jetpack will log warnings for files found that have dynamic imports that tracing missed. See `WARNING` log output for the list of files and read our [section below](#packaging-files-outside-cwd) on handling dynamic imports.
+    * **Note**: Jetpack will log warnings for files found that have dynamic imports that tracing missed. See `WARNING` log output for the list of files and read our [section below](#handling-dynamic-import-misses) on handling dynamic imports.
 
-### Handling Dynamic Import Misses
+### Handling dynamic import misses
 
 Dynamic imports that use variables or runtime execution like `require(A_VARIABLE)` or ``import(`template_${VARIABLE}`)`` cannot be used by Jetpack to infer what the underlying dependency files are for inclusion in the bundle. That means some level of developer work to handle.
 
@@ -617,7 +621,7 @@ For other dependencies, there may well be "hidden" dependencies that you will ne
 TODO(tracing-options): INSERT REMEDY SECTION
 
 
-### Tracing Results
+### Tracing results
 
 The following is a table of generated packages using vanilla Serverless vs Jetpack with tracing (using `yarn benchmark:sizes`). Even for our smallest `simple` scenario, the result is smaller total bundle size. For scenarios like the contrived `huge-prod` (with many unused production dependencies) the size difference is a significant 90+% decrease in size from `6.5 MB` to `0.5 MB`.
 
@@ -740,7 +744,7 @@ Results:
 | huge-prod    | npm  | jetpack  | deps  | 23121 | **-22.79 %** |
 | huge-prod    | npm  | baseline |       | 29947 |              |
 
-## Maintenance Status
+## Maintenance status
 
 **Active:** Formidable is actively working on this project, and we expect to continue for work for the foreseeable future. Bug reports, feature requests and pull requests are welcome.
 
