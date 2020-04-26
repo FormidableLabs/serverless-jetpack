@@ -14,6 +14,13 @@ const { findProdInstalls } = require("inspectdep");
 const IS_WIN = process.platform === "win32";
 const EPOCH = new Date(0);
 
+const GLOBBY_OPTS = {
+  dot: true,
+  silent: true,
+  follow: true,
+  nodir: true
+};
+
 // Stubbable container object.
 let bundle = {};
 
@@ -91,13 +98,7 @@ const resolveFilePathsFromPatterns = async ({
     .concat(include || []);
 
   // Read files from disk matching include patterns.
-  const files = await globby(globInclude, {
-    cwd,
-    dot: true,
-    silent: true,
-    follow: true,
-    nodir: true
-  });
+  const files = await globby(globInclude, { ...GLOBBY_OPTS, cwd });
 
   // ==========================================================================
   // **Phase Two** (`nanomatch()`): Filter list of files.
@@ -441,7 +442,7 @@ const globAndZip = async ({
   if (traceInclude) {
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
-    const srcPaths = await globby(traceInclude, { cwd });
+    const srcPaths = await globby(traceInclude, { ...GLOBBY_OPTS, cwd });
     const traced = await traceFiles({ ...traceParams, srcPaths });
 
     // Aggregate.
@@ -449,9 +450,18 @@ const globAndZip = async ({
       memo[path.relative(servicePath, depPath)] = val;
       return memo;
     }, {});
+
+    // TODO: HERE -- Add traceInclude or srcPaths to depInclude???
+    // console.log("TODO HERE bundle", {
+    //   srcPaths,
+    //   traceInclude,
+    //   traceParams,
+    //   misses: traced.misses
+    // });
+
     depInclude = depInclude.concat(
       // Add all handler files first.
-      traceInclude,
+      srcPaths,
       // Convert to relative paths and include in patterns for bundling.
       traced.dependencies.map((depPath) => path.relative(servicePath, depPath))
     );
@@ -466,6 +476,10 @@ const globAndZip = async ({
   const { included, excluded } = await resolveFilePathsFromPatterns(
     { cwd, servicePath, preInclude, depInclude, include, exclude }
   );
+
+  // console.log("TODO HERE bundle - resolveFilePathsFromPatterns", {
+  //   included
+  // });
 
   // Detect collapsed duplicates.
   // https://github.com/FormidableLabs/serverless-jetpack/issues/109

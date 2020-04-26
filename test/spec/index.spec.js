@@ -840,7 +840,11 @@ describe("index", () => {
             "Bailing on 1 missed dynamic imports."
           );
         });
+      });
 
+      describe("trace.dynamic.resolutions", () => {
+        // TODO: HERE
+        // TODO: Also add bail in.
         it("resolves misses at service-level"); // TODO(trace-options)
 
         it("resolves misses at function-level"); // TODO(trace-options)
