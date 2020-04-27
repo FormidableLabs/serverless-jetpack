@@ -508,6 +508,32 @@ custom:
         "ws":
           - "bufferutil"
           - "utf-8-validate"
+      dynamic:
+        # Force errors if have unresolved dynamic imports
+        bail: true
+        # Resolve encountered dynamic import misses, either by tracing
+        # additional files, or ignoring after confirmation of safety.
+        resolutions:
+          # **Application Source**
+          #
+          # Specify relative path to application source files to do resolutions
+          # (either trace more files, or set to falsey value to ignore)
+          "src/server/config.js":
+            # Manually trace all configuration files for bespoke configuration
+            # application code.
+            - "src/config/**/*.js"
+
+          # **Dependencies**
+          #
+          # Resolve the dynamic imports by include additional globs to trace.
+          # In this case, `@heroku/socksv5` is dynamically importing _other_
+          # files from the same library, so just add those and trace any
+          # additional dependencies from them.
+          "@heroku/socksv5":
+            - "node_modules/@heroku/socksv5/lib/**/*.js"
+          # The dynamic import from `colors` was a theme loader, which we aren't
+          # using. Ignore with just an empty value, `false`, `null`, or empty array `[]`.
+          "colors": null
 
 package:
   include:

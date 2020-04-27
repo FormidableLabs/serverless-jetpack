@@ -467,6 +467,101 @@ describe("index", () => {
             "node_modules/red-pkg/package.json"
           ] });
       });
+
+      describe("trace.dynamic.resolutions", () => {
+        it.only("resolves misses at service-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  preInclude:
+                    - "!**"
+                  trace:
+                    dynamic:
+                      # TODO: ENABLE BAIL
+                      bail: true
+                      resolutions:
+                        "needs-resolves":
+                          - "node_modules/added-by-resolve-trace/**/*.js"
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                # Service functions
+                one:
+                  handler: one.handler
+            `,
+            "one.js": `
+              // A dynamic import
+              const dyn = require(process.env.DYNAMIC_IMPORT);
+              require("./lib/one-another");
+
+              exports.handler = async () => ({
+                body: JSON.stringify({ one: require("one-pkg") })
+              });
+            `,
+            "dont-include.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ one: require("dont-include-pkg") })
+              });
+            `,
+            lib: {
+              "one-another.js": `
+                // Another dynamic import
+                const dyn = require(process.env.ANOTHER_DYNAMIC_IMPORT);
+
+                exports.handler = async () => ({
+                  body: JSON.stringify({ one: "another" })
+                });
+              `,
+            },
+            node_modules: {
+              "one-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": `
+                  // A dynamic import
+                  const dyn = require.resolve(process.env.ONE_DYNAMIC_IMPORT);
+
+                  module.exports = "one";
+                `
+              },
+              "dont-include-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'dont-include';"
+              }
+            }
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(1).and
+            // service package
+            .to.be.calledWithMatch({ traceInclude: [
+              "one.js"
+            ] });
+          expect(bundle.createZip)
+            .to.have.callCount(1).and
+            // service package
+            .to.be.calledWithMatch({ files: [
+              "one.js",
+              "lib/one-another.js",
+              "node_modules/one-pkg/index.js",
+              "node_modules/one-pkg/package.json"
+            ] });
+        }); // TODO(trace-options)
+
+        // TODO(trace-options): Make sure to merge in service to function level.
+        it("resolves misses at function-level"); // TODO(trace-options)
+      });
     });
 
     describe("configurations", () => {
@@ -845,14 +940,6 @@ describe("index", () => {
             "Bailing on tracing dynamic import misses. Source Files: 0, Dependencies: 1"
           );
         });
-      });
-
-      describe("trace.dynamic.resolutions", () => {
-        // TODO: HERE
-        // TODO: Also add bail in.
-        it("resolves misses at service-level"); // TODO(trace-options)
-
-        it("resolves misses at function-level"); // TODO(trace-options)
       });
     });
   });
