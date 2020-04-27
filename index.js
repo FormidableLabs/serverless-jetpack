@@ -27,8 +27,16 @@ const dedent = (str, num) => str
 
 const uniq = (val, i, arr) => val !== arr[i - 1];
 
+// Concatenate two arrays and produce sorted, unique values.
+const smartConcat = (arr1 = [], arr2 = []) => []
+  // Aggregate in service-level includes first
+  .concat(arr1, arr2)
+  // Make unique.
+  .sort()
+  .filter(uniq);
+
 // Merge two objects of form `{ key: [] }`.
-const smartMerge = (obj1, obj2) => []
+const smartMerge = (obj1 = {}, obj2 = {}) => []
   // Get all unique missing package keys.
   .concat(
     Object.keys(obj1),
@@ -39,14 +47,7 @@ const smartMerge = (obj1, obj2) => []
   // Smart merge unique missing values
   .reduce((obj, key) => {
     // Aggregate service and function unique missing values.
-    obj[key] = []
-      .concat(
-        obj1[key] || [],
-        obj2[key] || []
-      )
-      .sort()
-      .filter(uniq);
-
+    obj[key] = smartConcat(obj1[key], obj2[key]);
     return obj;
   }, {});
 
@@ -281,6 +282,7 @@ class Jetpack {
       .filter(uniq);
     serviceObj.dynamic = {
       bail: false,
+      resolutions: {},
       ...serviceObj.dynamic
     };
 
@@ -311,7 +313,7 @@ class Jetpack {
       bail: typeof functionObj.dynamic.bail !== "undefined"
         ? functionObj.dynamic.bail
         : serviceObj.dynamic.bail,
-      // TODO(trace-options): Dynamic merge `dynamic.resolutions`
+      resolutions: smartMerge(serviceObj.dynamic.resolutions, functionObj.dynamic.resolutions),
       ...functionObj.dynamic
     };
 
