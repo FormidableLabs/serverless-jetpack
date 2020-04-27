@@ -477,7 +477,7 @@ describe("index", () => {
             buildTime: 0,
             collapsed: { srcs: {}, pkgs: {} },
             trace: {
-              misses: {}
+              misses: { srcs: {}, pkgs: {} }
             }
           }));
         });
@@ -677,38 +677,43 @@ describe("index", () => {
             collapsed: { srcs: {}, pkgs: {} },
             trace: {
               misses: {
-                "node_modules/@heroku/socksv5/index.js": [
-                  {
-                    start: 118,
-                    end: 150,
-                    loc: {
-                      start: {
-                        line: 5,
-                        column: 12
+                srcs: {},
+                pkgs: {
+                  "@heroku/socksv5": {
+                    "node_modules/@heroku/socksv5/index.js": [
+                      {
+                        start: 118,
+                        end: 150,
+                        loc: {
+                          start: {
+                            line: 5,
+                            column: 12
+                          },
+                          end: {
+                            line: 5,
+                            column: 44
+                          }
+                        },
+                        src: "require(__dirname + '/lib/' + f)"
                       },
-                      end: {
-                        line: 5,
-                        column: 44
+                      {
+                        start: 400,
+                        end: 437,
+                        loc: {
+                          start: {
+                            line: 14,
+                            column: 42
+                          },
+                          end: {
+                            line: 14,
+                            column: 79
+                          }
+                        },
+                        src: "require(__dirname + '/lib/auth/' + f)"
                       }
-                    },
-                    src: "require(__dirname + '/lib/' + f)"
-                  },
-                  {
-                    start: 400,
-                    end: 437,
-                    loc: {
-                      start: {
-                        line: 14,
-                        column: 42
-                      },
-                      end: {
-                        line: 14,
-                        column: 79
-                      }
-                    },
-                    src: "require(__dirname + '/lib/auth/' + f)"
+                    ]
                   }
-                ]
+                }
               }
             }
           }));
@@ -792,7 +797,7 @@ describe("index", () => {
 
           const plugin = new Jetpack(await createServerless());
           await expect(plugin.package()).to.be.rejectedWith(
-            "Bailing on 1 missed dynamic imports."
+            "Bailing on tracing dynamic import misses. Source Files: 0, Dependencies: 1"
           );
         });
 
@@ -837,7 +842,7 @@ describe("index", () => {
 
           const plugin = new Jetpack(await createServerless());
           await expect(plugin.package()).to.be.rejectedWith(
-            "Bailing on 1 missed dynamic imports."
+            "Bailing on tracing dynamic import misses. Source Files: 0, Dependencies: 1"
           );
         });
       });
@@ -859,7 +864,7 @@ describe("index", () => {
         buildTime: 0,
         collapsed: { srcs: {}, pkgs: {} },
         trace: {
-          misses: {}
+          misses: { srcs: {}, pkgs: {} }
         }
       }));
 
@@ -956,7 +961,7 @@ describe("index", () => {
             }
           },
           trace: {
-            misses: {}
+            misses: { srcs: {}, pkgs: {} }
           }
         }));
       });

@@ -588,21 +588,22 @@ Dynamic imports that use variables or runtime execution like `require(A_VARIABLE
 The first step is to be aware and watch for dynamic import misses. Conveniently, Jetpack logs warnings like the following:
 
 ```
-Serverless: [serverless-jetpack] WARNING: Found 10 source files with tracing dynamic import misses in .serverless/FN_NAME.zip! Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses
-Serverless: [serverless-jetpack] .serverless/FN_NAME.zip source files with tracing dynamic import misses: [/* ... */,"../node_modules/bindings/bindings.js","../node_modules/bunyan/lib/bunyan.js",/* ... */]
+Serverless: [serverless-jetpack] WARNING: Found 6 dependency packages with tracing misses in .serverless/FN_NAME.zip! Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses
+Serverless: [serverless-jetpack] .serverless/FN_NAME.zip dependency package tracing misses: [* ... */,"colors","bunyan",/* ... */]
 ```
 
 and produces combined `--report` output like:
 
 ```md
-### Trace Dynamic Misses (`10` files)
+### Tracing Dynamic Misses (`6` packages): Dependencies
 
 ...
-- ../node_modules/bindings/bindings.js [76:22]: require.resolve(n)
-- ../node_modules/bindings/bindings.js [76:43]: require(n)
-- ../node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
-- ../node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
-- ../node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
+- `colors`
+    - ../node_modules/aws-xray-sdk-core/node_modules/colors/lib/colors.js [127:29]: require(theme)
+- `bunyan`
+    - ../node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
+    - ../node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
+    - ../node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
 ...
 ```
 

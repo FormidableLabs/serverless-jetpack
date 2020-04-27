@@ -400,6 +400,51 @@ class Jetpack {
       .reduce((arr, missList) => arr.concat(missList), []);
   }
 
+  _traceMissesPkgsReport(pkgMisses) {
+    return Object.entries(pkgMisses)
+      .map(([pkgName, misses]) => [`- \`${pkgName}\``].concat(
+        this._traceMissesReport(misses).map((line) => `    ${line}`)
+      ))
+      .reduce((arr, missList) => arr.concat(missList), []);
+  }
+
+  // Handle tracing misses
+  _handleTraceMisses({ misses, bundleName, bail }) {
+    const srcsLen = Object.keys(misses.srcs).length;
+    const pkgsLen = Object.keys(misses.pkgs).length;
+
+    // No trace misses. Yay!
+    if (!srcsLen && !pkgsLen) { return; }
+
+    if (srcsLen) {
+      const srcsReport = JSON.stringify(Object.keys(misses.srcs));
+
+      this._logWarning(
+        `Found ${srcsLen} source files with tracing misses in ${bundleName}! `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
+      );
+      this._log(`${bundleName} source file tracing misses: ${srcsReport}`, { color: "gray" });
+    }
+
+    if (pkgsLen) {
+      const pkgReport = JSON.stringify(Object.keys(misses.pkgs));
+
+      this._logWarning(
+        `Found ${pkgsLen} dependency packages with tracing misses in ${bundleName}! `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
+      );
+      this._log(`${bundleName} dependency package tracing misses: ${pkgReport}`, { color: "gray" });
+    }
+
+    if (bail) {
+      throw new Error(
+        "Bailing on tracing dynamic import misses. "
+        + `Source Files: ${srcsLen}, Dependencies: ${pkgsLen}. `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
+      );
+    }
+  }
+
   _collapsedReport(summary) {
     const pkgsSummary = (packages) => packages ? `Packages: ${packages.length}, ` : "";
     const pkgsReport = (packages) => packages ? `: [${
@@ -411,30 +456,6 @@ class Jetpack {
         `- ${group} (${pkgsSummary(packages)}`
         + `Files: ${numUniquePaths} unique, ${numTotalFiles} total)${pkgsReport(packages)}`
       );
-  }
-
-  // Handle tracing misses
-  _handleTraceMisses({ misses, bundleName, bail }) {
-    const files = Object.keys(misses);
-
-    // No trace misses. Yay!
-    if (!files.length) { return; }
-
-    this._logWarning(
-      `Found ${files.length} source files with tracing dynamic import misses in ${bundleName}! `
-      + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
-    );
-    this._log(
-      `${bundleName} source files with tracing dynamic import misses: ${JSON.stringify(files)}`,
-      { color: "gray" }
-    );
-
-    if (bail) {
-      throw new Error(
-        `Bailing on ${files.length} missed dynamic imports. `
-        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
-      );
-    }
   }
 
   // Handle collapsed duplicates.
@@ -488,7 +509,7 @@ class Jetpack {
       - Roots: ${roots ? "" : "(None)"}
       ${(roots || []).map((p) => `    - '${p}'`).join(JOIN_STR)}
 
-      ### Trace: Configuration
+      ### Tracing: Configuration
 
       \`\`\`yml
       # Ignores (\`${trace.ignores.length}\`):
@@ -527,9 +548,13 @@ class Jetpack {
 
       ${files.excluded.sort().map((p) => `- ${p}`).join(JOIN_STR)}
 
-      ### Trace Dynamic Misses (\`${Object.keys(trace.misses).length}\` files)
+      ### Tracing Dynamic Misses (\`${Object.keys(trace.misses.srcs).length}\` files): Sources
 
-      ${this._traceMissesReport(trace.misses).join(JOIN_STR)}
+      ${this._traceMissesReport(trace.misses.srcs).join(JOIN_STR)}
+
+      ### Tracing Dynamic Misses (\`${Object.keys(trace.misses.pkgs).length}\` packages): Dependencies
+
+      ${this._traceMissesPkgsReport(trace.misses.pkgs).join(JOIN_STR)}
 
       ### Collapsed (\`${Object.keys(collapsed.srcs).length}\`): Sources
 

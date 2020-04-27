@@ -179,6 +179,58 @@ const createDepInclude = async ({ cwd, rootPath, roots }) => {
     .then((depsList) => depsList.reduce((m, a) => m.concat(a), []));
 };
 
+// Extra highest level node_modules package.
+// E.g., `backend/node_modules/pkg1/node_modules/pkg2/index.js` => `pkg2`
+const lastPackage = (filePath) => {
+  const parts = filePath.split(path.sep);
+  const nodeModulesIdx = parts.lastIndexOf("node_modules");
+  if (nodeModulesIdx === -1) { return null; }
+
+  // Get first part of package.
+  const firstPart = parts[nodeModulesIdx + 1];
+  if (!firstPart) { return null; }
+
+  // Unscoped.
+  if (firstPart[0] !== "@") { return firstPart; }
+
+  // Scoped.
+  const secondPart = parts[nodeModulesIdx + 2]; // eslint-disable-line no-magic-numbers
+  if (!secondPart) { return null; }
+
+  return [firstPart, secondPart].join("/");
+};
+
+// Remap trace misses to aggregate package names in form of:
+// ```
+// {
+//   srcs: {
+//     "backend/src/server.js": [/* misses array */]
+//   },
+//   pkgs: {
+//     "@scoped/pkg": {
+//       "../node_modules/@scoped/pkg/index.js": [/* misses array */]
+//     }
+//   }
+// }
+// ```
+const mapTraceMisses = ({ traced, servicePath } = {}) => {
+  const map = { srcs: {}, pkgs: {} };
+  if (!(traced || {}).misses) { return map; }
+
+  Object.entries(traced.misses).forEach(([depPath, val]) => {
+    depPath = path.relative(servicePath, depPath);
+    const depPkg = lastPackage(depPath);
+    if (depPkg) {
+      map.pkgs[depPkg] = map.pkgs[depPkg] || {};
+      map.pkgs[depPkg][depPath] = val;
+    } else {
+      map.srcs[depPath] = val;
+    }
+  });
+
+  return map;
+};
+
 const PKG_NORMAL_PARTS = 2;
 const PKG_SCOPED_PARTS = 3;
 
@@ -438,26 +490,19 @@ const globAndZip = async ({
   // Remove all cwd-relative-root node_modules first. Trace/package modes will
   // then bring `node_modules` individual files back in after.
   let depInclude = ["!node_modules/**"];
-  let traceMisses = {};
+  let traceMisses = mapTraceMisses();
   if (traceInclude) {
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
     const srcPaths = await globby(traceInclude, { ...GLOBBY_OPTS, cwd });
     const traced = await traceFiles({ ...traceParams, srcPaths });
+    traceMisses = mapTraceMisses({ traced, servicePath });
 
-    // Aggregate.
-    traceMisses = Object.entries(traced.misses).reduce((memo, [depPath, val]) => {
-      memo[path.relative(servicePath, depPath)] = val;
-      return memo;
-    }, {});
-
-    // TODO: HERE -- Add traceInclude or srcPaths to depInclude???
-    // console.log("TODO HERE bundle", {
+    // // TODO: HERE -- Start looking at resolutions
+    // console.log("TODO HERE bundle", JSON.stringify({
     //   srcPaths,
-    //   traceInclude,
-    //   traceParams,
-    //   misses: traced.misses
-    // });
+    //   traceMisses
+    // }, null, 2));
 
     depInclude = depInclude.concat(
       // Add all handler files first.
@@ -476,10 +521,6 @@ const globAndZip = async ({
   const { included, excluded } = await resolveFilePathsFromPatterns(
     { cwd, servicePath, preInclude, depInclude, include, exclude }
   );
-
-  // console.log("TODO HERE bundle - resolveFilePathsFromPatterns", {
-  //   included
-  // });
 
   // Detect collapsed duplicates.
   // https://github.com/FormidableLabs/serverless-jetpack/issues/109
