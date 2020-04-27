@@ -476,7 +476,12 @@ The basic `trace` Boolean field should hopefully work for most cases. Jetpack pr
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging.
     * **Note**: These patterns are in _addition_ to the handler inferred file path. If you want to exclude the handler path you could technically do a `!file/path.js` exclusion, but that would be a strange case in that your handler files would no longer be present.
 * `trace.dynamic.bail` (`Boolean`): Terminate `serverless` program with an error if dynamic import misses are detected. See [discussion below](#handling-dynamic-import-misses) regarding handling.
-* TODO(tracing-options) `trace.dynamic.resolutions`
+* `trace.dynamic.resolutions` (`Object.<string, Array<string>>`): Handle dynamic import misses by providing a key to match misses on and an array of additional glob patterns to trace and include in the application bundle.
+    * _Application source files_: If a miss is an application source file (e.g., not within `node_modules`), specify the **relative path** to it like `"src/server/router.js": [/* array of patterns */]`.
+    * _Dependency packages_: If a miss is part of a dependency (e.g., an `npm` package placed within `node_modules`), specify the **package name** path like `"bunyan": [/* array of patterns */]`.
+    * _Ignoring dynamic import misses_: If you just want to ignore the missed dynamic imports for a given application source file or package, just specify and empty array `[]` or falsey value.
+
+ A way to allow certain packages to have potentially failing dependencies. Specify each object key as a package name and value as an array of dependencies that _might_ be missing on disk. If the sub-dependency is found, then it is included in the bundle (this part distinguishes this option from `ignores`). If not, it is skipped without error.
 
 The following **function**-level configurations available via `functions.{FN_NAME}.jetpack.trace` and  `layers.{LAYER_NAME}.jetpack.trace`:
 
@@ -485,7 +490,7 @@ The following **function**-level configurations available via `functions.{FN_NAM
 * `trace.allowMissing` (`Object.<string, Array<string>>`): An object of package path prefixes mapping to lists of packages that are allowed to be missing **if** the function is being packaged `individually`. If there is a service-level `trace.allowMissing` object then the function-level ones will be smart **merged** into the list.
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging. If there are service-level `trace.include`s then the function-level ones will be **added** to the list.
 * `trace.dynamic.bail` (`Boolean`): Terminate `serverless` program with an error if dynamic import misses are detected **if** the function is being packaged `individually`.
-* TODO(tracing-options) `trace.dynamic.resolutions`
+* `trace.dynamic.resolutions` (`Object.<string, Array<string>>`): An object of application source file or package name keys mapping to lists of pattern globs that are traced and included in the application bundle **if** the function is being packaged `individually`. If there is a service-level `trace.dynamic.resolutions` object then the function-level ones will be smart **merged** into the list.
 
 Let's see the advanced options in action:
 

@@ -27,6 +27,29 @@ const dedent = (str, num) => str
 
 const uniq = (val, i, arr) => val !== arr[i - 1];
 
+// Merge two objects of form `{ key: [] }`.
+const smartMerge = (obj1, obj2) => []
+  // Get all unique missing package keys.
+  .concat(
+    Object.keys(obj1),
+    Object.keys(obj2)
+  )
+  .sort()
+  .filter(uniq)
+  // Smart merge unique missing values
+  .reduce((obj, key) => {
+    // Aggregate service and function unique missing values.
+    obj[key] = []
+      .concat(
+        obj1[key] || [],
+        obj2[key] || []
+      )
+      .sort()
+      .filter(uniq);
+
+    return obj;
+  }, {});
+
 /**
  * Package Serverless applications manually.
  *
@@ -283,27 +306,7 @@ class Jetpack {
       // Make unique.
       .sort()
       .filter(uniq);
-    functionObj.allowMissing = []
-      // Get all unique missing package keys.
-      .concat(
-        Object.keys(serviceObj.allowMissing),
-        Object.keys(functionObj.allowMissing)
-      )
-      .sort()
-      .filter(uniq)
-      // Smart merge unique missing values
-      .reduce((obj, key) => {
-        // Aggregate service and function unique missing values.
-        obj[key] = []
-          .concat(
-            serviceObj.allowMissing[key] || [],
-            functionObj.allowMissing[key] || []
-          )
-          .sort()
-          .filter(uniq);
-
-        return obj;
-      }, {});
+    functionObj.allowMissing = smartMerge(serviceObj.allowMissing, functionObj.allowMissing);
     functionObj.dynamic = {
       bail: typeof functionObj.dynamic.bail !== "undefined"
         ? functionObj.dynamic.bail

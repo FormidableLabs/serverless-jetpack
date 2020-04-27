@@ -469,7 +469,7 @@ describe("index", () => {
       });
 
       describe("trace.dynamic.resolutions", () => {
-        it.only("resolves misses at service-level", async () => {
+        it.skip("resolves misses at service-level", async () => {
           mock({
             "serverless.yml": `
               service: sls-mocked
@@ -494,6 +494,13 @@ describe("index", () => {
                 # Service functions
                 one:
                   handler: one.handler
+                  jetpack:
+                    dynamic:
+                      # These resolutions should _not_ be included because
+                      # service-level packaging.
+                      resolutions:
+                        "needs-resolves":
+                          - "dont-include.js"
             `,
             "one.js": `
               // A dynamic import
@@ -517,7 +524,7 @@ describe("index", () => {
                 exports.handler = async () => ({
                   body: JSON.stringify({ one: "another" })
                 });
-              `,
+              `
             },
             node_modules: {
               "one-pkg": {
