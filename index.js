@@ -36,20 +36,15 @@ const smartConcat = (arr1 = [], arr2 = []) => []
   .filter(uniq);
 
 // Merge two objects of form `{ key: [] }`.
-const smartMerge = (obj1 = {}, obj2 = {}) => []
+const smartMerge = (obj1 = {}, obj2 = {}) =>
   // Get all unique missing package keys.
-  .concat(
-    Object.keys(obj1),
-    Object.keys(obj2)
-  )
-  .sort()
-  .filter(uniq)
+  smartConcat(Object.keys(obj1), Object.keys(obj2))
   // Smart merge unique missing values
-  .reduce((obj, key) => {
+    .reduce((obj, key) => {
     // Aggregate service and function unique missing values.
-    obj[key] = smartConcat(obj1[key], obj2[key]);
-    return obj;
-  }, {});
+      obj[key] = smartConcat(obj1[key], obj2[key]);
+      return obj;
+    }, {});
 
 /**
  * Package Serverless applications manually.
@@ -274,12 +269,8 @@ class Jetpack {
       dynamic: {},
       ...typeof serviceTrace === "object" ? serviceTrace : {}
     };
-    serviceObj.include = []
-      // Aggregate with all service-packaged functions.
-      .concat(serviceObj.include, serviceFnIncludes)
-      // Make unique.
-      .sort()
-      .filter(uniq);
+    // Aggregate with all service-packaged functions.
+    serviceObj.include = smartConcat(serviceObj.include, serviceFnIncludes);
     serviceObj.dynamic = {
       bail: false,
       resolutions: {},
@@ -296,18 +287,8 @@ class Jetpack {
       dynamic: {},
       ...typeof functionTrace === "object" ? functionTrace : {}
     };
-    functionObj.include = []
-      // Aggregate in service-level includes first
-      .concat(serviceObj.include, functionObj.include)
-      // Make unique.
-      .sort()
-      .filter(uniq);
-    functionObj.ignores = []
-      // Aggregate in service-level ignores first
-      .concat(serviceObj.ignores, functionObj.ignores)
-      // Make unique.
-      .sort()
-      .filter(uniq);
+    functionObj.include = smartConcat(serviceObj.include, functionObj.include);
+    functionObj.ignores = smartConcat(serviceObj.ignores, functionObj.ignores);
     functionObj.allowMissing = smartMerge(serviceObj.allowMissing, functionObj.allowMissing);
     functionObj.dynamic = {
       bail: typeof functionObj.dynamic.bail !== "undefined"
