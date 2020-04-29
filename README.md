@@ -629,12 +629,10 @@ and produces combined `--report` output like:
 ### Tracing Dynamic Misses (`6` packages): Dependencies
 
 ...
-- `colors`
-    - ../node_modules/aws-xray-sdk-core/node_modules/colors/lib/colors.js [127:29]: require(theme)
-- `bunyan`
-    - ../node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
-    - ../node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
-    - ../node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
+- ../node_modules/aws-xray-sdk-core/node_modules/colors/lib/colors.js [127:29]: require(theme)
+- ../node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
+- ../node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
+- ../node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
 ...
 ```
 

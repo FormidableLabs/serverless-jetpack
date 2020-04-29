@@ -389,20 +389,27 @@ class Jetpack {
   }
 
   _traceMissesPkgsReport(pkgMisses) {
-    return Object.entries(pkgMisses)
-      .map(([pkgName, misses]) => [`- \`${pkgName}\``].concat(
-        this._traceMissesReport(misses).map((line) => `    ${line}`)
-      ))
+    return Object.values(pkgMisses)
+      .map((misses) => this._traceMissesReport(misses))
       .reduce((arr, missList) => arr.concat(missList), []);
   }
 
   // Handle tracing misses
-  _handleTraceMisses({ misses, bundleName, bail }) {
+  _handleTraceMisses({ bundleName, misses, resolutions, bail }) {
     const srcsLen = Object.keys(misses.srcs).length;
     const pkgsLen = Object.keys(misses.pkgs).length;
 
     // No trace misses. Yay!
     if (!srcsLen && !pkgsLen) { return; }
+
+    // TODO: Unwind misses format back to straight keys and match resolutions
+    // TODO: May need to normalize resolutions keys
+    // TODO: Test win32 resolutions paths
+    console.log("TODO HERE Start Matching Misses + Resolutions", {
+      bundleName,
+      misses,
+      resolutions
+    });
 
     if (srcsLen) {
       const srcsReport = JSON.stringify(Object.keys(misses.srcs));
@@ -689,7 +696,12 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({ misses: trace.misses, bundleName, bail: dynamic.bail });
+      this._handleTraceMisses({
+        bundleName,
+        misses: trace.misses,
+        resolutions: dynamic.resolutions,
+        bail: dynamic.bail
+      });
     }
 
     this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
@@ -723,7 +735,12 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({ misses: trace.misses, bundleName, bail: dynamic.bail });
+      this._handleTraceMisses({
+        bundleName,
+        misses: trace.misses,
+        resolutions: dynamic.resolutions,
+        bail: dynamic.bail
+      });
     }
 
     this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
