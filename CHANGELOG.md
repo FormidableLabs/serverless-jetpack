@@ -4,7 +4,7 @@ Changes
 ## UNRELEASED
 
 * Feature: Add `jetpack.trace.dynamic.bail` option.
-* TODO(trace-options): `jetpack.trace.dynamic.resolutions`
+* Feature: Add `jetpack.trace.dynamic.resolutions` option.
 * Internal: Minor refactor of patterns passed for trace includes to globbing handlers. Also standardize options passed to `globby()` across different functions.
 * Internal: Enhance and refactor trace miss logging as well as the `--report` format for trace misses to collapse packages.
 

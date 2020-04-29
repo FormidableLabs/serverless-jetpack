@@ -498,11 +498,12 @@ const globAndZip = async ({
     const traced = await traceFiles({ ...traceParams, srcPaths });
     traceMisses = mapTraceMisses({ traced, servicePath });
 
-    // // TODO: HERE -- Start looking at resolutions
-    // console.log("TODO HERE bundle", JSON.stringify({
-    //   srcPaths,
-    //   traceMisses
-    // }, null, 2));
+    // TODO: HERE -- Start looking at resolutions
+    console.log("TODO HERE bundle", JSON.stringify({
+      srcPaths,
+      traceParams,
+      traceMisses
+    }, null, 2));
 
     depInclude = depInclude.concat(
       // Add all handler files first.

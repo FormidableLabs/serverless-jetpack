@@ -477,14 +477,14 @@ describe("index", () => {
               custom:
                 jetpack:
                   preInclude:
-                    - "!**"
+                   - "!**"
                   trace:
                     dynamic:
-                      # TODO: ENABLE BAIL
                       bail: true
                       resolutions:
-                        "needs-resolves":
-                          - "node_modules/added-by-resolve-trace/**/*.js"
+                        "needs-resolutions-pkg/lib/file.js":
+                          - "added-by-resolve-trace"
+                          # TODO(trace-options): A nested path package
 
               provider:
                 name: aws
@@ -495,12 +495,13 @@ describe("index", () => {
                 one:
                   handler: one.handler
                   jetpack:
-                    dynamic:
-                      # These resolutions should _not_ be included because
-                      # service-level packaging.
-                      resolutions:
-                        "needs-resolves":
-                          - "dont-include.js"
+                    trace:
+                      dynamic:
+                        # These resolutions should _not_ be included because
+                        # service-level packaging.
+                        resolutions:
+                          "needs-resolutions-pkg/lib/file.js":
+                            - "dont-include-pkg"
             `,
             "one.js": `
               // A dynamic import
@@ -537,6 +538,26 @@ describe("index", () => {
 
                   module.exports = "one";
                 `
+              },
+              "needs-resolutions-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = require('./nested/file.js');",
+                lib: {
+                  "file.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                }
+              },
+              "added-by-resolve-trace-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'added-by-resolve-trace';",
+                nested: {
+                  other: {
+                    "stuff.js": "module.exports = 'stuff-added-by-resolve-trace';"
+                  }
+                }
               },
               "dont-include-pkg": {
                 "package.json": stringify({

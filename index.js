@@ -370,9 +370,9 @@ class Jetpack {
       traceInclude,
       traceParams: {
         ignores: traceObj.ignores,
-        allowMissing: traceObj.allowMissing,
-        dynamic: traceObj.dynamic
-      }
+        allowMissing: traceObj.allowMissing
+      },
+      dynamic: traceObj.dynamic
     };
   }
 
@@ -677,7 +677,7 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Get traces.
-    const { traceInclude, traceParams } = await this._traceOptions({ functionObject });
+    const { traceInclude, traceParams, dynamic } = await this._traceOptions({ functionObject });
     const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
@@ -687,7 +687,7 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({ misses: trace.misses, bundleName, bail: traceParams.dynamic.bail });
+      this._handleTraceMisses({ misses: trace.misses, bundleName, bail: dynamic.bail });
     }
 
     this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
@@ -711,7 +711,7 @@ class Jetpack {
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Get traces.
-    const { traceInclude, traceParams } = await this._traceOptions({ functionObjects });
+    const { traceInclude, traceParams, dynamic } = await this._traceOptions({ functionObjects });
     const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
@@ -721,7 +721,7 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({ misses: trace.misses, bundleName, bail: traceParams.dynamic.bail });
+      this._handleTraceMisses({ misses: trace.misses, bundleName, bail: dynamic.bail });
     }
 
     this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
