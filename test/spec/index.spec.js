@@ -469,7 +469,7 @@ describe("index", () => {
       });
 
       describe("trace.dynamic.resolutions", () => {
-        it.skip("resolves misses at service-level", async () => {
+        it.only("resolves misses at service-level", async () => {
           mock({
             "serverless.yml": `
               service: sls-mocked
@@ -483,13 +483,16 @@ describe("index", () => {
                       bail: false  # TODO(trace-options): make true
                       resolutions:
                         # Sources (start with a dot)
+                        # Resolve by ignoring (empty array)
+                        # TODO(CHECK BAIL) "./one.js": []
+
+                        # Resolve with a package and another application source.
                         "./lib/one-another.js":
                           - "added-by-one-another-pkg/nested/file.js"
                           # This **adds** dep that then has a tracing miss and resolution!
                           - "./just-ignore.js"
 
                         # Hand a path that needs normalization.
-                        # Empty array value means "just ignore misses"
                         "./lib/../lib/just-ignore.js": []
 
                         # Packages (no dot)
@@ -610,6 +613,8 @@ describe("index", () => {
               "one.js",
               "lib/just-ignore.js",
               "lib/one-another.js",
+              "node_modules/added-by-one-another-pkg/nested/file.js",
+              "node_modules/added-by-one-another-pkg/package.json",
               "node_modules/added-by-resolve-trace-pkg/index.js",
               "node_modules/added-by-resolve-trace-pkg/package.json",
               "node_modules/needs-resolutions-pkg/index.js",
