@@ -369,8 +369,10 @@ class Jetpack {
     return {
       traceInclude,
       traceParams: {
+        // These are **only** parameters to `traceFiles()`.
         ignores: traceObj.ignores,
-        allowMissing: traceObj.allowMissing
+        allowMissing: traceObj.allowMissing,
+        extraImports: traceObj.dynamic.resolutions
       },
       dynamic: traceObj.dynamic
     };

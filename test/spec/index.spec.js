@@ -469,7 +469,7 @@ describe("index", () => {
       });
 
       describe("trace.dynamic.resolutions", () => {
-        it.skip("resolves misses at service-level", async () => {
+        it.only("resolves misses at service-level", async () => {
           mock({
             "serverless.yml": `
               service: sls-mocked
@@ -480,10 +480,10 @@ describe("index", () => {
                    - "!**"
                   trace:
                     dynamic:
-                      bail: true
+                      bail: false  # TODO(trace-options): make true
                       resolutions:
                         "needs-resolutions-pkg/lib/file.js":
-                          - "added-by-resolve-trace"
+                          - "added-by-resolve-trace-pkg"
                           # TODO(trace-options): A nested path package
 
               provider:
@@ -507,6 +507,7 @@ describe("index", () => {
               // A dynamic import
               const dyn = require(process.env.DYNAMIC_IMPORT);
               require("./lib/one-another");
+              require("needs-resolutions-pkg");
 
               exports.handler = async () => ({
                 body: JSON.stringify({ one: require("one-pkg") })
@@ -543,7 +544,7 @@ describe("index", () => {
                 "package.json": stringify({
                   main: "index.js"
                 }),
-                "index.js": "module.exports = require('./nested/file.js');",
+                "index.js": "module.exports = require('./lib/file.js');",
                 lib: {
                   "file.js": "module.exports = require.resolve(process.env.DYNAMIC);"
                 }
@@ -582,6 +583,11 @@ describe("index", () => {
             .to.be.calledWithMatch({ files: [
               "one.js",
               "lib/one-another.js",
+              "node_modules/added-by-resolve-trace-pkg/index.js",
+              "node_modules/added-by-resolve-trace-pkg/package.json",
+              "node_modules/needs-resolutions-pkg/index.js",
+              "node_modules/needs-resolutions-pkg/lib/file.js",
+              "node_modules/needs-resolutions-pkg/package.json",
               "node_modules/one-pkg/index.js",
               "node_modules/one-pkg/package.json"
             ] });
