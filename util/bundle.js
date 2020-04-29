@@ -494,23 +494,15 @@ const globAndZip = async ({
   if (traceInclude) {
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
-    const srcPaths = await globby(traceInclude, { ...GLOBBY_OPTS, cwd });
+    const srcPaths = (await globby(traceInclude, { ...GLOBBY_OPTS, cwd }))
+      .map((srcPath) => path.resolve(servicePath, srcPath));
     const traced = await traceFiles({ ...traceParams, srcPaths });
     traceMisses = mapTraceMisses({ traced, servicePath });
 
-    // TODO: HERE -- Start looking at resolutions
-    console.log("TODO HERE bundle", JSON.stringify({
-      srcPaths,
-      traceParams,
-      traceMisses
-    }, null, 2));
-
-    depInclude = depInclude.concat(
-      // Add all handler files first.
-      srcPaths,
+    depInclude = depInclude
+      .concat(srcPaths, traced.dependencies)
       // Convert to relative paths and include in patterns for bundling.
-      traced.dependencies.map((depPath) => path.relative(servicePath, depPath))
-    );
+      .map((depPath) => path.relative(servicePath, depPath));
   } else {
     // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
     depInclude = depInclude.concat(

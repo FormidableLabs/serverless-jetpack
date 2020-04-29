@@ -469,7 +469,7 @@ describe("index", () => {
       });
 
       describe("trace.dynamic.resolutions", () => {
-        it.only("resolves misses at service-level", async () => {
+        it.skip("resolves misses at service-level", async () => {
           mock({
             "serverless.yml": `
               service: sls-mocked
@@ -482,6 +482,17 @@ describe("index", () => {
                     dynamic:
                       bail: false  # TODO(trace-options): make true
                       resolutions:
+                        # Sources (start with a dot)
+                        "./lib/one-another.js":
+                          - "added-by-one-another-pkg/nested/file.js"
+                          # This **adds** dep that then has a tracing miss and resolution!
+                          - "./just-ignore.js"
+
+                        # Hand a path that needs normalization.
+                        # Empty array value means "just ignore misses"
+                        "./lib/../lib/just-ignore.js": []
+
+                        # Packages (no dot)
                         "needs-resolutions-pkg/lib/file.js":
                           - "added-by-resolve-trace-pkg"
                           # TODO(trace-options): A nested path package
@@ -520,11 +531,17 @@ describe("index", () => {
             `,
             lib: {
               "one-another.js": `
-                // Another dynamic import
                 const dyn = require(process.env.ANOTHER_DYNAMIC_IMPORT);
 
                 exports.handler = async () => ({
                   body: JSON.stringify({ one: "another" })
+                });
+              `,
+              "just-ignore.js": `
+                const dyn = require(process.env.IGNORED_DYNAMIC_IMPORT);
+
+                exports.handler = async () => ({
+                  body: JSON.stringify({ msg: "ignore these misses" })
                 });
               `
             },
@@ -547,6 +564,15 @@ describe("index", () => {
                 "index.js": "module.exports = require('./lib/file.js');",
                 lib: {
                   "file.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                }
+              },
+              "added-by-one-another-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'added-by-one-another-pkg';",
+                nested: {
+                  "file.js": "module.exports = 'stuff-added-by-one-another-pkg';"
                 }
               },
               "added-by-resolve-trace-pkg": {
@@ -582,6 +608,7 @@ describe("index", () => {
             // service package
             .to.be.calledWithMatch({ files: [
               "one.js",
+              "lib/just-ignore.js",
               "lib/one-another.js",
               "node_modules/added-by-resolve-trace-pkg/index.js",
               "node_modules/added-by-resolve-trace-pkg/package.json",
@@ -595,6 +622,9 @@ describe("index", () => {
 
         // TODO(trace-options): Make sure to merge in service to function level.
         it("resolves misses at function-level"); // TODO(trace-options)
+
+        // TODO(trace-options): Have 1/2 package files resolved (leaving a miss).
+        it("fails for unresolved misses at function-level"); // TODO(trace-options)
       });
     });
 

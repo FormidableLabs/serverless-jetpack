@@ -46,6 +46,8 @@ const smartMerge = (obj1 = {}, obj2 = {}) =>
       return obj;
     }, {});
 
+const resolveToPosix = (cwd, file) => !file ? file : path.resolve(cwd, file.replace(/\\/g, "/"));
+
 /**
  * Package Serverless applications manually.
  *
@@ -298,6 +300,20 @@ class Jetpack {
       ...functionObj.dynamic
     };
 
+    // Convert **relative** paths in resolutions to absolute paths.
+    // Anything starting with at dot (`.`) is considered an application path
+    // and converted. Remaining relative paths are packages.
+    const cwd = this.serverless.config.servicePath || ".";
+    [
+      serviceObj.dynamic.resolutions,
+      functionObj.dynamic.resolutions
+    ].forEach((res) => Object.entries(res)
+      .filter(([key]) => key.startsWith("."))
+      .forEach(([key, val]) => {
+        delete res[key];
+        res[path.resolve(cwd, key)] = val;
+      }));
+
     return {
       service: {
         enabled: serviceEnabled,
@@ -394,22 +410,62 @@ class Jetpack {
       .reduce((arr, missList) => arr.concat(missList), []);
   }
 
-  // Handle tracing misses
+  // Handle tracing misses.
+  // 1. Log / error for trace misses.
+  // 2. Generate data for resolutions and remaining misses.
   _handleTraceMisses({ bundleName, misses, resolutions, bail }) {
+    // const cwd = this.serverless.config.servicePath || ".";
+
+    // // Full, normalized paths for all resolutions for matching.
+    // const resSrcs = new Set(Object.keys(resolutions)
+    //   .filter((f) => f.startsWith("."))
+    //   .map((f) => resolveToPosix(cwd, f))
+    // );
+
+    // // Create a copy of misses and then iterate and mutate to remove the
+    // // entries that were resolved.
+    // const { srcs, pkgs } = JSON.parse(JSON.stringify(misses));
+    // Object.keys(srcs).forEach((relPath) => {
+    //   const fullPath = resolveToPosix(cwd, relPath);
+    //   console.log("TODO HERE", { relPath, fullPath });
+    //   if (resSrcs.has(fullPath)) {
+    //     console.log("TODO HERE SRCS REMOVING", fullPath);
+    //     delete srcs[relPath];
+    //   }
+    // });
+
+    // // Normalize the misses + resolutions keys to make sure we match appropriately
+    // // const srcs = Object.keys(misses.srcs).map((f) => resolveToPosix(cwd, f));
+    // // const pkgs = Object.entries(misses.pkgs).reduce((memo, [pkg, pkgMisses]) => {
+    // //   memo[pkg] = Object.entries(pkgMisses).reduce((pkgMemo, [pkgPath, pkgPathMisses]) => {
+    // //     pkgMemo[resolveToPosix(cwd, pkgPath)] = pkgPathMisses;
+    // //     return pkgMemo;
+    // //   }, {});
+    // //   return memo;
+    // // }, {});
+
+
+    // // TODO: Unwind misses format back to straight keys and match resolutions
+    // // TODO: May need to normalize resolutions keys
+    // // TODO: Test win32 resolutions paths
+    // console.log("TODO HERE Start Matching Misses + Resolutions", {
+    //   bundleName,
+    //   cwd,
+    //   srcs,
+    //   resSrcs,
+    //   pkgs,
+    //   resolutions
+    // });
+
+    // return;
+
+
     const srcsLen = Object.keys(misses.srcs).length;
     const pkgsLen = Object.keys(misses.pkgs).length;
 
     // No trace misses. Yay!
     if (!srcsLen && !pkgsLen) { return; }
 
-    // TODO: Unwind misses format back to straight keys and match resolutions
-    // TODO: May need to normalize resolutions keys
-    // TODO: Test win32 resolutions paths
-    console.log("TODO HERE Start Matching Misses + Resolutions", {
-      bundleName,
-      misses,
-      resolutions
-    });
 
     if (srcsLen) {
       const srcsReport = JSON.stringify(Object.keys(misses.srcs));

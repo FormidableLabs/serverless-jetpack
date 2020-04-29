@@ -477,7 +477,8 @@ The basic `trace` Boolean field should hopefully work for most cases. Jetpack pr
     * **Note**: These patterns are in _addition_ to the handler inferred file path. If you want to exclude the handler path you could technically do a `!file/path.js` exclusion, but that would be a strange case in that your handler files would no longer be present.
 * `trace.dynamic.bail` (`Boolean`): Terminate `serverless` program with an error if dynamic import misses are detected. See [discussion below](#handling-dynamic-import-misses) regarding handling.
 * `trace.dynamic.resolutions` (`Object.<string, Array<string>>`): Handle dynamic import misses by providing a key to match misses on and an array of additional glob patterns to trace and include in the application bundle.
-    * _Application source files_: If a miss is an application source file (e.g., not within `node_modules`), specify the **relative path** to it like `"src/server/router.js": [/* array of patterns */]`.
+    * _Application source files_: If a miss is an application source file (e.g., not within `node_modules`), specify the **relative path** (from `servicePath` / CWD) to it like `"./src/server/router.js": [/* array of patterns */]`.
+        * **Note**: To be an application source path, it **must** be prefixed with a dot (e.g., `./src/server.js`, `../lower/src/server.js`). Basically, like the Node.js `require()` rules go for a local path file vs. a package dependency.
     * _Dependency packages_: If a miss is part of a dependency (e.g., an `npm` package placed within `node_modules`), specify the **package name** path like `"bunyan": [/* array of patterns */]`.
     * _Ignoring dynamic import misses_: If you just want to ignore the missed dynamic imports for a given application source file or package, just specify and empty array `[]` or falsey value.
 
