@@ -396,10 +396,11 @@ class Jetpack {
 
   _traceMissesReport(misses) {
     return Object.entries(misses)
-      .map(([depPath, missList]) =>
-        missList.map(({ src, loc: { start: { line, column } } }) =>
+      .map(([depPath, missList]) => missList
+        ? missList.map(({ src, loc: { start: { line, column } } }) =>
           `- ${depPath} [${line}:${column}]: ${src}`
         )
+        : [`- ${depPath}`]
       )
       .reduce((arr, missList) => arr.concat(missList), []);
   }
@@ -439,8 +440,8 @@ class Jetpack {
 
       // Remove matches.
       if (resSrcs.has(fullPath)) {
+        resolved.srcs[relPath] = ""; // Just report file path
         delete srcs[relPath];
-        resolved.srcs[relPath] = true;
       }
     });
 
@@ -462,11 +463,12 @@ class Jetpack {
 
         // Remove matches.
         if (resPkgs.has(pkgPath)) {
+          resolved.pkgs[pkg] = resolved.pkgs[pkg] || {};
+          resolved.pkgs[pkg][relPath] = ""; // Just report file path
+
           delete pkgs[pkg][relPath];
           if (!Object.keys(pkgs[pkg]).length) {
             delete pkgs[pkg];
-            resolved.srcs[pkg] = resolved.srcs[pkg] || {};
-            resolved.srcs[pkg][relPath] = true;
           }
         }
       });
@@ -505,10 +507,7 @@ class Jetpack {
 
     return {
       missed: { srcs, pkgs },
-      resolved: {
-        srcs: Array.from(resolved.srcs).sort(),
-        pkgs: Array.from(resolved.pkgs).sort()
-      }
+      resolved
     };
   }
 
@@ -615,13 +614,21 @@ class Jetpack {
 
       ${files.excluded.sort().map((p) => `- ${p}`).join(JOIN_STR)}
 
-      ### Tracing Dynamic Misses (\`${Object.keys(trace.misses.srcs).length}\` files): Sources
+      ### Tracing Dynamic Misses (\`${Object.keys(trace.missed.srcs).length}\` files): Sources
 
-      ${this._traceMissesReport(trace.misses.srcs).join(JOIN_STR)}
+      ${this._traceMissesReport(trace.missed.srcs).join(JOIN_STR)}
 
-      ### Tracing Dynamic Misses (\`${Object.keys(trace.misses.pkgs).length}\` packages): Dependencies
+      ### Tracing Dynamic Resolved (\`${Object.keys(trace.resolved.srcs).length}\` files): Sources
 
-      ${this._traceMissesPkgsReport(trace.misses.pkgs).join(JOIN_STR)}
+      ${this._traceMissesReport(trace.resolved.srcs).join(JOIN_STR)}
+
+      ### Tracing Dynamic Misses (\`${Object.keys(trace.missed.pkgs).length}\` packages): Dependencies
+
+      ${this._traceMissesPkgsReport(trace.missed.pkgs).join(JOIN_STR)}
+
+      ### Tracing Dynamic Resolved (\`${Object.keys(trace.resolved.pkgs).length}\` packages): Dependencies
+
+      ${this._traceMissesPkgsReport(trace.resolved.pkgs).join(JOIN_STR)}
 
       ### Collapsed (\`${Object.keys(collapsed.srcs).length}\`): Sources
 
@@ -768,12 +775,15 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({
+      const { missed, resolved } = this._handleTraceMisses({
         bundleName,
         misses: trace.misses,
         resolutions: dynamic.resolutions,
         bail: dynamic.bail
       });
+
+      // Add in results
+      Object.assign(trace, { missed, resolved });
     }
 
     this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
@@ -807,12 +817,15 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({
+      const { missed, resolved } = this._handleTraceMisses({
         bundleName,
         misses: trace.misses,
         resolutions: dynamic.resolutions,
         bail: dynamic.bail
       });
+
+      // Add in results
+      Object.assign(trace, { missed, resolved });
     }
 
     this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
