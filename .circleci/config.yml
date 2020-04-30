@@ -94,8 +94,8 @@ workflows:
           name: build-linux-node-12
           executor_tag: '12'
       - build_and_test:
-          name: build-linux-node-13
-          executor_tag: '13'
+          name: build-linux-node-14
+          executor_tag: '14'
       # TODO(83): Out of windows OSS credits
       # See: https://github.com/FormidableLabs/serverless-jetpack/issues/83
       # - build_and_test:

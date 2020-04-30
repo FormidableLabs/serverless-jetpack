@@ -568,10 +568,11 @@ class Jetpack {
     const JOIN_STR = `${"\n"}${" ".repeat(INDENT)}`;
     /* eslint-disable max-len*/
     const bundles = results
-      .map(({ bundlePath, roots, patterns, files, trace, collapsed }) => `
+      .map(({ mode, bundlePath, roots, patterns, files, trace, collapsed }) => `
       ## ${path.basename(bundlePath)}
 
       - Path: ${bundlePath}
+      - Mode: ${mode}
       - Roots: ${roots ? "" : "(None)"}
       ${(roots || []).map((p) => `    - '${p}'`).join(JOIN_STR)}
 

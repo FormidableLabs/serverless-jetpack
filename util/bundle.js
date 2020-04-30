@@ -529,6 +529,7 @@ const globAndZip = async ({
   let results = {
     numFiles: included.length,
     bundlePath,
+    mode: traceInclude ? "trace" : "dependency",
     buildTime: new Date() - start,
     collapsed,
     trace: {
@@ -544,7 +545,9 @@ const globAndZip = async ({
       trace: {
         ...results.trace,
         ignores: traceParams.ignores || [],
-        allowMissing: traceParams.allowMissing || {}
+        allowMissing: traceParams.allowMissing || {},
+        missed: { srcs: {}, pkgs: {} },
+        resolved: { srcs: {}, pkgs: {} }
       },
       patterns: {
         preInclude,
