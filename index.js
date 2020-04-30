@@ -1,14 +1,13 @@
 "use strict";
 
-const pkg = require("./package.json");
 const path = require("path");
 const pLimit = require("p-limit");
 const Worker = require("jest-worker").default;
 const { globAndZip } = require("./util/bundle");
 const globby = require("globby");
 
+const PLUGIN_NAME = require("./package.json").name;
 const SLS_TMP_DIR = ".serverless";
-const PLUGIN_NAME = pkg.name;
 
 // Timer and formatter.
 // eslint-disable-next-line no-magic-numbers
@@ -422,42 +421,66 @@ class Jetpack {
       .map((f) => toPosix(f))
     );
 
+    const resPkgs = new Set(Object.keys(resolutions)
+      .filter((f) => !path.isAbsolute(f))
+      .map((f) => toPosix(f))
+    );
+
     // Create a copy of misses and then iterate and mutate to remove the
     // entries that were resolved.
     const { srcs, pkgs } = JSON.parse(JSON.stringify(misses));
+
+    // Misses shape: `{ relPath: MISSES_OBJ }`
     Object.keys(srcs).forEach((relPath) => {
       const fullPath = toPosix(path.resolve(cwd, relPath));
-      console.log("TODO HERE SRCS (before)", { relPath, fullPath });
+
+      // Remove matches.
       if (resSrcs.has(fullPath)) {
-        console.log("TODO HERE SRCS REMOVING", fullPath);
         delete srcs[relPath];
       }
     });
 
-    // Normalize the misses + resolutions keys to make sure we match appropriately
-    // const srcs = Object.keys(misses.srcs).map((f) => resolveToPosix(cwd, f));
-    // const pkgs = Object.entries(misses.pkgs).reduce((memo, [pkg, pkgMisses]) => {
-    //   memo[pkg] = Object.entries(pkgMisses).reduce((pkgMemo, [pkgPath, pkgPathMisses]) => {
-    //     pkgMemo[resolveToPosix(cwd, pkgPath)] = pkgPathMisses;
-    //     return pkgMemo;
-    //   }, {});
-    //   return memo;
-    // }, {});
+    // Misses shape: `{ pkg: { relpath: MISSES_OBJ } }`
+    Object.entries(pkgs).forEach(([pkg, pkgSrcs]) => {
+      Object.keys(pkgSrcs).forEach((relPath) => {
+        // Convert `misses.pkgs` entries to `resolutions` entries.
+        //
+        // `resolutions` are in abstract paths (`PKG/path/to/file.js`), whereas
+        // `misses.pkgs` entries are in relative paths
+        // (`../PKG/node_modules/path/to/file.js`). We need to make them
+        // matchable.
+        //
+        // We can do an abbreviated "last package fragment" because we already
+        // have confirmed we have legitimate node_modules packages.
+        const parts = toPosix(path.normalize(relPath)).split("/");
+        const lastModsIdx = parts.lastIndexOf("node_modules");
+        const pkgPath = parts.slice(lastModsIdx + 1).join("/");
 
-
-    // TODO: Unwind misses format back to straight keys and match resolutions
-    // TODO: May need to normalize resolutions keys
-    // TODO: Test win32 resolutions paths
-    console.log("TODO HERE Start Matching Misses + Resolutions", {
-      bundleName,
-      cwd,
-      srcs,
-      resSrcs,
-      pkgs,
-      resolutions
+        // Remove matches.
+        if (resPkgs.has(pkgPath)) {
+          delete pkgs[pkg][relPath];
+          if (!Object.keys(pkgs[pkg]).length) {
+            delete pkgs[pkg];
+          }
+        }
+      });
     });
 
-    return;
+    // TODO: HERE
+    // // TODO: Unwind misses format back to straight keys and match resolutions
+    // // TODO: May need to normalize resolutions keys
+    // // TODO: Test win32 resolutions paths
+    // console.log("TODO HERE Start Matching Misses + Resolutions", {
+    //   bundleName,
+    //   cwd,
+    //   srcs,
+    //   resSrcs,
+    //   pkgs,
+    //   resPkgs,
+    //   resolutions
+    // });
+
+    // return;
 
 
     const srcsLen = Object.keys(misses.srcs).length;

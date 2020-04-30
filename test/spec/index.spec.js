@@ -469,7 +469,7 @@ describe("index", () => {
       });
 
       describe("trace.dynamic.resolutions", () => {
-        it.only("resolves misses at service-level", async () => {
+        it.skip("resolves misses at service-level", async () => {
           mock({
             "serverless.yml": `
               service: sls-mocked
