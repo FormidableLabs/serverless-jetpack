@@ -747,8 +747,88 @@ describe("index", () => {
             ] });
         });
 
-        // TODO(trace-options): Have 1/2 package files resolved (leaving a miss).
-        it("fails for unresolved misses at function-level"); // TODO(trace-options)
+        it("fails for unresolved misses at function-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  preInclude:
+                   - "!**"
+                  trace:
+                    dynamic:
+                      bail: true
+                      resolutions:
+                        "needs-resolutions-pkg/lib/file.js":
+                          - "added-by-resolve-trace-pkg"
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                # Service functions
+                one:
+                  handler: one.handler
+            `,
+            "one.js": `
+              // A dynamic import
+              require("needs-resolutions-pkg");
+
+              exports.handler = async () => ({
+                body: JSON.stringify({ one: require("one-pkg") })
+              });
+            `,
+            node_modules: {
+              "one-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": `
+                  module.exports = "one";
+                `
+              },
+              "needs-resolutions-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": `
+                  module.exports = {
+                    file: require('./lib/file.js'),
+                    notResolved: require('./lib/not-resolved.js')
+                  };
+                `,
+                lib: {
+                  "file.js": "module.exports = require.resolve(process.env.DYNAMIC);",
+                  "not-resolved.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                }
+              },
+              "added-by-resolve-trace-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'added-by-resolve-trace';",
+                nested: {
+                  other: {
+                    "stuff.js": "module.exports = 'stuff-added-by-resolve-trace';"
+                  }
+                }
+              },
+              "dont-include-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'dont-include';"
+              }
+            }
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await expect(plugin.package()).to.be.rejectedWith(
+            "Bailing on tracing dynamic import misses. Source Files: 0, Dependencies: 1"
+          );
+        });
       });
     });
 
