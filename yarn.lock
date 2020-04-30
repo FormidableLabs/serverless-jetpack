@@ -6605,9 +6605,10 @@ tough-cookie@^2.3.3, tough-cookie@~2.5.0:
     psl "^1.1.28"
     punycode "^2.1.1"
 
-trace-deps@FormidableLabs/trace-deps#feature/resolutions:
-  version "0.3.2"
-  resolved "https://codeload.github.com/FormidableLabs/trace-deps/tar.gz/585654b346421160916610c3cb775cf64412b5ae"
+trace-deps@^0.3.3:
+  version "0.3.3"
+  resolved "https://registry.yarnpkg.com/trace-deps/-/trace-deps-0.3.3.tgz#de04c7c81fc988355654db8e0d7cdd3b8328bc92"
+  integrity sha512-aNpC9Bd8UYuaVlo5sXSJboveHUVmeWk9/0ak/usg/eOUSt1Mj0xjLQFJ7QStBqezf0PHQi48mNTua64PS6ve7w==
   dependencies:
     acorn-node "^2.0.0"
     resolve "^1.15.1"
