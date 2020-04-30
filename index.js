@@ -478,7 +478,10 @@ class Jetpack {
     const pkgsLen = Object.keys(pkgs).length;
 
     if (srcsLen) {
-      const srcsReport = JSON.stringify(Object.keys(srcs));
+      // Full report if bailing.
+      const srcsReport = bail
+        ? `\n${this._traceMissesReport(srcs)}`
+        : JSON.stringify(Object.keys(srcs));
 
       this._logWarning(
         `Found ${srcsLen} source files with tracing misses in ${bundleName}! `
@@ -488,7 +491,10 @@ class Jetpack {
     }
 
     if (pkgsLen) {
-      const pkgReport = JSON.stringify(Object.keys(pkgs));
+      // Full report if bailing.
+      const pkgReport = bail
+        ? `\n${this._traceMissesPkgsReport(pkgs)}`
+        : JSON.stringify(Object.keys(pkgs));
 
       this._logWarning(
         `Found ${pkgsLen} dependency packages with tracing misses in ${bundleName}! `
