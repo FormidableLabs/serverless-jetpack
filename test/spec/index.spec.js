@@ -469,7 +469,7 @@ describe("index", () => {
       });
 
       describe("trace.dynamic.resolutions", () => {
-        it.only("resolves misses at service-level", async () => {
+        it("resolves misses at service-level", async () => {
           mock({
             "serverless.yml": `
               service: sls-mocked
@@ -480,7 +480,7 @@ describe("index", () => {
                    - "!**"
                   trace:
                     dynamic:
-                      bail: false  # TODO(trace-options): make true
+                      bail: true
                       resolutions:
                         # Sources (start with a dot)
                         # Resolve by ignoring (empty array)

@@ -413,6 +413,7 @@ class Jetpack {
   // Handle tracing misses.
   // 1. Log / error for trace misses.
   // 2. Generate data for resolutions and remaining misses.
+  // eslint-disable-next-line max-statements
   _handleTraceMisses({ bundleName, misses, resolutions, bail }) {
     const cwd = this.serverless.config.servicePath || ".";
 
@@ -430,6 +431,7 @@ class Jetpack {
     // Create a copy of misses and then iterate and mutate to remove the
     // entries that were resolved.
     const { srcs, pkgs } = JSON.parse(JSON.stringify(misses));
+    const resolved = { srcs: {}, pkgs: {} };
 
     // Misses shape: `{ relPath: MISSES_OBJ }`
     Object.keys(srcs).forEach((relPath) => {
@@ -438,6 +440,7 @@ class Jetpack {
       // Remove matches.
       if (resSrcs.has(fullPath)) {
         delete srcs[relPath];
+        resolved.srcs[relPath] = true;
       }
     });
 
@@ -462,36 +465,18 @@ class Jetpack {
           delete pkgs[pkg][relPath];
           if (!Object.keys(pkgs[pkg]).length) {
             delete pkgs[pkg];
+            resolved.srcs[pkg] = resolved.srcs[pkg] || {};
+            resolved.srcs[pkg][relPath] = true;
           }
         }
       });
     });
 
-    // TODO: Unwind misses format back to straight keys and match resolutions
-    // TODO: May need to normalize resolutions keys
-    // TODO: Test win32 resolutions paths
-    console.log("TODO HERE Start Matching Misses + Resolutions", {
-      bundleName,
-      cwd,
-      srcs,
-      resSrcs,
-      pkgs,
-      resPkgs,
-      resolutions
-    });
-
-    return;
-
-
-    const srcsLen = Object.keys(misses.srcs).length;
-    const pkgsLen = Object.keys(misses.pkgs).length;
-
-    // No trace misses. Yay!
-    if (!srcsLen && !pkgsLen) { return; }
-
+    const srcsLen = Object.keys(srcs).length;
+    const pkgsLen = Object.keys(pkgs).length;
 
     if (srcsLen) {
-      const srcsReport = JSON.stringify(Object.keys(misses.srcs));
+      const srcsReport = JSON.stringify(Object.keys(srcs));
 
       this._logWarning(
         `Found ${srcsLen} source files with tracing misses in ${bundleName}! `
@@ -501,7 +486,7 @@ class Jetpack {
     }
 
     if (pkgsLen) {
-      const pkgReport = JSON.stringify(Object.keys(misses.pkgs));
+      const pkgReport = JSON.stringify(Object.keys(pkgs));
 
       this._logWarning(
         `Found ${pkgsLen} dependency packages with tracing misses in ${bundleName}! `
@@ -510,13 +495,21 @@ class Jetpack {
       this._log(`${bundleName} dependency package tracing misses: ${pkgReport}`, { color: "gray" });
     }
 
-    if (bail) {
+    if ((srcsLen || pkgsLen) && bail) {
       throw new Error(
         "Bailing on tracing dynamic import misses. "
         + `Source Files: ${srcsLen}, Dependencies: ${pkgsLen}. `
         + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
       );
     }
+
+    return {
+      missed: { srcs, pkgs },
+      resolved: {
+        srcs: Array.from(resolved.srcs).sort(),
+        pkgs: Array.from(resolved.pkgs).sort()
+      }
+    };
   }
 
   _collapsedReport(summary) {
