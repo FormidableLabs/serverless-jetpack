@@ -627,8 +627,125 @@ describe("index", () => {
             ] });
         });
 
-        // TODO(trace-options): Make sure to merge in service to function level.
-        it("resolves misses at function-level"); // TODO(trace-options)
+        it("resolves misses at function-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  preInclude:
+                   - "!**"
+                  trace:
+                    dynamic:
+                      resolutions:
+                        "needs-resolutions-pkg/lib/file.js":
+                          - "added-by-resolve-trace-pkg"
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                # Service functions
+                one:
+                  handler: one.handler
+                  package:
+                    individually: true
+                  jetpack:
+                    trace:
+                      bail: true
+                      dynamic:
+                        # These resolutions should _not_ be included because
+                        # service-level packaging.
+                        resolutions:
+                          "./one.js": false
+                          # Merge in additional packages
+                          "needs-resolutions-pkg/lib/file.js":
+                            - "also-added-by-resolve-trace-pkg"
+            `,
+            "one.js": `
+              // A dynamic import
+              const dyn = require(process.env.DYNAMIC_IMPORT);
+              require("needs-resolutions-pkg");
+
+              exports.handler = async () => ({
+                body: JSON.stringify({ one: require("one-pkg") })
+              });
+            `,
+            node_modules: {
+              "one-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": `
+                  module.exports = "one";
+                `
+              },
+              "needs-resolutions-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = require('./lib/file.js');",
+                lib: {
+                  "file.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                }
+              },
+              "added-by-resolve-trace-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'added-by-resolve-trace';",
+                nested: {
+                  other: {
+                    "stuff.js": "module.exports = 'stuff-added-by-resolve-trace';"
+                  }
+                }
+              },
+              "also-added-by-resolve-trace-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'also-added-by-resolve-trace';",
+                nested: {
+                  other: {
+                    "stuff.js": "module.exports = 'stuff-also-added-by-resolve-trace';"
+                  }
+                }
+              },
+              "dont-include-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'dont-include';"
+              }
+            }
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(1).and
+            // service package
+            .to.be.calledWithMatch({ traceInclude: [
+              "one.js"
+            ] });
+          expect(bundle.createZip)
+            .to.have.callCount(1).and
+            // service package
+            .to.be.calledWithMatch({ files: [
+              "one.js",
+              "node_modules/added-by-resolve-trace-pkg/index.js",
+              "node_modules/added-by-resolve-trace-pkg/package.json",
+              "node_modules/also-added-by-resolve-trace-pkg/index.js",
+              "node_modules/also-added-by-resolve-trace-pkg/package.json",
+              "node_modules/needs-resolutions-pkg/index.js",
+              "node_modules/needs-resolutions-pkg/lib/file.js",
+              "node_modules/needs-resolutions-pkg/package.json",
+              "node_modules/one-pkg/index.js",
+              "node_modules/one-pkg/package.json"
+            ] });
+        });
 
         // TODO(trace-options): Have 1/2 package files resolved (leaving a miss).
         it("fails for unresolved misses at function-level"); // TODO(trace-options)
