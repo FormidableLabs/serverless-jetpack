@@ -479,7 +479,7 @@ The basic `trace` Boolean field should hopefully work for most cases. Jetpack pr
 * `trace.dynamic.resolutions` (`Object.<string, Array<string>>`): Handle dynamic import misses by providing a key to match misses on and an array of additional glob patterns to trace and include in the application bundle.
     * _Application source files_: If a miss is an application source file (e.g., not within `node_modules`), specify the **relative path** (from `servicePath` / CWD) to it like `"./src/server/router.js": [/* array of patterns */]`.
         * **Note**: To be an application source path, it **must** be prefixed with a dot (e.g., `./src/server.js`, `../lower/src/server.js`). Basically, like the Node.js `require()` rules go for a local path file vs. a package dependency.
-    * _Dependency packages_: If a miss is part of a dependency (e.g., an `npm` package placed within `node_modules`), specify the **package name** path like `"bunyan": [/* array of patterns */]`.
+    * _Dependency packages_: If a miss is part of a dependency (e.g., an `npm` package placed within `node_modules`), specify the **package name** first (without including `node_modules`) and then trailing path to file at issue like `"bunyan/lib/bunyan.js": [/* array of patterns */]`.
     * _Ignoring dynamic import misses_: If you just want to ignore the missed dynamic imports for a given application source file or package, just specify and empty array `[]` or falsey value.
 
  A way to allow certain packages to have potentially failing dependencies. Specify each object key as a package name and value as an array of dependencies that _might_ be missing on disk. If the sub-dependency is found, then it is included in the bundle (this part distinguishes this option from `ignores`). If not, it is skipped without error.
@@ -522,28 +522,38 @@ custom:
         resolutions:
           # **Application Source**
           #
-          # Specify relative path to application source files to do resolutions
-          # (either trace more files, or set to falsey value to ignore)
-          "src/server/config.js":
+          # Specify keys as relative path to application source files starting
+          # with a dot.
+          "./src/server/config.js":
             # Manually trace all configuration files for bespoke configuration
             # application code.
-            - "src/config/**/*.js"
+            - "src/config/default.js"
+            - "src/config/production.js"
+
+          # Ignore dynamic import misses with empty array.
+          "./src/something-else.js": []
 
           # **Dependencies**
           #
-          # Resolve the dynamic imports by include additional globs to trace.
-          # In this case, `@heroku/socksv5` is dynamically importing _other_
-          # files from the same library, so just add those and trace any
-          # additional dependencies from them.
-          "@heroku/socksv5":
-            - "node_modules/@heroku/socksv5/lib/**/*.js"
-          # The dynamic import from `colors` was a theme loader, which we aren't
-          # using. Ignore with just an empty value, `false`, `null`, or empty array `[]`.
-          "colors": null
+          # Specify keys as `PKG_NAME/path/to/file.js`.
+          "bunyan/lib/bunyan.js":
+            # - node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
+            # - node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
+            # - node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
+            #
+            # These are all just try/catch-ed permissive require's meant to be
+            # excluded in browser. We manually add them in here.
+            - "dtrace-provider"
+            - "mv"
+            - "source-map-support"
+
+          # Ignore: we aren't using themes.
+          # - node_modules/colors/lib/colors.js [127:29]: require(theme)
+          "colors/lib/colors.js": []
 
 package:
   include:
-    - "a/manual/file_i_want.js"
+    - "a/manual/file-i-want.js"
 
 functions:
   # Functions in service package.
