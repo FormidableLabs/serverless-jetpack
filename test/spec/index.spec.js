@@ -488,17 +488,19 @@ describe("index", () => {
 
                         # Resolve with a package and another application source.
                         "./lib/one-another.js":
-                          - "added-by-one-another-pkg/nested/file.js"
                           # This **adds** dep that then has a tracing miss and resolution!
                           - "./just-ignore.js"
+                          # A nested package path.
+                          - "added-by-one-another-pkg/nested/file.js"
 
-                        # Hand a path that needs normalization.
+                        # A that needs normalization. (Also ignored.)
                         "./lib/../lib/just-ignore.js": []
 
                         # Packages (no dot)
                         "needs-resolutions-pkg/lib/file.js":
                           - "added-by-resolve-trace-pkg"
-                          # TODO(trace-options): A nested path package
+
+                        "one-pkg/index.js": []
 
               provider:
                 name: aws
@@ -623,7 +625,7 @@ describe("index", () => {
               "node_modules/one-pkg/index.js",
               "node_modules/one-pkg/package.json"
             ] });
-        }); // TODO(trace-options)
+        });
 
         // TODO(trace-options): Make sure to merge in service to function level.
         it("resolves misses at function-level"); // TODO(trace-options)
