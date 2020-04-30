@@ -469,7 +469,7 @@ describe("index", () => {
       });
 
       describe("trace.dynamic.resolutions", () => {
-        it.skip("resolves misses at service-level", async () => {
+        it.only("resolves misses at service-level", async () => {
           mock({
             "serverless.yml": `
               service: sls-mocked
@@ -484,7 +484,7 @@ describe("index", () => {
                       resolutions:
                         # Sources (start with a dot)
                         # Resolve by ignoring (empty array)
-                        # TODO(CHECK BAIL) "./one.js": []
+                        "./one.js": false
 
                         # Resolve with a package and another application source.
                         "./lib/one-another.js":

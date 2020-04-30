@@ -309,8 +309,9 @@ class Jetpack {
     ].forEach((res) => Object.entries(res)
       .filter(([key]) => key.startsWith("."))
       .forEach(([key, val]) => {
+        // Replace key and mutate falsey values to an empty array.
         delete res[key];
-        res[path.resolve(cwd, key)] = val;
+        res[path.resolve(cwd, key)] = val || [];
       }));
 
     return {
@@ -466,21 +467,20 @@ class Jetpack {
       });
     });
 
-    // TODO: HERE
-    // // TODO: Unwind misses format back to straight keys and match resolutions
-    // // TODO: May need to normalize resolutions keys
-    // // TODO: Test win32 resolutions paths
-    // console.log("TODO HERE Start Matching Misses + Resolutions", {
-    //   bundleName,
-    //   cwd,
-    //   srcs,
-    //   resSrcs,
-    //   pkgs,
-    //   resPkgs,
-    //   resolutions
-    // });
+    // TODO: Unwind misses format back to straight keys and match resolutions
+    // TODO: May need to normalize resolutions keys
+    // TODO: Test win32 resolutions paths
+    console.log("TODO HERE Start Matching Misses + Resolutions", {
+      bundleName,
+      cwd,
+      srcs,
+      resSrcs,
+      pkgs,
+      resPkgs,
+      resolutions
+    });
 
-    // return;
+    return;
 
 
     const srcsLen = Object.keys(misses.srcs).length;
