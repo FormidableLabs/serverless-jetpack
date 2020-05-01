@@ -136,6 +136,9 @@ $ SERVERLESS_ACCESS_KEY="<INSERT_HERE>" yarn benchmark:test
 Before you go ahead and submit a PR, make sure that you have done the following:
 
 ```sh
+# Update the documentation TOCs (and commit changes).
+$ yarn run build
+
 # Run lint and unit tests
 $ yarn run check
 

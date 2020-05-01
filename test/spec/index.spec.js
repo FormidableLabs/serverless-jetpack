@@ -467,204 +467,758 @@ describe("index", () => {
             "node_modules/red-pkg/package.json"
           ] });
       });
+
+      describe("trace.dynamic.resolutions", () => {
+        it("resolves misses at service-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  preInclude:
+                   - "!**"
+                  trace:
+                    dynamic:
+                      bail: true
+                      resolutions:
+                        # Sources (start with a dot)
+                        # Resolve by ignoring (empty array)
+                        "./one.js": false
+
+                        # Resolve with a package and another application source.
+                        "./lib/one-another.js":
+                          # This **adds** dep that then has a tracing miss and resolution!
+                          - "./just-ignore.js"
+                          # A nested package path.
+                          - "added-by-one-another-pkg/nested/file.js"
+
+                        # A that needs normalization. (Also ignored.)
+                        "./lib/../lib/just-ignore.js": []
+
+                        # Packages (no dot)
+                        "needs-resolutions-pkg/lib/file.js":
+                          - "added-by-resolve-trace-pkg"
+
+                        "one-pkg/index.js": []
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                # Service functions
+                one:
+                  handler: one.handler
+                  jetpack:
+                    trace:
+                      dynamic:
+                        # These resolutions should _not_ be included because
+                        # service-level packaging.
+                        resolutions:
+                          "needs-resolutions-pkg/lib/file.js":
+                            - "dont-include-pkg"
+            `,
+            "one.js": `
+              // A dynamic import
+              const dyn = require(process.env.DYNAMIC_IMPORT);
+              require("./lib/one-another");
+              require("needs-resolutions-pkg");
+
+              exports.handler = async () => ({
+                body: JSON.stringify({ one: require("one-pkg") })
+              });
+            `,
+            "dont-include.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ one: require("dont-include-pkg") })
+              });
+            `,
+            lib: {
+              "one-another.js": `
+                const dyn = require(process.env.ANOTHER_DYNAMIC_IMPORT);
+
+                exports.handler = async () => ({
+                  body: JSON.stringify({ one: "another" })
+                });
+              `,
+              "just-ignore.js": `
+                const dyn = require(process.env.IGNORED_DYNAMIC_IMPORT);
+
+                exports.handler = async () => ({
+                  body: JSON.stringify({ msg: "ignore these misses" })
+                });
+              `
+            },
+            node_modules: {
+              "one-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": `
+                  // A dynamic import
+                  const dyn = require.resolve(process.env.ONE_DYNAMIC_IMPORT);
+
+                  module.exports = "one";
+                `
+              },
+              "needs-resolutions-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = require('./lib/file.js');",
+                lib: {
+                  "file.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                }
+              },
+              "added-by-one-another-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'added-by-one-another-pkg';",
+                nested: {
+                  "file.js": "module.exports = 'stuff-added-by-one-another-pkg';"
+                }
+              },
+              "added-by-resolve-trace-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'added-by-resolve-trace';",
+                nested: {
+                  other: {
+                    "stuff.js": "module.exports = 'stuff-added-by-resolve-trace';"
+                  }
+                }
+              },
+              "dont-include-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'dont-include';"
+              }
+            }
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(1).and
+            // service package
+            .to.be.calledWithMatch({ traceInclude: [
+              "one.js"
+            ] });
+          expect(bundle.createZip)
+            .to.have.callCount(1).and
+            // service package
+            .to.be.calledWithMatch({ files: [
+              "one.js",
+              "lib/just-ignore.js",
+              "lib/one-another.js",
+              "node_modules/added-by-one-another-pkg/nested/file.js",
+              "node_modules/added-by-one-another-pkg/package.json",
+              "node_modules/added-by-resolve-trace-pkg/index.js",
+              "node_modules/added-by-resolve-trace-pkg/package.json",
+              "node_modules/needs-resolutions-pkg/index.js",
+              "node_modules/needs-resolutions-pkg/lib/file.js",
+              "node_modules/needs-resolutions-pkg/package.json",
+              "node_modules/one-pkg/index.js",
+              "node_modules/one-pkg/package.json"
+            ] });
+        });
+
+        it("resolves misses at function-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  preInclude:
+                   - "!**"
+                  trace:
+                    dynamic:
+                      resolutions:
+                        "needs-resolutions-pkg/lib/file.js":
+                          - "added-by-resolve-trace-pkg"
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                # Service functions
+                one:
+                  handler: one.handler
+                  package:
+                    individually: true
+                  jetpack:
+                    trace:
+                      bail: true
+                      dynamic:
+                        # These resolutions should _not_ be included because
+                        # service-level packaging.
+                        resolutions:
+                          "./one.js": false
+                          # Merge in additional packages
+                          "needs-resolutions-pkg/lib/file.js":
+                            - "also-added-by-resolve-trace-pkg"
+            `,
+            "one.js": `
+              // A dynamic import
+              const dyn = require(process.env.DYNAMIC_IMPORT);
+              require("parent-pkg");
+
+              exports.handler = async () => ({
+                body: JSON.stringify({ one: require("one-pkg") })
+              });
+            `,
+            node_modules: {
+              "one-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": `
+                  module.exports = "one";
+                `
+              },
+              "parent-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = require('needs-resolutions-pkg');",
+                node_modules: {
+                  // Different from service test, this is a nested package.
+                  "needs-resolutions-pkg": {
+                    "package.json": stringify({
+                      main: "index.js"
+                    }),
+                    "index.js": "module.exports = require('./lib/file.js');",
+                    lib: {
+                      "file.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                    }
+                  }
+                }
+              },
+              "added-by-resolve-trace-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'added-by-resolve-trace';",
+                nested: {
+                  other: {
+                    "stuff.js": "module.exports = 'stuff-added-by-resolve-trace';"
+                  }
+                }
+              },
+              "also-added-by-resolve-trace-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'also-added-by-resolve-trace';",
+                nested: {
+                  other: {
+                    "stuff.js": "module.exports = 'stuff-also-added-by-resolve-trace';"
+                  }
+                }
+              },
+              "dont-include-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'dont-include';"
+              }
+            }
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(1).and
+            // service package
+            .to.be.calledWithMatch({ traceInclude: [
+              "one.js"
+            ] });
+          expect(bundle.createZip)
+            .to.have.callCount(1).and
+            // service package
+            .to.be.calledWithMatch({ files: [
+              "one.js",
+              "node_modules/added-by-resolve-trace-pkg/index.js",
+              "node_modules/added-by-resolve-trace-pkg/package.json",
+              "node_modules/also-added-by-resolve-trace-pkg/index.js",
+              "node_modules/also-added-by-resolve-trace-pkg/package.json",
+              "node_modules/one-pkg/index.js",
+              "node_modules/one-pkg/package.json",
+              "node_modules/parent-pkg/index.js",
+              "node_modules/parent-pkg/node_modules/needs-resolutions-pkg/index.js",
+              "node_modules/parent-pkg/node_modules/needs-resolutions-pkg/lib/file.js",
+              "node_modules/parent-pkg/node_modules/needs-resolutions-pkg/package.json",
+              "node_modules/parent-pkg/package.json"
+            ] });
+        });
+
+        it("fails for unresolved misses at function-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  preInclude:
+                   - "!**"
+                  trace:
+                    dynamic:
+                      bail: true
+                      resolutions:
+                        "needs-resolutions-pkg/lib/file.js":
+                          - "added-by-resolve-trace-pkg"
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                # Service functions
+                one:
+                  handler: one.handler
+            `,
+            "one.js": `
+              // A dynamic import
+              require("needs-resolutions-pkg");
+
+              exports.handler = async () => ({
+                body: JSON.stringify({ one: require("one-pkg") })
+              });
+            `,
+            node_modules: {
+              "one-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": `
+                  module.exports = "one";
+                `
+              },
+              "needs-resolutions-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": `
+                  module.exports = {
+                    file: require('./lib/file.js'),
+                    notResolved: require('./lib/not-resolved.js')
+                  };
+                `,
+                lib: {
+                  "file.js": "module.exports = require.resolve(process.env.DYNAMIC);",
+                  "not-resolved.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                }
+              },
+              "added-by-resolve-trace-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'added-by-resolve-trace';",
+                nested: {
+                  other: {
+                    "stuff.js": "module.exports = 'stuff-added-by-resolve-trace';"
+                  }
+                }
+              },
+              "dont-include-pkg": {
+                "package.json": stringify({
+                  main: "index.js"
+                }),
+                "index.js": "module.exports = 'dont-include';"
+              }
+            }
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await expect(plugin.package()).to.be.rejectedWith(
+            "Bailing on tracing dynamic import misses. Source Files: 0, Dependencies: 1"
+          );
+        });
+      });
     });
 
     describe("configurations", () => {
-      beforeEach(() => {
-        // Don't actually read disk and bundle.
-        sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
-          buildTime: 0,
-          collapsed: { srcs: {}, pkgs: {} },
-          trace: {
-            misses: {}
-          }
-        }));
-      });
-
-      it("traces with service config even if non-individually function is false", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            custom:
-              jetpack:
-                trace: true
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-              two:
-                handler: two.handler
-                # Because not individually packaged, trace=false will have no effect.
-                jetpack:
-                  trace: false
-          `,
-          "one.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "one" })
-            });
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
+      describe("trace", () => {
+        beforeEach(() => {
+          // Don't actually read disk and bundle.
+          sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
+            buildTime: 0,
+            collapsed: { srcs: {}, pkgs: {} },
+            trace: {
+              misses: { srcs: {}, pkgs: {} }
+            }
+          }));
         });
 
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(1).and
-          .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
-      });
+        it("traces with service config even if non-individually function is false", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
 
-      it("traces with service config and skips individually + trace=false functions", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            custom:
-              jetpack:
-                trace: true
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-              two:
-                handler: two.handler
-                # Because individually packaged, service trace=true will apply.
-                package:
-                  individually: true
-              three:
-                handler: three.handler
-                # Because individually packaged, fn trace=false will apply.
-                package:
-                  individually: true
-                jetpack:
-                  trace: false
-          `,
-          "one.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "one" })
-            });
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
-        });
-
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(3).and
-          .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: undefined });
-      });
-
-      it("pattern matches service and traces individually + trace=true functions", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            package:
-              individually: true
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-              two:
-                handler: two.handler
-                # Default service-level false for individually. This will trace.
+              custom:
                 jetpack:
                   trace: true
-              three:
-                handler: three.handler
-                # Explicit false should also not trace.
-                jetpack:
-                  trace: false
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Because not individually packaged, trace=false will have no effect.
+                  jetpack:
+                    trace: false
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(1).and
+            .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
         });
 
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(3).and
-          .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: undefined }).and
-          .to.not.be.calledWithMatch({ traceInclude: ["one.js"] }).and
-          .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
-      });
+        it("traces with service and skips individually + trace=false functions", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
 
-      it("traces for service-level individually and trace", async () => {
-        mock({
-          "serverless.yml": `
-            service: sls-mocked
-
-            package:
-              individually: true
-
-            custom:
-              jetpack:
-                trace: true
-
-            provider:
-              name: aws
-              runtime: nodejs12.x
-
-            functions:
-              one:
-                handler: one.handler
-              two:
-                handler: two.handler
-                # Explicit true should trace.
+              custom:
                 jetpack:
                   trace: true
-              three:
-                handler: three.handler
-                # Explicit false should not trace.
-                jetpack:
-                  trace: false
-          `,
-          "one.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "one" })
-            });
-          `,
-          "two.js": `
-            exports.handler = async () => ({
-              body: JSON.stringify({ message: "two" })
-            });
-          `
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Because individually packaged, service trace=true will apply.
+                  package:
+                    individually: true
+                three:
+                  handler: three.handler
+                  # Because individually packaged, fn trace=false will apply.
+                  package:
+                    individually: true
+                  jetpack:
+                    trace: false
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(3).and
+            .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: undefined });
         });
 
-        const plugin = new Jetpack(await createServerless());
-        await plugin.package();
-        expect(Jetpack.prototype.globAndZip)
-          .to.have.callCount(3).and
-          .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
-          .to.be.calledWithMatch({ traceInclude: undefined }).and
-          .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
+        it("pattern matches service and traces individually + trace=true functions", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              package:
+                individually: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Default service-level false for individually. This will trace.
+                  jetpack:
+                    trace: true
+                three:
+                  handler: three.handler
+                  # Explicit false should also not trace.
+                  jetpack:
+                    trace: false
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(3).and
+            .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: undefined }).and
+            .to.not.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+            .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
+        });
+
+        it("traces for service-level individually and trace", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              package:
+                individually: true
+
+              custom:
+                jetpack:
+                  trace: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  # Explicit true should trace.
+                  jetpack:
+                    trace: true
+                three:
+                  handler: three.handler
+                  # Explicit false should not trace.
+                  jetpack:
+                    trace: false
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(3).and
+            .to.be.calledWithMatch({ traceInclude: ["one.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: ["two.js"] }).and
+            .to.be.calledWithMatch({ traceInclude: undefined }).and
+            .to.not.be.calledWithMatch({ traceInclude: ["three.js"] });
+        });
+      });
+
+      describe("trace.dynamic.bail", () => {
+        beforeEach(() => {
+          // Don't actually read disk and bundle.
+          sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
+            buildTime: 0,
+            collapsed: { srcs: {}, pkgs: {} },
+            trace: {
+              misses: {
+                srcs: {},
+                pkgs: {
+                  "@heroku/socksv5": {
+                    "node_modules/@heroku/socksv5/index.js": [
+                      {
+                        start: 118,
+                        end: 150,
+                        loc: {
+                          start: {
+                            line: 5,
+                            column: 12
+                          },
+                          end: {
+                            line: 5,
+                            column: 44
+                          }
+                        },
+                        src: "require(__dirname + '/lib/' + f)"
+                      },
+                      {
+                        start: 400,
+                        end: 437,
+                        loc: {
+                          start: {
+                            line: 14,
+                            column: 42
+                          },
+                          end: {
+                            line: 14,
+                            column: 79
+                          }
+                        },
+                        src: "require(__dirname + '/lib/auth/' + f)"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }));
+        });
+
+        it("does not error on dynamic misses by default", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  trace: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  jetpack:
+                    trace:
+                      # Because not individually packaged, dynamic.bail=true will have no effect.
+                      dynamic:
+                        bail: true
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await plugin.package();
+          expect(Jetpack.prototype.globAndZip)
+            .to.have.callCount(1).and
+            .to.be.calledWithMatch({ traceInclude: ["one.js", "two.js"] });
+        });
+
+        it("bails on misses at service-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  trace:
+                    dynamic:
+                      bail: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await expect(plugin.package()).to.be.rejectedWith(
+            "Bailing on tracing dynamic import misses. Source Files: 0, Dependencies: 1"
+          );
+        });
+
+        it("bails on misses at function-level", async () => {
+          mock({
+            "serverless.yml": `
+              service: sls-mocked
+
+              custom:
+                jetpack:
+                  trace: true
+
+              provider:
+                name: aws
+                runtime: nodejs12.x
+
+              functions:
+                one:
+                  handler: one.handler
+                two:
+                  handler: two.handler
+                  package:
+                    individually: true
+                  jetpack:
+                    trace:
+                      # Because individually packaged, dynamic.bail=true will throw error
+                      dynamic:
+                        bail: true
+
+            `,
+            "one.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "one" })
+              });
+            `,
+            "two.js": `
+              exports.handler = async () => ({
+                body: JSON.stringify({ message: "two" })
+              });
+            `
+          });
+
+          const plugin = new Jetpack(await createServerless());
+          await expect(plugin.package()).to.be.rejectedWith(
+            "Bailing on tracing dynamic import misses. Source Files: 0, Dependencies: 1"
+          );
+        });
       });
     });
   });
@@ -676,7 +1230,7 @@ describe("index", () => {
         buildTime: 0,
         collapsed: { srcs: {}, pkgs: {} },
         trace: {
-          misses: {}
+          misses: { srcs: {}, pkgs: {} }
         }
       }));
 
@@ -749,7 +1303,7 @@ describe("index", () => {
       /* eslint-enable max-len*/
     });
 
-    describe("collapsed.bail configurations", () => {
+    describe("collapsed.bail", () => {
       beforeEach(() => {
         // Don't actually read disk and bundle.
         sandbox.stub(Jetpack.prototype, "globAndZip").returns(Promise.resolve({
@@ -773,7 +1327,7 @@ describe("index", () => {
             }
           },
           trace: {
-            misses: {}
+            misses: { srcs: {}, pkgs: {} }
           }
         }));
       });

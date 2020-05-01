@@ -22,6 +22,34 @@ The Serverless framework is a **fantastic** one-stop-shop for taking your code a
 
 With the `serverless-jetpack` plugin, many common, slow Serverless packaging scenarios can be dramatically sped up. All with a very easy, seamless integration into your existing Serverless projects.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Usage](#usage)
+  - [The short, short version](#the-short-short-version)
+  - [A little more detail...](#a-little-more-detail)
+  - [Configuration](#configuration)
+- [How Jetpack's faster dependency filtering works](#how-jetpacks-faster-dependency-filtering-works)
+  - [The nitty gritty of why it's faster](#the-nitty-gritty-of-why-its-faster)
+  - [Complexities](#complexities)
+    - [Other Serverless plugins that set `package.artifact`](#other-serverless-plugins-that-set-packageartifact)
+    - [Minor differences vs. Serverless globbing](#minor-differences-vs-serverless-globbing)
+    - [Layers](#layers)
+    - [Be careful with `include` configurations and `node_modules`](#be-careful-with-include-configurations-and-node_modules)
+    - [Packaging files Outside CWD](#packaging-files-outside-cwd)
+- [Tracing mode](#tracing-mode)
+  - [Tracing configuration](#tracing-configuration)
+    - [Tracing options](#tracing-options)
+  - [Tracing caveats](#tracing-caveats)
+  - [Handling dynamic import misses](#handling-dynamic-import-misses)
+  - [Tracing results](#tracing-results)
+- [Command Line Interface](#command-line-interface)
+- [Benchmarks](#benchmarks)
+- [Maintenance status](#maintenance-status)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Usage
 
 ### The short, short version
@@ -316,9 +344,9 @@ include:
   - "!**/node_modules/aws-sdk/**"
 ```
 
-#### Packaging Files Outside CWD
+#### Packaging files Outside CWD
 
-##### How Files Are Zipped
+##### How files are zipped
 
 A potentially serious situation that comes up with adding files to a Serverless package zip file is if any included files are outside of Serverless' `servicePath` / current working directory. For example, if you have files like:
 
@@ -350,7 +378,7 @@ will collapse when zipped to:
 
 ... but Node.js [resolution rules](https://nodejs.org/api/modules.html#modules_all_together) should resolve and load the collapsed package the same as if it were in the original location.
 
-##### Zipping Problems
+##### Zipping problems
 
 The real problems occur if there is a path conflict where files collapse to the **same location**. For example, if we have:
 
@@ -368,13 +396,13 @@ this will append files with the same path in the zip file:
 
 that when expanded leave only **one** file actually on disk!
 
-##### How to Detect Zipping Problems
+##### How to detect zipping problems
 
 The first level is _detecting_ potentially collapsed files that conflict. Jetpack does this automatically with log warnings like:
 
 ```
 Serverless: [serverless-jetpack] WARNING: Found 1 collapsed dependencies in .serverless/my-function.zip! Please fix, with hints at: https://npm.im/serverless-jetpack#packaging-files-outside-cwd
-Serverless: [serverless-jetpack] .serverless/graphql.zip collapsed dependencies:
+Serverless: [serverless-jetpack] .serverless/FN_NAME.zip collapsed dependencies:
 - lodash (Packages: 2, Files: 108 unique, 216 total): [node_modules/lodash@4.17.11, ../node_modules/lodash@4.17.15]`
 ```
 
@@ -382,7 +410,7 @@ In the above example, `2` different versions of lodash were installed and their 
 
 A good practice if you are using tracing mode is to set: `jetpack.collapsed.bail = true` so that Jetpack will throw an error and kill the `serverless` program if any collapsed conflicts are detected.
 
-##### How to Solve Zipping Problems
+##### How to solve zipping problems
 
 So how do we fix the problem?
 
@@ -406,7 +434,7 @@ With a better understanding of what the files are and why we can turn to avoidin
 
 * **Use `package.include|exclude`**: You can manually adjust packaging by excluding files that would be collapsed and then allowing the other ones to come into play. In our example above, a negative `package.include` for `!node_modules/lodash/**` would solve our problem in a semver-acceptable way by leaving only root-level lodash.
 
-## Tracing Mode
+## Tracing mode
 
 > ℹ️ **Experimental**: Although we have a wide array of tests, tracing mode is still considered experimental as we roll out the feature. You should be sure to test all the execution code paths in your deployed serverless functions and verify your bundled package contents before using in production.
 
@@ -421,7 +449,7 @@ Welcome to **tracing mode**!
 
 Tracing mode is an alternative way to include dependencies in a `serverless` application. It works by using [Acorn](https://github.com/browserify/acorn-node) to parse out all dependencies in entry point files (`require`, `require.resolve`, static `import`) and then resolves them with [resolve](https://github.com/browserify/resolve) according to the Node.js resolution algorithm. This produces a list of the files that will actually be used at runtime and Jetpack includes these instead of traversing production dependencies. The engine for all of this work is a small, dedicated library, [trace-deps][].
 
-### Tracing Configuration
+### Tracing configuration
 
 The most basic configuration is just to enable `custom.jetpack.trace` (service-wide) or `functions.{FN_NAME}.jetpack.trace` (per-function) set to `true`. By default, tracing mode will trace _just_ the entry point file specified in `functions.{FN_NAME}.handler`.
 
@@ -436,7 +464,7 @@ custom:
 
 The `trace` field can be a Boolean or object containing further configuration information.
 
-#### Tracing Options
+#### Tracing options
 
 The basic `trace` Boolean field should hopefully work for most cases. Jetpack provides several additional options for more flexibility:
 
@@ -447,6 +475,14 @@ The basic `trace` Boolean field should hopefully work for most cases. Jetpack pr
 * `trace.allowMissing` (`Object.<string, Array<string>>`): A way to allow certain packages to have potentially failing dependencies. Specify each object key as a package name and value as an array of dependencies that _might_ be missing on disk. If the sub-dependency is found, then it is included in the bundle (this part distinguishes this option from `ignores`). If not, it is skipped without error.
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging.
     * **Note**: These patterns are in _addition_ to the handler inferred file path. If you want to exclude the handler path you could technically do a `!file/path.js` exclusion, but that would be a strange case in that your handler files would no longer be present.
+* `trace.dynamic.bail` (`Boolean`): Terminate `serverless` program with an error if dynamic import misses are detected. See [discussion below](#handling-dynamic-import-misses) regarding handling.
+* `trace.dynamic.resolutions` (`Object.<string, Array<string>>`): Handle dynamic import misses by providing a key to match misses on and an array of additional glob patterns to trace and include in the application bundle.
+    * _Application source files_: If a miss is an application source file (e.g., not within `node_modules`), specify the **relative path** (from `servicePath` / CWD) to it like `"./src/server/router.js": [/* array of patterns */]`.
+        * **Note**: To be an application source path, it **must** be prefixed with a dot (e.g., `./src/server.js`, `../lower/src/server.js`). Basically, like the Node.js `require()` rules go for a local path file vs. a package dependency.
+    * _Dependency packages_: If a miss is part of a dependency (e.g., an `npm` package placed within `node_modules`), specify the **package name** first (without including `node_modules`) and then trailing path to file at issue like `"bunyan/lib/bunyan.js": [/* array of patterns */]`.
+    * _Ignoring dynamic import misses_: If you just want to ignore the missed dynamic imports for a given application source file or package, just specify and empty array `[]` or falsey value.
+
+ A way to allow certain packages to have potentially failing dependencies. Specify each object key as a package name and value as an array of dependencies that _might_ be missing on disk. If the sub-dependency is found, then it is included in the bundle (this part distinguishes this option from `ignores`). If not, it is skipped without error.
 
 The following **function**-level configurations available via `functions.{FN_NAME}.jetpack.trace` and  `layers.{LAYER_NAME}.jetpack.trace`:
 
@@ -454,6 +490,8 @@ The following **function**-level configurations available via `functions.{FN_NAM
 * `trace.ignores` (`Array<string>`): A set of package path prefixes up to a directory level (e.g., `react` or `mod/lib`) to skip tracing **if** the function is being packaged `individually`. If there are service-level `trace.ignores` then the function-level ones will be **added** to the list.
 * `trace.allowMissing` (`Object.<string, Array<string>>`): An object of package path prefixes mapping to lists of packages that are allowed to be missing **if** the function is being packaged `individually`. If there is a service-level `trace.allowMissing` object then the function-level ones will be smart **merged** into the list.
 * `trace.include` (`Array<string>`): Additional file path globbing patterns (relative to `servicePath`) to be included in the package and be further traced for dependencies to include. Applies to functions that are part of a service or function (`individually`) packaging. If there are service-level `trace.include`s then the function-level ones will be **added** to the list.
+* `trace.dynamic.bail` (`Boolean`): Terminate `serverless` program with an error if dynamic import misses are detected **if** the function is being packaged `individually`.
+* `trace.dynamic.resolutions` (`Object.<string, Array<string>>`): An object of application source file or package name keys mapping to lists of pattern globs that are traced and included in the application bundle **if** the function is being packaged `individually`. If there is a service-level `trace.dynamic.resolutions` object then the function-level ones will be smart **merged** into the list.
 
 Let's see the advanced options in action:
 
@@ -476,21 +514,58 @@ custom:
         "ws":
           - "bufferutil"
           - "utf-8-validate"
+      dynamic:
+        # Force errors if have unresolved dynamic imports
+        bail: true
+        # Resolve encountered dynamic import misses, either by tracing
+        # additional files, or ignoring after confirmation of safety.
+        resolutions:
+          # **Application Source**
+          #
+          # Specify keys as relative path to application source files starting
+          # with a dot.
+          "./src/server/config.js":
+            # Manually trace all configuration files for bespoke configuration
+            # application code. (Note these are relative to the file key!)
+            - "../../config/default.js"
+            - "../../config/production.js"
+
+          # Ignore dynamic import misses with empty array.
+          "./src/something-else.js": []
+
+          # **Dependencies**
+          #
+          # Specify keys as `PKG_NAME/path/to/file.js`.
+          "bunyan/lib/bunyan.js":
+            # - node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
+            # - node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
+            # - node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
+            #
+            # These are all just try/catch-ed permissive require's meant to be
+            # excluded in browser. We manually add them in here.
+            - "dtrace-provider"
+            - "mv"
+            - "source-map-support"
+
+          # Ignore: we aren't using themes.
+          # - node_modules/colors/lib/colors.js [127:29]: require(theme)
+          "colors/lib/colors.js": []
 
 package:
   include:
-    - "a/manual/file_i_want.js"
+    - "a/manual/file-i-want.js"
 
 functions:
   # Functions in service package.
-  # - `jetpack.trace` option `ignores` does not apply.
-  # - `jetpack.include` **will** include and trace additional files.
+  # - `jetpack.trace.ignores` does not apply.
+  # - `jetpack.trace.include` **will** include and trace additional files.
   service-packaged-app-1:
     handler: app1.handler
 
   service-packaged-app-2:
     handler: app2.handler
     jetpack:
+      # - `jetpack.trace.allowMissing` additions are merged into service level
       trace:
         # Trace and include: `app2.js` + `extra/**.js` patterns
         include:
@@ -524,7 +599,7 @@ functions:
       trace: false
 ```
 
-### Tracing Caveats
+### Tracing caveats
 
 * **Works best for large, unused production dependencies**: Tracing mode is best suited for an application wherein many / most of the files specified in `package.json:dependencies` are not actually used. When there is a large discrepancy between "specific dependencies" and "actually used files" you'll see the biggest speedups. Conversely, when production dependencies are very tight and almost every file is used you won't see a large speedup versus Jetpack's normal dependency mode.
     * An example of an application with lots of unused production dependencies is our `huge-prod` test fixture. Trace mode is significantly faster than Jetpack dependency mode and baseline serverless packaging.
@@ -543,10 +618,101 @@ functions:
 
 * **Layers are not traced**: Because Layers don't have a distinct entry point, they will not be traced. Instead Jetpack does normal pattern-based production dependency inference.
 
-* **Static analysis only**: Tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
-    * **Note**: Jetpack will log warnings for files found that have imports that tracing missed. See `WARNING` log output for the list of files. You can then run a full report (e.g., `serverless jetpack package --report`) for a full list of each missed import with file path, source code, and line + column numbers provided for your review. You should take this output that then manually inspect the files in question to see if you need to include additional hidden dependencies via `package.include` (straight inclusion) or `jetpack.trace.include` (inclusion that traces dependencies).
+* **Static analysis by default**: Out of the box, tracing will only detect files included via `require("A_STRING")`, `require.resolve("A_STRING")`, `import "A_STRING"`, and `import NAME from "A_STRING"`. It will not work with dynamic `import()`s or `require`s that dynamically inject a variable etc. like `require(myVariable)`.
+    * **Note**: Jetpack will log warnings for files found that have dynamic imports that tracing missed. See `WARNING` log output for the list of files and read our [section below](#handling-dynamic-import-misses) on handling dynamic imports.
 
-### Tracing Results
+### Handling dynamic import misses
+
+Dynamic imports that use variables or runtime execution like `require(A_VARIABLE)` or ``import(`template_${VARIABLE}`)`` cannot be used by Jetpack to infer what the underlying dependency files are for inclusion in the bundle. That means some level of developer work to handle.
+
+**Identify**
+
+The first step is to be aware and watch for dynamic import misses. Conveniently, Jetpack logs warnings like the following:
+
+```
+Serverless: [serverless-jetpack] WARNING: Found 6 dependency packages with tracing misses in .serverless/FN_NAME.zip! Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses
+Serverless: [serverless-jetpack] .serverless/FN_NAME.zip dependency package tracing misses: [* ... */,"colors","bunyan",/* ... */]
+```
+
+and produces combined `--report` output like:
+
+```md
+### Tracing Dynamic Misses (`6` packages): Dependencies
+
+...
+- ../node_modules/aws-xray-sdk-core/node_modules/colors/lib/colors.js [127:29]: require(theme)
+- ../node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
+- ../node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
+- ../node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
+...
+```
+
+which gives you the line + column number of the dynamic dependency in a given source file and snippet of the code in question.
+
+In addition to just logging this information, you can ensure you have no unaccounted for dynamic import misses by setting `jetpack.trace.dynamic.bail = true` in your applicable service or function-level configuration.
+
+**Diagnose**
+
+With the `--report` output in hand, the recommended course is to identify what the impact is of these missed dynamic imports. For example, in `node_modules/bunyan/lib/bunyan.js` the interesting `require('mv' + '')` import is within a permissive try/catch block to allow conditional import of the library if found (and prevent `browserify` from bundling the library). For our Serverless application we could choose to ignore these dynamic imports or manually add in the imported libraries.
+
+For other dependencies, there may well be "hidden" dependencies that you will need to add to your Serverless bundle for runtime correctness. Things like `node-config` which dynamically imports various configuration files from environment variable information, etc.
+
+**Remedy**
+
+Once we have logging information and the `--report` output, we can start remedying dynamic import misses via the Jetpack feature `jetpack.trace.dynamic.resolutions`. Resolutions are keys to files with dynamic import misses that allow a developer to specify what imports _should_ be included manually or to simply ignore the dynamic import misses.
+
+**Keys**: Resolutions take a key value to match each file with missing dynamic imports. There are two types of keys that are used:
+
+* **Application Source File**: Something that is within your application and **not** `node_modules`. Specify these files with a dot prefix as appropriate relative to the Serverless service path (usually CWD) like `./src/server.js` or `../outside/file.js`.
+* **Package Dependencies**: A file from a dependency within `node_modules`. Specify these files without a dot and just `PKG_NAME/path/to/file.js` or `@SCOPE/PKG_NAME/path/to/file.js`.
+
+**Values**: Values are an array of extra imports to add in from each file as if they were declared in that very file with `require("EXTRA_IMPORT")` or `import "EXTRA_IMPORT"`. This means the values should either be _relative paths within that package_ (`./lib/auth/noop.js`) or other package dependencies (`lodash` or `lodash/map.js`).
+    * **Note**: We choose to support "additional imports" and not just file additions like `package.include` or `jetpack.trace.include`. The reason is that for package dependency import misses, the packages can be flattened to unpredictable locations in the `node_modules` trees and doubly so in monorepos. An import will always be resolved to the correct location, and that's why we choose it. At the same time, tools like `package.include` or `jetpack.trace.include`are still available to use!
+
+Some examples:
+
+[`bunyan`](https://github.com/trentm/node-bunyan): The popular logger library has some optional dependencies that are not meant only for Node.js. To prevent browser bundling tools from including, they use a curious `require` strategy of `require('PKG_NAME' + '')` to defeat parsing. For Jetpack, this means we get dynamic misses reports of:
+
+```yml
+- node_modules/bunyan/lib/bunyan.js [79:17]: require('dtrace-provider' + '')
+- node_modules/bunyan/lib/bunyan.js [100:13]: require('mv' + '')
+- node_modules/bunyan/lib/bunyan.js [106:27]: require('source-map-support' + '')
+```
+
+Using `resolutions` we can remedy these by simple adding imports for all three libraries like:
+
+```yml
+custom:
+  jetpack:
+    trace:
+      dynamic:
+        resolutions:
+          "bunyan/lib/bunyan.js":
+            - "dtrace-provider"
+            - "mv"
+            - "source-map-support"
+```
+
+[`express`](https://expressjs.com/): The popular server framework dynamically imports engines which produces a dynamic misses report of:
+
+```yml
+- node_modules/express/lib/view.js [81:13]: require(mod)
+```
+
+In a common case, this is a non-issue if you aren't using engines, so we can simply "ignore" the import miss by setting an empty array `resolutions` value:
+
+```yml
+custom:
+  jetpack:
+    trace:
+      dynamic:
+        resolutions:
+          "express/lib/view.js": []
+```
+
+Once we have analyzed all of our misses and added `resolutions` to either ignore the miss or add other imports, we can then set `trace.dynamic.bail = true` to make sure that if future dependency upgrades adds new, unhandled dynamic misses we will get a failed build notification so we know that we're always deploying known, good code.
+
+### Tracing results
 
 The following is a table of generated packages using vanilla Serverless vs Jetpack with tracing (using `yarn benchmark:sizes`). Even for our smallest `simple` scenario, the result is smaller total bundle size. For scenarios like the contrived `huge-prod` (with many unused production dependencies) the size difference is a significant 90+% decrease in size from `6.5 MB` to `0.5 MB`.
 
@@ -582,7 +748,7 @@ Results:
 
 Jetpack also provides some CLI options.
 
-### `serverless jetpack package`
+**`serverless jetpack package`**
 
 Package a function like `serverless package` does, just with better options.
 
@@ -669,7 +835,7 @@ Results:
 | huge-prod    | npm  | jetpack  | deps  | 23121 | **-22.79 %** |
 | huge-prod    | npm  | baseline |       | 29947 |              |
 
-## Maintenance Status
+## Maintenance status
 
 **Active:** Formidable is actively working on this project, and we expect to continue for work for the foreseeable future. Bug reports, feature requests and pull requests are welcome.
 

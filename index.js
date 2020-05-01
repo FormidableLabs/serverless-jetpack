@@ -1,14 +1,13 @@
 "use strict";
 
-const pkg = require("./package.json");
 const path = require("path");
 const pLimit = require("p-limit");
 const Worker = require("jest-worker").default;
 const { globAndZip } = require("./util/bundle");
 const globby = require("globby");
 
+const PLUGIN_NAME = require("./package.json").name;
 const SLS_TMP_DIR = ".serverless";
-const PLUGIN_NAME = pkg.name;
 
 // Timer and formatter.
 // eslint-disable-next-line no-magic-numbers
@@ -26,6 +25,27 @@ const dedent = (str, num) => str
   .join("\n");
 
 const uniq = (val, i, arr) => val !== arr[i - 1];
+
+// Concatenate two arrays and produce sorted, unique values.
+const smartConcat = (arr1, arr2) => []
+  // Aggregate in service-level includes first
+  .concat(arr1 || [], arr2 || [])
+  // Make unique.
+  .sort()
+  .filter(uniq);
+
+// Merge two objects of form `{ key: [] }`.
+const smartMerge = (obj1 = {}, obj2 = {}) =>
+  // Get all unique missing package keys.
+  smartConcat(Object.keys(obj1), Object.keys(obj2))
+    // Smart merge unique missing values
+    .reduce((obj, key) => {
+      // Aggregate service and function unique missing values.
+      obj[key] = smartConcat(obj1[key], obj2[key]);
+      return obj;
+    }, {});
+
+const toPosix = (file) => !file ? file : file.replace(/\\/g, "/");
 
 /**
  * Package Serverless applications manually.
@@ -247,14 +267,16 @@ class Jetpack {
       allowMissing: {},
       include: [],
       collapsed: {},
+      dynamic: {},
       ...typeof serviceTrace === "object" ? serviceTrace : {}
     };
-    serviceObj.include = []
-      // Aggregate with all service-packaged functions.
-      .concat(serviceObj.include, serviceFnIncludes)
-      // Make unique.
-      .sort()
-      .filter(uniq);
+    // Aggregate with all service-packaged functions.
+    serviceObj.include = smartConcat(serviceObj.include, serviceFnIncludes);
+    serviceObj.dynamic = {
+      bail: false,
+      resolutions: {},
+      ...serviceObj.dynamic
+    };
 
     // Mode: trace individual function.
     const functionTrace = functionObject && this._extraOptions({ functionObject }).trace;
@@ -263,41 +285,34 @@ class Jetpack {
       allowMissing: {},
       include: [],
       collapsed: {},
+      dynamic: {},
       ...typeof functionTrace === "object" ? functionTrace : {}
     };
-    functionObj.include = []
-      // Aggregate in service-level includes first
-      .concat(serviceObj.include, functionObj.include)
-      // Make unique.
-      .sort()
-      .filter(uniq);
-    functionObj.ignores = []
-      // Aggregate in service-level ignores first
-      .concat(serviceObj.ignores, functionObj.ignores)
-      // Make unique.
-      .sort()
-      .filter(uniq);
-    functionObj.allowMissing = []
-      // Get all unique missing package keys.
-      .concat(
-        Object.keys(serviceObj.allowMissing),
-        Object.keys(functionObj.allowMissing)
-      )
-      .sort()
-      .filter(uniq)
-      // Smart merge unique missing values
-      .reduce((obj, key) => {
-        // Aggregate service and function unique missing values.
-        obj[key] = []
-          .concat(
-            serviceObj.allowMissing[key] || [],
-            functionObj.allowMissing[key] || []
-          )
-          .sort()
-          .filter(uniq);
+    functionObj.include = smartConcat(serviceObj.include, functionObj.include);
+    functionObj.ignores = smartConcat(serviceObj.ignores, functionObj.ignores);
+    functionObj.allowMissing = smartMerge(serviceObj.allowMissing, functionObj.allowMissing);
+    functionObj.dynamic = {
+      ...functionObj.dynamic,
+      bail: typeof functionObj.dynamic.bail !== "undefined"
+        ? functionObj.dynamic.bail
+        : serviceObj.dynamic.bail,
+      resolutions: smartMerge(serviceObj.dynamic.resolutions, functionObj.dynamic.resolutions)
+    };
 
-        return obj;
-      }, {});
+    // Convert **relative** paths in resolutions to absolute paths.
+    // Anything starting with at dot (`.`) is considered an application path
+    // and converted. Remaining relative paths are packages.
+    const cwd = this.serverless.config.servicePath || ".";
+    [
+      serviceObj.dynamic.resolutions,
+      functionObj.dynamic.resolutions
+    ].forEach((res) => Object.entries(res)
+      .filter(([key]) => key.startsWith("."))
+      .forEach(([key, val]) => {
+        // Replace key and mutate falsey values to an empty array.
+        delete res[key];
+        res[path.resolve(cwd, key)] = val || [];
+      }));
 
     return {
       service: {
@@ -370,20 +385,136 @@ class Jetpack {
     return {
       traceInclude,
       traceParams: {
+        // These are **only** parameters to `traceFiles()`.
         ignores: traceObj.ignores,
-        allowMissing: traceObj.allowMissing
-      }
+        allowMissing: traceObj.allowMissing,
+        extraImports: traceObj.dynamic.resolutions
+      },
+      dynamic: traceObj.dynamic
     };
   }
 
   _traceMissesReport(misses) {
     return Object.entries(misses)
-      .map(([depPath, missList]) =>
-        missList.map(({ src, loc: { start: { line, column } } }) =>
+      .map(([depPath, missList]) => missList
+        ? missList.map(({ src, loc: { start: { line, column } } }) =>
           `- ${depPath} [${line}:${column}]: ${src}`
         )
+        : [`- ${depPath}`]
       )
       .reduce((arr, missList) => arr.concat(missList), []);
+  }
+
+  _traceMissesPkgsReport(pkgMisses) {
+    return Object.values(pkgMisses)
+      .map((misses) => this._traceMissesReport(misses))
+      .reduce((arr, missList) => arr.concat(missList), []);
+  }
+
+  // Handle tracing misses.
+  // 1. Log / error for trace misses.
+  // 2. Generate data for resolutions and remaining misses.
+  // eslint-disable-next-line max-statements
+  _handleTraceMisses({ bundleName, misses, resolutions, bail }) {
+    const cwd = this.serverless.config.servicePath || ".";
+
+    // Full, normalized paths for all resolutions for matching.
+    const resSrcs = new Set(Object.keys(resolutions)
+      .filter((f) => path.isAbsolute(f))
+      .map((f) => toPosix(f))
+    );
+
+    const resPkgs = new Set(Object.keys(resolutions)
+      .filter((f) => !path.isAbsolute(f))
+      .map((f) => toPosix(f))
+    );
+
+    // Create a copy of misses and then iterate and mutate to remove the
+    // entries that were resolved.
+    const { srcs, pkgs } = JSON.parse(JSON.stringify(misses));
+    const resolved = { srcs: {}, pkgs: {} };
+
+    // Misses shape: `{ relPath: MISSES_OBJ }`
+    Object.keys(srcs).forEach((relPath) => {
+      const fullPath = toPosix(path.resolve(cwd, relPath));
+
+      // Remove matches.
+      if (resSrcs.has(fullPath)) {
+        resolved.srcs[relPath] = ""; // Just report file path
+        delete srcs[relPath];
+      }
+    });
+
+    // Misses shape: `{ pkg: { relpath: MISSES_OBJ } }`
+    Object.entries(pkgs).forEach(([pkg, pkgSrcs]) => {
+      Object.keys(pkgSrcs).forEach((relPath) => {
+        // Convert `misses.pkgs` entries to `resolutions` entries.
+        //
+        // `resolutions` are in abstract paths (`PKG/path/to/file.js`), whereas
+        // `misses.pkgs` entries are in relative paths
+        // (`../PKG/node_modules/path/to/file.js`). We need to make them
+        // matchable.
+        //
+        // We can do an abbreviated "last package fragment" because we already
+        // have confirmed we have legitimate node_modules packages.
+        const parts = toPosix(path.normalize(relPath)).split("/");
+        const lastModsIdx = parts.lastIndexOf("node_modules");
+        const pkgPath = parts.slice(lastModsIdx + 1).join("/");
+
+        // Remove matches.
+        if (resPkgs.has(pkgPath)) {
+          resolved.pkgs[pkg] = resolved.pkgs[pkg] || {};
+          resolved.pkgs[pkg][relPath] = ""; // Just report file path
+
+          delete pkgs[pkg][relPath];
+          if (!Object.keys(pkgs[pkg]).length) {
+            delete pkgs[pkg];
+          }
+        }
+      });
+    });
+
+    const srcsLen = Object.keys(srcs).length;
+    const pkgsLen = Object.keys(pkgs).length;
+
+    if (srcsLen) {
+      // Full report if bailing.
+      const srcsReport = bail
+        ? `\n${this._traceMissesReport(srcs)}`
+        : JSON.stringify(Object.keys(srcs));
+
+      this._logWarning(
+        `Found ${srcsLen} source files with tracing misses in ${bundleName}! `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
+      );
+      this._log(`${bundleName} source file tracing misses: ${srcsReport}`, { color: "gray" });
+    }
+
+    if (pkgsLen) {
+      // Full report if bailing.
+      const pkgReport = bail
+        ? `\n${this._traceMissesPkgsReport(pkgs)}`
+        : JSON.stringify(Object.keys(pkgs));
+
+      this._logWarning(
+        `Found ${pkgsLen} dependency packages with tracing misses in ${bundleName}! `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
+      );
+      this._log(`${bundleName} dependency package tracing misses: ${pkgReport}`, { color: "gray" });
+    }
+
+    if ((srcsLen || pkgsLen) && bail) {
+      throw new Error(
+        "Bailing on tracing dynamic import misses. "
+        + `Source Files: ${srcsLen}, Dependencies: ${pkgsLen}. `
+        + "Please see logs and read: https://npm.im/serverless-jetpack#handling-dynamic-import-misses"
+      );
+    }
+
+    return {
+      missed: { srcs, pkgs },
+      resolved
+    };
   }
 
   _collapsedReport(summary) {
@@ -397,21 +528,6 @@ class Jetpack {
         `- ${group} (${pkgsSummary(packages)}`
         + `Files: ${numUniquePaths} unique, ${numTotalFiles} total)${pkgsReport(packages)}`
       );
-  }
-
-  // Handle tracing misses
-  _handleTraceMisses({ misses, bundleName }) {
-    const files = Object.keys(misses);
-    if (files.length) {
-      this._logWarning(
-        `Found ${files.length} source files with tracing misses in ${bundleName}! `
-        + "Please review report (`serverless jetpack package --report`) for details."
-      );
-      this._log(
-        `${bundleName} source files with tracing misses: ${JSON.stringify(files)}`,
-        { color: "gray" }
-      );
-    }
   }
 
   // Handle collapsed duplicates.
@@ -458,19 +574,22 @@ class Jetpack {
     const JOIN_STR = `${"\n"}${" ".repeat(INDENT)}`;
     /* eslint-disable max-len*/
     const bundles = results
-      .map(({ bundlePath, roots, patterns, files, trace, collapsed }) => `
+      .map(({ mode, bundlePath, roots, patterns, files, trace, collapsed }) => `
       ## ${path.basename(bundlePath)}
 
       - Path: ${bundlePath}
+      - Mode: ${mode}
       - Roots: ${roots ? "" : "(None)"}
       ${(roots || []).map((p) => `    - '${p}'`).join(JOIN_STR)}
 
-      ### Trace: Configuration
+      ### Tracing: Configuration
 
+      \`\`\`yml
       # Ignores (\`${trace.ignores.length}\`):
       ${trace.ignores.map((p) => `- '${p}'`).join(JOIN_STR)}
       # Allowed Missing (\`${Object.keys(trace.allowMissing).length}\`):
       ${Object.keys(trace.allowMissing).map((k) => `- '${k}': ${JSON.stringify(trace.allowMissing[k])}`).join(JOIN_STR)}
+      \`\`\`
 
       ### Patterns: Include
 
@@ -502,9 +621,21 @@ class Jetpack {
 
       ${files.excluded.sort().map((p) => `- ${p}`).join(JOIN_STR)}
 
-      ### Trace Misses (\`${Object.keys(trace.misses).length}\` files)
+      ### Tracing Dynamic Misses (\`${Object.keys(trace.missed.srcs).length}\` files): Sources
 
-      ${this._traceMissesReport(trace.misses).join(JOIN_STR)}
+      ${this._traceMissesReport(trace.missed.srcs).join(JOIN_STR)}
+
+      ### Tracing Dynamic Resolved (\`${Object.keys(trace.resolved.srcs).length}\` files): Sources
+
+      ${this._traceMissesReport(trace.resolved.srcs).join(JOIN_STR)}
+
+      ### Tracing Dynamic Misses (\`${Object.keys(trace.missed.pkgs).length}\` packages): Dependencies
+
+      ${this._traceMissesPkgsReport(trace.missed.pkgs).join(JOIN_STR)}
+
+      ### Tracing Dynamic Resolved (\`${Object.keys(trace.resolved.pkgs).length}\` packages): Dependencies
+
+      ${this._traceMissesPkgsReport(trace.resolved.pkgs).join(JOIN_STR)}
 
       ### Collapsed (\`${Object.keys(collapsed.srcs).length}\`): Sources
 
@@ -633,13 +764,15 @@ class Jetpack {
   }
 
   async packageFunction({ functionName, functionObject, worker, report }) {
+    const opts = this._extraOptions({ functionObject });
+
     // Mimic built-in serverless naming.
     // **Note**: We _do_ append ".serverless" in path skipping serverless'
     // internal copying logic.
     const bundleName = path.join(SLS_TMP_DIR, `${functionName}.zip`);
 
     // Get traces.
-    const { traceInclude, traceParams } = await this._traceOptions({ functionObject });
+    const { traceInclude, traceParams, dynamic } = await this._traceOptions({ functionObject });
     const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
@@ -649,11 +782,18 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({ misses: trace.misses, bundleName });
+      const { missed, resolved } = this._handleTraceMisses({
+        bundleName,
+        misses: trace.misses,
+        resolutions: dynamic.resolutions,
+        bail: dynamic.bail
+      });
+
+      // Add in results
+      Object.assign(trace, { missed, resolved });
     }
 
-    const { bail } = this._extraOptions({ functionObject }).collapsed;
-    this._handleCollapsed({ collapsed, bundleName, bail });
+    this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
 
     // Mutate serverless configuration to use our artifacts.
     functionObject.package = functionObject.package || {};
@@ -668,12 +808,13 @@ class Jetpack {
     const { service } = this.serverless;
     const serviceName = service.service;
     const servicePackage = service.package;
+    const opts = this._serviceOptions;
 
     // Mimic built-in serverless naming.
     const bundleName = path.join(SLS_TMP_DIR, `${serviceName}.zip`);
 
     // Get traces.
-    const { traceInclude, traceParams } = await this._traceOptions({ functionObjects });
+    const { traceInclude, traceParams, dynamic } = await this._traceOptions({ functionObjects });
     const mode = traceInclude ? "trace" : "dependency";
 
     // Package.
@@ -683,11 +824,18 @@ class Jetpack {
     });
     const { buildTime, collapsed, trace } = results;
     if (mode === "trace") {
-      this._handleTraceMisses({ misses: trace.misses, bundleName });
+      const { missed, resolved } = this._handleTraceMisses({
+        bundleName,
+        misses: trace.misses,
+        resolutions: dynamic.resolutions,
+        bail: dynamic.bail
+      });
+
+      // Add in results
+      Object.assign(trace, { missed, resolved });
     }
 
-    const { bail } = this._serviceOptions.collapsed;
-    this._handleCollapsed({ collapsed, bundleName, bail });
+    this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
 
     // Mutate serverless configuration to use our artifacts.
     servicePackage.artifact = bundleName;
@@ -697,6 +845,7 @@ class Jetpack {
   }
 
   async packageLayer({ layerName, layerObject, worker, report }) {
+    const opts = this._extraOptions({ layerObject });
     const bundleName = path.join(SLS_TMP_DIR, `${layerName}.zip`);
 
     // Package. (Not traced)
@@ -704,8 +853,7 @@ class Jetpack {
     const results = await this.globAndZip({ bundleName, layerObject, worker, report });
     const { buildTime, collapsed } = results;
 
-    const { bail } = this._extraOptions({ layerObject }).collapsed;
-    this._handleCollapsed({ collapsed, bundleName, bail });
+    this._handleCollapsed({ collapsed, bundleName, bail: opts.collapsed.bail });
 
     // Mutate serverless configuration to use our artifacts.
     layerObject.package = layerObject.package || {};

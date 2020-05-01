@@ -7,7 +7,14 @@ const pkg = () => ({
 
 const jetpack = () => ({
   service: {
-    trace: process.env.MODE === "trace"
+    trace: process.env.MODE !== "trace" ? false : {
+      dynamic: {
+        bail: true,
+        resolutions: {
+          "express/lib/view.js": []
+        }
+      }
+    }
   }
 });
 
