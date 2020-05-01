@@ -667,7 +667,7 @@ describe("index", () => {
             "one.js": `
               // A dynamic import
               const dyn = require(process.env.DYNAMIC_IMPORT);
-              require("needs-resolutions-pkg");
+              require("parent-pkg");
 
               exports.handler = async () => ({
                 body: JSON.stringify({ one: require("one-pkg") })
@@ -682,13 +682,22 @@ describe("index", () => {
                   module.exports = "one";
                 `
               },
-              "needs-resolutions-pkg": {
+              "parent-pkg": {
                 "package.json": stringify({
                   main: "index.js"
                 }),
-                "index.js": "module.exports = require('./lib/file.js');",
-                lib: {
-                  "file.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                "index.js": "module.exports = require('needs-resolutions-pkg');",
+                node_modules: {
+                  // Different from service test, this is a nested package.
+                  "needs-resolutions-pkg": {
+                    "package.json": stringify({
+                      main: "index.js"
+                    }),
+                    "index.js": "module.exports = require('./lib/file.js');",
+                    lib: {
+                      "file.js": "module.exports = require.resolve(process.env.DYNAMIC);"
+                    }
+                  }
                 }
               },
               "added-by-resolve-trace-pkg": {
@@ -739,11 +748,13 @@ describe("index", () => {
               "node_modules/added-by-resolve-trace-pkg/package.json",
               "node_modules/also-added-by-resolve-trace-pkg/index.js",
               "node_modules/also-added-by-resolve-trace-pkg/package.json",
-              "node_modules/needs-resolutions-pkg/index.js",
-              "node_modules/needs-resolutions-pkg/lib/file.js",
-              "node_modules/needs-resolutions-pkg/package.json",
               "node_modules/one-pkg/index.js",
-              "node_modules/one-pkg/package.json"
+              "node_modules/one-pkg/package.json",
+              "node_modules/parent-pkg/index.js",
+              "node_modules/parent-pkg/node_modules/needs-resolutions-pkg/index.js",
+              "node_modules/parent-pkg/node_modules/needs-resolutions-pkg/lib/file.js",
+              "node_modules/parent-pkg/node_modules/needs-resolutions-pkg/package.json",
+              "node_modules/parent-pkg/package.json"
             ] });
         });
 
