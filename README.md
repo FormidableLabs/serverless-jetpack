@@ -526,9 +526,9 @@ custom:
           # with a dot.
           "./src/server/config.js":
             # Manually trace all configuration files for bespoke configuration
-            # application code.
-            - "src/config/default.js"
-            - "src/config/production.js"
+            # application code. (Note these are relative to the file key!)
+            - "../../config/default.js"
+            - "../../config/production.js"
 
           # Ignore dynamic import misses with empty array.
           "./src/something-else.js": []
