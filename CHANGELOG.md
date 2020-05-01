@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.10.5
 
 * Feature: Add `jetpack.trace.dynamic.bail` option.
 * Feature: Add `jetpack.trace.dynamic.resolutions` option.
