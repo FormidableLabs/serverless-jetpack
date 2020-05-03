@@ -3,7 +3,7 @@ Changes
 
 ## UNRELEASED
 
-* TODO
+* Bug: Fix process hang on errors when using `concurrency: 2+` by properly ending worker.
 
 ## 0.10.5
 

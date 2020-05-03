@@ -988,8 +988,12 @@ class Jetpack {
       worker = new Worker(require.resolve("./util/bundle"), {
         numWorkers: concurrency
       });
-      results = await Promise.all(tasks.map((fn) => fn()));
-      worker.end();
+      results = await Promise.all(tasks.map((fn) => fn()))
+        .then(() => { worker.end(); }) // eslint-disable-line promise/always-return
+        .catch((err) => {
+          worker.end();
+          throw err;
+        });
     } else {
       // Run serially in-band.
       const limit = pLimit(1);
