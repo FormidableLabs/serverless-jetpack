@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.10.6
 
 * Bug: Fix process hang on errors when using `concurrency: 2+` by properly ending worker.
 
