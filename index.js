@@ -988,7 +988,11 @@ class Jetpack {
       worker = new Worker(require.resolve("./util/bundle"), {
         numWorkers: concurrency
       });
-      results = await Promise.all(tasks.map((fn) => fn()));
+      results = await Promise.all(tasks.map((fn) => fn()))
+        .catch((err) => {
+          worker.end();
+          throw err;
+        });
       worker.end();
     } else {
       // Run serially in-band.

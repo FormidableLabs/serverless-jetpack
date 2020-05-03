@@ -1,6 +1,10 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Bug: Fix process hang on errors when using `concurrency: 2+` by properly ending worker.
+
 ## 0.10.5
 
 * Feature: Add `jetpack.trace.dynamic.bail` option.
