@@ -51,7 +51,10 @@ const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
 
   // Now, iterate all the patterns individually, tracking state like sls.
   // The _last_ "exclude" vs. "include" wins.
-  const filesMap = files.reduce((memo, file) => ({ ...memo, [file]: true }), []);
+  const filesMap = files.reduce((memo, file) => {
+    memo[file] = true;
+    return memo;
+  }, {});
   patterns.forEach((pattern) => {
     // Do a positive match, but track "keep" or "remove".
     const includeFile = !pattern.startsWith("!");
@@ -110,8 +113,11 @@ const resolveFilePathsFromPatterns = async ({
   // post-hoc to recreate the order of only removing **one** rather than
   // something like the glob: `serverless.{json,yml,yaml,js}`.
   const slsConfigMap = files
-    .filter((f) => (/serverless.(json|yml|yaml|js)$/i).test(f))
-    .reduce((m, f) => ({ ...m, [f]: true }), {});
+    .filter((file) => (/serverless.(json|yml|yaml|js)$/i).test(file))
+    .reduce((memo, file) => {
+      memo[file] = true;
+      return memo;
+    }, {});
   // These extensions are specifically ordered. First wins.
   const cfgToRemove = ["json", "yml", "yaml", "js"]
     .map((ext) => path.join(path.relative(servicePath, cwd), `serverless.${ext}`))
@@ -267,12 +273,15 @@ const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
   // Keep only (1) groups with duplicates, (2) duplicate unique paths within group.
   const dupsMap = Object.entries(map)
     .filter(([, filesMap]) => Object.values(filesMap).some((list) => list.length > 1))
-    .reduce((memo, [group, filesMap]) => ({
-      ...memo,
-      [group]: Object.entries(filesMap)
+    .reduce((memo, [group, filesMap]) => {
+      memo[group] = Object.entries(filesMap)
         .filter(([, list]) => list.length > 1)
-        .reduce((m, [key, list]) => ({ ...m, [key]: list }), {})
-    }), {});
+        .reduce((groupMemo, [key, list]) => {
+          groupMemo[key] = list;
+          return groupMemo;
+        }, {});
+      return memo;
+    }, {});
 
   return Promise
     .all(Object.entries(dupsMap)
@@ -307,9 +316,10 @@ const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
         }];
       })
     )
-    .then((summaries) => summaries
-      .reduce((memo, [group, summary]) => ({ ...memo, [group]: summary }), {})
-    );
+    .then((summaries) => summaries.reduce((memo, [group, summary]) => {
+      memo[group] = summary;
+      return memo;
+    }, {}));
 };
 
 // Detect collapsed duplicate packages
