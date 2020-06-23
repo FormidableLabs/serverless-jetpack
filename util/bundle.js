@@ -51,10 +51,13 @@ const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
 
   // Now, iterate all the patterns individually, tracking state like sls.
   // The _last_ "exclude" vs. "include" wins.
-  const filesMap = files.reduce((memo, file) => {
-    memo[file] = true;
-    return memo;
-  }, {});
+  //
+  // **Note**: This appears to be faster than the equivalent `.reduce()`
+  // See: https://github.com/FormidableLabs/serverless-jetpack/pull/123#issuecomment-648438156
+  const filesMap = {};
+  files.forEach((file) => {
+    filesMap[file] = true;
+  });
   patterns.forEach((pattern) => {
     // Do a positive match, but track "keep" or "remove".
     const includeFile = !pattern.startsWith("!");
@@ -112,12 +115,12 @@ const resolveFilePathsFromPatterns = async ({
   // but we instead just find and remove matched files from the glob results
   // post-hoc to recreate the order of only removing **one** rather than
   // something like the glob: `serverless.{json,yml,yaml,js}`.
-  const slsConfigMap = files
+  const slsConfigMap = {};
+  files
     .filter((file) => (/serverless.(json|yml|yaml|js)$/i).test(file))
-    .reduce((memo, file) => {
-      memo[file] = true;
-      return memo;
-    }, {});
+    .forEach((file) => {
+      slsConfigMap[file] = true;
+    });
   // These extensions are specifically ordered. First wins.
   const cfgToRemove = ["json", "yml", "yaml", "js"]
     .map((ext) => path.join(path.relative(servicePath, cwd), `serverless.${ext}`))
@@ -271,17 +274,17 @@ const collapsedPath = (filePath) => {
 // Convert to summary object.
 const summarizeCollapsed = ({ map, cwd, isPackages = false }) => {
   // Keep only (1) groups with duplicates, (2) duplicate unique paths within group.
-  const dupsMap = Object.entries(map)
+  const dupsMap = {};
+  Object.entries(map)
     .filter(([, filesMap]) => Object.values(filesMap).some((list) => list.length > 1))
-    .reduce((memo, [group, filesMap]) => {
-      memo[group] = Object.entries(filesMap)
+    .forEach(([group, filesMap]) => {
+      Object.entries(filesMap)
         .filter(([, list]) => list.length > 1)
-        .reduce((groupMemo, [key, list]) => {
-          groupMemo[key] = list;
-          return groupMemo;
-        }, {});
-      return memo;
-    }, {});
+        .forEach(([key, list]) => {
+          dupsMap[group] = dupsMap[group] || {};
+          dupsMap[group][key] = list;
+        });
+    });
 
   return Promise
     .all(Object.entries(dupsMap)
