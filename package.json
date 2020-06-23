@@ -1,6 +1,6 @@
 {
   "name": "serverless-jetpack",
-  "version": "0.10.6",
+  "version": "0.10.7",
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
   "repository": "https://github.com/FormidableLabs/serverless-jetpack",
