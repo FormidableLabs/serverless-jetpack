@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.10.7
 
 * Internal: Refactor inefficient JavaScript object usage in `reduce()`.
   [#121](https://github.com/FormidableLabs/serverless-jetpack/pull/121)
