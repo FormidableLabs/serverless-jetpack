@@ -1,6 +1,13 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Internal: Refactor inefficient JavaScript object usage in `reduce()`.
+  [#121](https://github.com/FormidableLabs/serverless-jetpack/pull/121)
+  [#123](https://github.com/FormidableLabs/serverless-jetpack/pull/123)
+  (*[@gabmontes][]*)
+
 ## 0.10.6
 
 * Bug: Fix process hang on errors when using `concurrency: 2+` by properly ending worker.
@@ -138,3 +145,5 @@ Changes
 ## 0.1.0
 
 * Initial release.
+
+[@gabmontes]: https://github.com/gabmontes
