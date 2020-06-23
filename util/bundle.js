@@ -51,7 +51,10 @@ const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
 
   // Now, iterate all the patterns individually, tracking state like sls.
   // The _last_ "exclude" vs. "include" wins.
-  const filesMap = files.reduce((memo, file) => ({ ...memo, [file]: true }), []);
+  const filesMap = {};
+  files.forEach((file) => {
+    filesMap[file] = true;
+  });
   patterns.forEach((pattern) => {
     // Do a positive match, but track "keep" or "remove".
     const includeFile = !pattern.startsWith("!");
