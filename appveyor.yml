@@ -28,6 +28,7 @@ test_script:
   - npm --version
 
   # Build
+  # TODO: REMOVE DEBUG
   - yarn run check
   - yarn test:cli
   - yarn benchmark --parallel
