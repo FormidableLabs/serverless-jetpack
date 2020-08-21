@@ -737,7 +737,12 @@ class Jetpack {
     const layerPath = (layerObject || {}).path;
     const cwd = layerPath ? path.relative(servicePath, layerPath) : servicePath;
 
-    const { base, roots, preInclude } = this._extraOptions({ functionObject, layerObject });
+    const {
+      base,
+      roots,
+      preInclude,
+      globbyOpts
+    } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
 
     const buildFn = worker ? worker.globAndZip : globAndZip;
@@ -752,7 +757,8 @@ class Jetpack {
       traceInclude,
       include,
       exclude,
-      report
+      report,
+      globbyOpts
     });
 
     const { numFiles, bundlePath } = results;
