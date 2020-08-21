@@ -17,7 +17,7 @@ const EPOCH = new Date(0);
 const GLOBBY_OPTS = {
   dot: true,
   silent: true,
-  followSymbolicLinks: true,
+  follow: true,
   nodir: true
 };
 
@@ -85,8 +85,7 @@ const resolveFilePathsFromPatterns = async ({
   depInclude,
   include,
   exclude,
-  requestedPackagesMap = new Map(),
-  globbyOpts = {}
+  requestedPackagesMap = new Map()
 }) => {
   // ==========================================================================
   // **Phase One** (`globby()`): Read files from disk into a list of files.
@@ -111,7 +110,7 @@ const resolveFilePathsFromPatterns = async ({
     .concat(include || []);
 
   // Read files from disk matching include patterns.
-  const files = await globby(globInclude, { ...GLOBBY_OPTS, ...globbyOpts, cwd });
+  const files = await globby(globInclude, { ...GLOBBY_OPTS, cwd });
 
   // ==========================================================================
   // **Phase Two** (`nanomatch()`): Filter list of files.
@@ -634,8 +633,7 @@ const globAndZip = async ({
   traceInclude,
   include,
   exclude,
-  report,
-  globbyOpts
+  report
 }) => {
   const start = new Date();
 
@@ -682,7 +680,7 @@ const globAndZip = async ({
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(
-    { cwd, servicePath, preInclude, depInclude, include, exclude, requestedPackagesMap, globbyOpts }
+    { cwd, servicePath, preInclude, depInclude, include, exclude, requestedPackagesMap }
   );
 
   // Detect collapsed duplicates.

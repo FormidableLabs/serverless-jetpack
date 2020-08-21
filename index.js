@@ -740,8 +740,7 @@ class Jetpack {
     const {
       base,
       roots,
-      preInclude,
-      globbyOpts
+      preInclude
     } = this._extraOptions({ functionObject, layerObject });
     const { include, exclude } = this.filePatterns({ functionObject, layerObject });
 
@@ -757,8 +756,7 @@ class Jetpack {
       traceInclude,
       include,
       exclude,
-      report,
-      globbyOpts
+      report
     });
 
     const { numFiles, bundlePath } = results;
