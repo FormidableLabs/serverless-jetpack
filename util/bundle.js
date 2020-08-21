@@ -10,9 +10,12 @@ const globby = require("globby");
 const nanomatch = require("nanomatch");
 const { traceFiles } = require("trace-deps");
 const { findProdInstalls } = require("inspectdep");
+const { readJson } = require("inspectdep/lib/util");
 
 const IS_WIN = process.platform === "win32";
 const EPOCH = new Date(0);
+
+const ROOT_PACKAGE_NAME = "__root__";
 
 const GLOBBY_OPTS = {
   dot: true,
@@ -192,23 +195,33 @@ const createPackageDepInclude = async ({ cwd, rootPath, packagePath, packagesMap
   return depsByPackage;
 };
 
-const determineRequestedPackages = ({ cwd, cwdPackageName, packagesMap, depsMapByPackage }) => {
+const determineRequestedPackages = ({ roots, packagesMap, depsMapByPackage }) => {
   const requestedPackages = new Map();
-
-  const cwdPackageDeps = depsMapByPackage.get(cwdPackageName);
 
   // It is stack for package names to lookup, and cwd is the default package to lookup
   const packagesToLookup = [];
 
+  const cwdPackageDeps = depsMapByPackage.get(ROOT_PACKAGE_NAME);
+
   if (cwdPackageDeps) {
-    requestedPackages.set(cwdPackageName, {
-      fullPath: cwd,
-      relativePath: "",
-      deps: cwdPackageDeps
+    const packageObj = packagesMap.get(ROOT_PACKAGE_NAME);
+
+    packageObj.deps = cwdPackageDeps;
+    requestedPackages.set(ROOT_PACKAGE_NAME, packageObj);
+    packagesToLookup.push(ROOT_PACKAGE_NAME);
+  }
+
+  if (roots && roots.length) {
+    roots.forEach((childRootPath) => {
+      const packageObj = packagesMap.get(childRootPath);
+      const childRootDeps = depsMapByPackage.get(packageObj.name);
+
+      if (childRootDeps) {
+        packageObj.deps = childRootDeps;
+        requestedPackages.set(packageObj.name, packageObj);
+        packagesToLookup.push(packageObj.name);
+      }
     });
-    packagesToLookup.push(cwdPackageName);
-  } else {
-    return requestedPackages;
   }
 
   // While there are packages to lookup and not all package are found
@@ -219,13 +232,10 @@ const determineRequestedPackages = ({ cwd, cwdPackageName, packagesMap, depsMapB
     // Find every package that is not looked up yet but requested and add it to the stack
     packageDeps.packages.forEach((packageName) => {
       if (!requestedPackages.has(packageName)) {
-        const packagePath = packagesMap.get(packageName);
+        const packageObj = packagesMap.get(packageName);
 
-        requestedPackages.set(packageName, {
-          fullPath: packagePath,
-          relativePath: path.relative(cwd, packagePath),
-          deps: depsMapByPackage.get(packageName)
-        });
+        packageObj.deps = depsMapByPackage.get(packageName);
+        requestedPackages.set(packageName, packageObj);
         packagesToLookup.push(packageName);
       }
     });
@@ -264,19 +274,26 @@ const buildDepsList = (requestedPackages) => {
   return depsList;
 };
 
-const createDepInclude = async ({ cwd, cwdPackageName, rootPath, roots, packagesMap }) => {
+const createDepInclude = async ({ cwd, rootPath, roots, packages, packagesMap }) => {
   // Special case: Allow `{CWD}/package.json` to not exist. Any `roots` must.
   const cwdPkgExists = await exists(path.join(cwd, "package.json"));
 
-  const packages = [].concat(roots);
+  const includedPackages = new Set();
   if (cwdPkgExists) {
-    packages.unshift(cwd);
+    includedPackages.add(cwd);
+  }
+  if (roots && roots.length) {
+    roots.forEach((childRootPath) => { includedPackages.add(childRootPath); });
+  }
+  if (packages && packages.length) {
+    packages.forEach((packagePath) => { includedPackages.add(packagePath); });
   }
 
   const depsMapByPackage = new Map();
 
   await Promise.all(
-    packages.sort().map(async (packagePath) => {
+    Array.from(includedPackages).sort().map(async (packagePath) => {
+      const packageObj = packagesMap.get(packagePath);
       const depsByPackage = await createPackageDepInclude({
         cwd,
         rootPath,
@@ -284,13 +301,13 @@ const createDepInclude = async ({ cwd, cwdPackageName, rootPath, roots, packages
         packagesMap
       });
 
-      depsMapByPackage.set(path.basename(packagePath), depsByPackage);
+      depsMapByPackage.set(packageObj.name, depsByPackage);
     })
   );
 
   const requestedPackages = determineRequestedPackages({
     cwd,
-    cwdPackageName,
+    roots,
     packagesMap,
     depsMapByPackage
   });
@@ -491,8 +508,6 @@ const findCollapsed = async ({ files, cwd }) => {
 };
 
 const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
-  const cwdPackageName = path.basename(cwd);
-
   // Sort by name (mutating) to make deterministic.
   files.sort();
 
@@ -503,10 +518,11 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
   // https://github.com/FormidableLabs/serverless-jetpack/issues/75
   const fileObjs = await Promise.all(files.map(
     (name) => {
-      let relatedPackage = cwdPackageName;
+      let relatedPackage = ROOT_PACKAGE_NAME;
       for (const [packageName, packageObj] of requestedPackagesMap) {
         if (packageObj.relativePath && name.startsWith(packageObj.relativePath)) {
           relatedPackage = packageName;
+          break;
         }
       }
 
@@ -546,7 +562,7 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
       fileObjs.forEach(({ name, relatedPackage, data, stat: { mode } }) => {
         let depName = name;
-        if (relatedPackage !== cwdPackageName) {
+        if (relatedPackage !== ROOT_PACKAGE_NAME) {
           depName = path.join("packages", name.replace(/^(\.{1,2}\/)+/, ""));
         }
 
@@ -577,6 +593,58 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
       zip.finalize();
     });
   });
+};
+
+const createPackageMap = async ({ cwd, roots, packages }) => {
+  const packagesMap = new Map();
+
+  const cwdPackageObj = {
+    name: ROOT_PACKAGE_NAME,
+    type: "root",
+    fullPath: cwd,
+    relativePath: ""
+  };
+  packagesMap.set(ROOT_PACKAGE_NAME, cwdPackageObj);
+  packagesMap.set(cwd, cwdPackageObj);
+
+  if (roots) {
+    await Promise.all(
+      roots.map(async (childRootPath) => {
+        if (packagesMap.has(childRootPath)) { return; }
+
+        const pkg = await readJson(path.resolve(childRootPath, "package.json"));
+
+        const childRootPackageObj = {
+          name: pkg.name,
+          type: "root",
+          fullPath: childRootPath,
+          relativePath: path.relative(cwd, childRootPath)
+        };
+        packagesMap.set(pkg.name, childRootPackageObj);
+        packagesMap.set(childRootPath, childRootPackageObj);
+      })
+    );
+  }
+  if (packages) {
+    await Promise.all(
+      packages.map(async (packagePath) => {
+        if (packagesMap.has(packagePath)) { return; }
+
+        const pkg = await readJson(path.resolve(packagePath, "package.json"));
+
+        const packageObj = {
+          name: pkg.name,
+          type: "package",
+          fullPath: packagePath,
+          relativePath: path.relative(cwd, packagePath)
+        };
+        packagesMap.set(pkg.name, packageObj);
+        packagesMap.set(packagePath, packageObj);
+      })
+    );
+  }
+
+  return packagesMap;
 };
 
 /**
@@ -627,6 +695,7 @@ const globAndZip = async ({
   servicePath,
   base,
   roots,
+  packages,
   bundleName,
   traceParams = {},
   preInclude,
@@ -640,6 +709,7 @@ const globAndZip = async ({
   // Fully resolve paths.
   cwd = path.resolve(servicePath, cwd);
   roots = roots ? roots.map((r) => path.resolve(servicePath, r)) : roots;
+  packages = packages ? packages.map((r) => path.resolve(servicePath, r)) : packages;
   const rootPath = path.resolve(servicePath, base);
   const bundlePath = path.resolve(servicePath, bundleName);
 
@@ -647,7 +717,7 @@ const globAndZip = async ({
   // then bring `node_modules` individual files back in after.
   let depInclude;
   let requestedPackagesMap = new Map();
-  const packagesMap = new Map();
+  let packagesMap = new Map();
 
   let traceMisses = mapTraceMisses();
   if (traceInclude) {
@@ -663,19 +733,13 @@ const globAndZip = async ({
       // Convert to relative paths and include in patterns for bundling.
       .map((depPath) => path.relative(servicePath, depPath));
   } else {
-    const cwdPackageName = path.basename(cwd);
-    packagesMap.set(cwdPackageName, cwd);
-    if (roots) {
-      roots.forEach((packagePath) => {
-        packagesMap.set(path.basename(packagePath), packagePath);
-      });
-    }
+    packagesMap = await createPackageMap({ cwd, roots, packages });
 
     // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
     ({
       deps: depInclude,
       requestedPackages: requestedPackagesMap
-    } = await createDepInclude({ cwd, cwdPackageName, rootPath, roots, packagesMap }));
+    } = await createDepInclude({ cwd, rootPath, roots, packages, packagesMap }));
   }
 
   // Glob and filter all files in package.
