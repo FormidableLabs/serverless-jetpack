@@ -177,7 +177,7 @@ const createPackageDepInclude = async ({ cwd, rootPath, packagePath, packagesMap
         const [, directDepName, childFilePath] = depPartsMatch;
 
         // If it's a package, manage it separately
-        if (packagesMap.has(directDepName)) {
+        if (packagesMap.has(directDepName) && packagesMap.get(directDepName).type === "package") {
           // If it's a package directory itself, add the package to the requested set
           if (!childFilePath) {
             depsByPackage.packages.add(directDepName);
@@ -562,7 +562,10 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
       fileObjs.forEach(({ name, relatedPackage, data, stat: { mode } }) => {
         let depName = name;
-        if (relatedPackage !== ROOT_PACKAGE_NAME) {
+        if (
+          relatedPackage !== ROOT_PACKAGE_NAME
+          && requestedPackagesMap.get(relatedPackage).type === "package"
+        ) {
           depName = path.join("packages", name.replace(/^(\.{1,2}\/)+/, ""));
         }
 

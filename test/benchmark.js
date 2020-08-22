@@ -451,14 +451,18 @@ const topLevel = (filePath) => {
   const nodeModulesIdx = parts.indexOf("node_modules");
 
   // Get `node_modules` directory and entry after (scoped or normal).
-  // eslint-disable-next-line no-magic-numbers
-  let pkgParts = parts.slice(0, nodeModulesIdx + 2);
-  if (pkgParts[1].startsWith("@")) {
+  if (nodeModulesIdx > -1) {
     // eslint-disable-next-line no-magic-numbers
-    pkgParts = parts.slice(0, nodeModulesIdx + 3); // Scoped
+    let pkgParts = parts.slice(0, nodeModulesIdx + 2);
+    if (pkgParts[1].startsWith("@")) {
+      // eslint-disable-next-line no-magic-numbers
+      pkgParts = parts.slice(0, nodeModulesIdx + 3); // Scoped
+    }
+
+    return pkgParts.join("/");
   }
 
-  return pkgParts.join("/");
+  return filePath;
 };
 
 // Applies to both plugin and baselines
