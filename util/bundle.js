@@ -588,7 +588,7 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
               packageObj.relativePath && path.join("packages", packageName),
               "node_modules", childPackageName
             ),
-            path.join("packages", childPackageName)
+            path.join(packageObj.relativePath ? "../.." : "../packages", childPackageName)
           );
         });
       });
