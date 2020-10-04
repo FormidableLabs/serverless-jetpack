@@ -797,60 +797,60 @@ As a quick guide to the results table:
 
 Machine information:
 
-* os:   `linux 5.6.0-0.bpo.2-amd64 x64`
-* node: `v13.13.0`
-* yarn: `1.22.4`
-* npm:  `6.14.5`
+* os:   `linux 5.7.0-0.bpo.2-amd64 x64`
+* node: `v12.18.2`
+* yarn: `1.22.7`
+* npm:  `6.14.8`
 
 Results:
 
 ### Benchmark: Timed Packages
 | Scenario     | Pkg  | Type     | Mode  |  Time |      vs Base |
 | :----------- | :--- | :------- | :---- | ----: | -----------: |
-| simple       | yarn | jetpack  | trace |  3383 | **-75.51 %** |
-| simple       | yarn | jetpack  | deps  |  2750 | **-80.09 %** |
-| simple       | yarn | baseline |       | 13814 |              |
-| simple       | npm  | jetpack  | trace |  3189 | **-72.52 %** |
-| simple       | npm  | jetpack  | deps  |  2764 | **-76.18 %** |
-| simple       | npm  | baseline |       | 11606 |              |
-| complex      | yarn | jetpack  | trace |  4095 | **-74.82 %** |
-| complex      | yarn | jetpack  | deps  |  4045 | **-75.12 %** |
-| complex      | yarn | baseline |       | 16261 |              |
-| complex      | npm  | jetpack  | trace |  4607 | **-74.77 %** |
-| complex      | npm  | jetpack  | deps  |  3787 | **-79.26 %** |
-| complex      | npm  | baseline |       | 18263 |              |
-| individually | yarn | jetpack  | trace |  8223 | **-39.39 %** |
-| individually | yarn | jetpack  | deps  |  7256 | **-46.52 %** |
-| individually | yarn | baseline |       | 13568 |              |
-| individually | npm  | jetpack  | trace |  8664 | **-40.20 %** |
-| individually | npm  | jetpack  | deps  |  7342 | **-49.32 %** |
-| individually | npm  | baseline |       | 14488 |              |
-| huge         | yarn | jetpack  | trace |  3070 | **-88.71 %** |
-| huge         | yarn | jetpack  | deps  |  2917 | **-89.27 %** |
-| huge         | yarn | baseline |       | 27198 |              |
-| huge         | npm  | jetpack  | trace |  3148 | **-89.65 %** |
-| huge         | npm  | jetpack  | deps  |  3183 | **-89.54 %** |
-| huge         | npm  | baseline |       | 30427 |              |
-| huge-prod    | yarn | jetpack  | trace |  3067 | **-78.17 %** |
-| huge-prod    | yarn | jetpack  | deps  |  5390 | **-61.63 %** |
-| huge-prod    | yarn | baseline |       | 14048 |              |
-| huge-prod    | npm  | jetpack  | trace |  3131 | **-77.65 %** |
-| huge-prod    | npm  | jetpack  | deps  |  5433 | **-61.22 %** |
-| huge-prod    | npm  | baseline |       | 14009 |              |
+| simple       | yarn | jetpack  | trace |  2632 | **-68.52 %** |
+| simple       | yarn | jetpack  | deps  |  2430 | **-70.93 %** |
+| simple       | yarn | baseline |       |  8360 |              |
+| simple       | npm  | jetpack  | trace |  2900 | **-67.94 %** |
+| simple       | npm  | jetpack  | deps  |  2600 | **-71.26 %** |
+| simple       | npm  | baseline |       |  9046 |              |
+| complex      | yarn | jetpack  | trace |  3413 | **-74.15 %** |
+| complex      | yarn | jetpack  | deps  |  3219 | **-75.62 %** |
+| complex      | yarn | baseline |       | 13202 |              |
+| complex      | npm  | jetpack  | trace |  3963 | **-72.89 %** |
+| complex      | npm  | jetpack  | deps  |  3345 | **-77.12 %** |
+| complex      | npm  | baseline |       | 14617 |              |
+| individually | yarn | jetpack  | trace |  6679 | **-35.39 %** |
+| individually | yarn | jetpack  | deps  |  6189 | **-40.13 %** |
+| individually | yarn | baseline |       | 10337 |              |
+| individually | npm  | jetpack  | trace |  7552 | **-31.06 %** |
+| individually | npm  | jetpack  | deps  |  6584 | **-39.89 %** |
+| individually | npm  | baseline |       | 10954 |              |
+| huge         | yarn | jetpack  | trace |  2480 | **-87.02 %** |
+| huge         | yarn | jetpack  | deps  |  2531 | **-86.75 %** |
+| huge         | yarn | baseline |       | 19107 |              |
+| huge         | npm  | jetpack  | trace |  2894 | **-86.52 %** |
+| huge         | npm  | jetpack  | deps  |  2611 | **-87.84 %** |
+| huge         | npm  | baseline |       | 21469 |              |
+| huge-prod    | yarn | jetpack  | trace |  2539 | **-76.59 %** |
+| huge-prod    | yarn | jetpack  | deps  |  4420 | **-59.24 %** |
+| huge-prod    | yarn | baseline |       | 10844 |              |
+| huge-prod    | npm  | jetpack  | trace |  2779 | **-75.05 %** |
+| huge-prod    | npm  | jetpack  | deps  |  4350 | **-60.95 %** |
+| huge-prod    | npm  | baseline |       | 11139 |              |
 
 ### Benchmark: Other Packages
-| Scenario | Pkg  | Type     | Mode  | Time |      vs Base |
-| :------- | :--- | :------- | :---- | ---: | -----------: |
-| monorepo | yarn | jetpack  | trace | 3943 |              |
-| monorepo | yarn | jetpack  | deps  | 2830 |              |
-| monorepo | npm  | jetpack  | trace | 3917 |              |
-| monorepo | npm  | jetpack  | deps  | 2771 |              |
-| webpack  | yarn | jetpack  | trace | 3498 |  **19.39 %** |
-| webpack  | yarn | jetpack  | deps  | 2657 |  **-9.32 %** |
-| webpack  | yarn | baseline |       | 2930 |              |
-| webpack  | npm  | jetpack  | trace | 3400 |  **14.25 %** |
-| webpack  | npm  | jetpack  | deps  | 2645 | **-11.12 %** |
-| webpack  | npm  | baseline |       | 2976 |              |
+| Scenario | Pkg  | Type     | Mode  | Time |     vs Base |
+| :------- | :--- | :------- | :---- | ---: | ----------: |
+| monorepo | yarn | jetpack  | trace | 3078 |             |
+| monorepo | yarn | jetpack  | deps  | 2565 |             |
+| monorepo | npm  | jetpack  | trace | 3445 |             |
+| monorepo | npm  | jetpack  | deps  | 2548 |             |
+| webpack  | yarn | jetpack  | trace | 2721 |  **1.04 %** |
+| webpack  | yarn | jetpack  | deps  | 2511 | **-6.76 %** |
+| webpack  | yarn | baseline |       | 2693 |             |
+| webpack  | npm  | jetpack  | trace | 3158 | **13.60 %** |
+| webpack  | npm  | jetpack  | deps  | 2575 | **-7.37 %** |
+| webpack  | npm  | baseline |       | 2780 |             |
 
 ## Maintenance status
 

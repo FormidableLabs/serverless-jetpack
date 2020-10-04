@@ -153,6 +153,45 @@ const resolveFilePathsFromPatterns = async ({
   };
 };
 
+const getPathParts = (somePath) => {
+  if (!somePath) {
+    return somePath;
+  }
+
+  const pathParts = somePath.split(/[\/\\]/);
+
+  const firstMeaningPartIndex = pathParts.findIndex(
+    (part) => part && part !== "." && part !== ".." && part !== "node_modules"
+  );
+  if (firstMeaningPartIndex === -1) {
+    return null;
+  }
+
+  const prefixParts = pathParts.slice(0, firstMeaningPartIndex);
+  const isDependency = prefixParts[prefixParts.length - 1] === "node_modules";
+  const prefixPath = prefixParts.join("/");
+  const meaningParts = pathParts.slice(firstMeaningPartIndex);
+
+  // If first symbol of dep name is @ then it's scoped dep, we should take next too
+  if (isDependency && meaningParts[0][0] === "@") {
+    return {
+      parentName: `${meaningParts[0]}/${meaningParts[1]}`,
+      // eslint-disable-next-line no-magic-numbers
+      childPath: meaningParts.slice(2).join("/"),
+      prefixPath,
+      isDependency
+    };
+  }
+
+  return {
+    parentName: meaningParts[0],
+    // eslint-disable-next-line no-magic-numbers
+    childPath: meaningParts.slice(1).join("/"),
+    prefixPath,
+    isDependency
+  };
+};
+
 const createPackageDepInclude = async ({ cwd, rootPath, packagePath, packagesMap }) => {
   const depsByPackage = {
     packages: new Set(),
@@ -166,15 +205,11 @@ const createPackageDepInclude = async ({ cwd, rootPath, packagePath, packagesMap
   await Promise.all(
     deps.map(async (dep) => {
       const depPath = path.join(rootPath, dep);
-      const depPartsMatch = path
-        .relative(packagePath, depPath)
-        // Getting direct dependency name and a path of the child file if it exists
-        // For ex., node_modules/my-package/foo/index.js -> my-package, /foo/index/.js
-        .match(/^(?:(?:\.{1,2}[\\/])+|[\\/])?node_modules[\\/]([^\\/]+)(.*)$/);
+      const depParts = getPathParts(path.relative(packagePath, depPath));
 
-      // If it's dependency path parts matched template
-      if (depPartsMatch) {
-        const [, directDepName, childFilePath] = depPartsMatch;
+      // If it's valid dependency path
+      if (depParts) {
+        const { parentName: directDepName, childPath: childFilePath } = depParts;
 
         // If it's a package, manage it separately
         if (packagesMap.has(directDepName) && packagesMap.get(directDepName).type === "package") {
@@ -511,6 +546,11 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
   // Sort by name (mutating) to make deterministic.
   files.sort();
 
+  const requestedPackagesMapByPath = new Map();
+  requestedPackagesMap.forEach((requestedPackage) => {
+    requestedPackagesMapByPath.set(requestedPackage.relativePath, requestedPackage);
+  });
+
   // Get all contents.
   //
   // TODO(75): Review if this is too memory-intensive or not performant and
@@ -518,19 +558,22 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
   // https://github.com/FormidableLabs/serverless-jetpack/issues/75
   const fileObjs = await Promise.all(files.map(
     (name) => {
-      let relatedPackage = ROOT_PACKAGE_NAME;
-      for (const [packageName, packageObj] of requestedPackagesMap) {
-        if (packageObj.relativePath && name.startsWith(packageObj.relativePath)) {
-          relatedPackage = packageName;
-          break;
-        }
+      const pathParts = getPathParts(name);
+
+      let relatedPackage;
+      if (pathParts && !pathParts.isDependency) {
+        const parentPath = path.join(pathParts.prefixPath, pathParts.parentName);
+        relatedPackage = requestedPackagesMapByPath.get(parentPath);
+      }
+      if (!relatedPackage) {
+        relatedPackage = requestedPackagesMap.get(ROOT_PACKAGE_NAME);
       }
 
       return Promise.all([
         readFile(path.join(cwd, name)),
         readStat(path.join(cwd, name))
       ])
-        .then(([data, stat]) => ({ name, relatedPackage, data, stat }));
+        .then(([data, stat]) => ({ name, pathParts, relatedPackage, data, stat }));
     }
   ));
 
@@ -560,13 +603,14 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
       // - Sort and append files in sorted order.
       //
       // See: https://github.com/serverless/serverless/blob/master/lib/plugins/package/lib/zipService.js#L91-L104
-      fileObjs.forEach(({ name, relatedPackage, data, stat: { mode } }) => {
+      fileObjs.forEach(({ name, pathParts, relatedPackage, data, stat: { mode } }) => {
         let depName = name;
         if (
-          relatedPackage !== ROOT_PACKAGE_NAME
-          && requestedPackagesMap.get(relatedPackage).type === "package"
+          relatedPackage
+          && relatedPackage.name !== ROOT_PACKAGE_NAME
+          && relatedPackage.type === "package"
         ) {
-          depName = path.join("packages", name.replace(/^(\.{1,2}\/)+/, ""));
+          depName = path.join("packages", relatedPackage.name, pathParts.childPath);
         }
 
         // We originally did `zip.file` which is more I/O efficient, but doesn't
@@ -583,12 +627,25 @@ const createZip = async ({ files, requestedPackagesMap, cwd, bundlePath }) => {
 
       requestedPackagesMap.forEach((packageObj, packageName) => {
         packageObj.deps.packages.forEach((childPackageName) => {
+          const childPackageObj = requestedPackagesMap.get(childPackageName);
+
+          let destinationPathPrefix;
+          if (packageObj.relativePath) {
+            destinationPathPrefix = "../..";
+          } else {
+            destinationPathPrefix = "../packages";
+          }
+
+          if (childPackageObj.scoped) {
+            destinationPathPrefix = path.join("..", destinationPathPrefix);
+          }
+
           zip.symlink(
             path.join(
               packageObj.relativePath && path.join("packages", packageName),
               "node_modules", childPackageName
             ),
-            path.join(packageObj.relativePath ? "../.." : "../packages", childPackageName)
+            path.join(destinationPathPrefix, childPackageName)
           );
         });
       });
@@ -604,6 +661,7 @@ const createPackageMap = async ({ cwd, roots, packages }) => {
   const cwdPackageObj = {
     name: ROOT_PACKAGE_NAME,
     type: "root",
+    scoped: false,
     fullPath: cwd,
     relativePath: ""
   };
@@ -620,6 +678,7 @@ const createPackageMap = async ({ cwd, roots, packages }) => {
         const childRootPackageObj = {
           name: pkg.name,
           type: "root",
+          scoped: pkg.name[0] === "@",
           fullPath: childRootPath,
           relativePath: path.relative(cwd, childRootPath)
         };
@@ -638,6 +697,7 @@ const createPackageMap = async ({ cwd, roots, packages }) => {
         const packageObj = {
           name: pkg.name,
           type: "package",
+          scoped: pkg.name[0] === "@",
           fullPath: packagePath,
           relativePath: path.relative(cwd, packagePath)
         };
