@@ -5,9 +5,9 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "figlet": "^1.2.3"
+    "figlet": "^1.5.0"
   },
   "devDependencies": {
-    "uuid": "^3.3.2"
+    "uuid": "^8.3.1"
   }
 }

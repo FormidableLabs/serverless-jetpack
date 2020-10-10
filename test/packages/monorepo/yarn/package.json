@@ -16,8 +16,8 @@
     "postinstall": "lerna bootstrap"
   },
   "devDependencies": {
-    "lerna": "^3.14.1",
-    "serverless": "^1.67.0",
-    "serverless-offline": "^5.12.1"
+    "lerna": "^3.22.1",
+    "serverless": "^2.6.0",
+    "serverless-offline": "^6.8.0"
   }
 }

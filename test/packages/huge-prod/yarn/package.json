@@ -6,16 +6,16 @@
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "dependencies": {
-    "@babel/preset-env": "^7.4.3",
-    "express": "^4.16.4",
-    "moment": "^2.24.0",
-    "moment-timezone": "^0.5.23",
-    "react": "^16.8.6",
-    "react-dom": "^16.8.6",
-    "serverless-http": "^2.3.0"
+    "@babel/preset-env": "^7.11.5",
+    "express": "^4.17.1",
+    "moment": "^2.29.1",
+    "moment-timezone": "^0.5.31",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "serverless-http": "^2.6.0"
   },
   "devDependencies": {
-    "serverless": "^1.67.0",
-    "serverless-offline": "^5.12.1"
+    "serverless": "^2.6.0",
+    "serverless-offline": "^6.8.0"
   }
 }
