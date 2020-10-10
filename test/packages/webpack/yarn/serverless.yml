@@ -20,7 +20,7 @@ plugins:
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs12.x
   region: ${self:custom.region}
   stage: ${self:custom.stage}
   environment:
