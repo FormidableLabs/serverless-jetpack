@@ -36,7 +36,7 @@
     "check": "yarn lint && yarn test:spec"
   },
   "engines": {
-    "node": ">=10.22.1"
+    "node": ">=10"
   },
   "dependencies": {
     "archiver": "^5.0.2",
