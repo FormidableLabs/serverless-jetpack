@@ -17,6 +17,11 @@ jobs:
       name: << parameters.executor_name >>
       tag: << parameters.executor_tag >>
 
+    environment:
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_DEFAULT_REGION: us-east-1
+
     steps:
       - checkout
 
@@ -40,35 +45,35 @@ jobs:
       - save_cache:
           key: node-deps-v1-{{ arch }}-{{ checksum "all-lock-files.txt" }}
           paths:
-          # Root
-          - ~/project/node_modules
-          # Fixtures: We have to custom list each fixture directory. Suggestion:
-          # ```
-          # $ find test/packages/*/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
-          # $ find test/packages/*/*/{lib,functions,layers/with-deps}/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
-          # ```
-          - ~/project/test/packages/complex/npm/node_modules
-          - ~/project/test/packages/complex/yarn/node_modules
-          - ~/project/test/packages/dashboard/npm/node_modules
-          - ~/project/test/packages/dashboard/yarn/node_modules
-          - ~/project/test/packages/huge/npm/node_modules
-          - ~/project/test/packages/huge/yarn/node_modules
-          - ~/project/test/packages/huge-prod/npm/node_modules
-          - ~/project/test/packages/huge-prod/yarn/node_modules
-          - ~/project/test/packages/individually/npm/node_modules
-          - ~/project/test/packages/individually/yarn/node_modules
-          - ~/project/test/packages/monorepo/npm/node_modules
-          - ~/project/test/packages/monorepo/yarn/node_modules
-          - ~/project/test/packages/simple/npm/node_modules
-          - ~/project/test/packages/simple/yarn/node_modules
-          - ~/project/test/packages/webpack/npm/node_modules
-          - ~/project/test/packages/webpack/yarn/node_modules
-          - ~/project/test/packages/complex/npm/layers/with-deps/nodejs/node_modules
-          - ~/project/test/packages/complex/yarn/layers/with-deps/nodejs/node_modules
-          - ~/project/test/packages/monorepo/npm/functions/another/node_modules
-          - ~/project/test/packages/monorepo/npm/functions/base/node_modules
-          - ~/project/test/packages/monorepo/npm/lib/camel/node_modules
-          - ~/project/test/packages/monorepo/yarn/functions/base/node_modules
+            # Root
+            - ~/project/node_modules
+            # Fixtures: We have to custom list each fixture directory. Suggestion:
+            # ```
+            # $ find test/packages/*/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
+            # $ find test/packages/*/*/{lib,functions,layers/with-deps}/* -type d -name node_modules -maxdepth 1 -exec echo '- ~/project/'{} \; | sort
+            # ```
+            - ~/project/test/packages/complex/npm/node_modules
+            - ~/project/test/packages/complex/yarn/node_modules
+            - ~/project/test/packages/dashboard/npm/node_modules
+            - ~/project/test/packages/dashboard/yarn/node_modules
+            - ~/project/test/packages/huge/npm/node_modules
+            - ~/project/test/packages/huge/yarn/node_modules
+            - ~/project/test/packages/huge-prod/npm/node_modules
+            - ~/project/test/packages/huge-prod/yarn/node_modules
+            - ~/project/test/packages/individually/npm/node_modules
+            - ~/project/test/packages/individually/yarn/node_modules
+            - ~/project/test/packages/monorepo/npm/node_modules
+            - ~/project/test/packages/monorepo/yarn/node_modules
+            - ~/project/test/packages/simple/npm/node_modules
+            - ~/project/test/packages/simple/yarn/node_modules
+            - ~/project/test/packages/webpack/npm/node_modules
+            - ~/project/test/packages/webpack/yarn/node_modules
+            - ~/project/test/packages/complex/npm/layers/with-deps/nodejs/node_modules
+            - ~/project/test/packages/complex/yarn/layers/with-deps/nodejs/node_modules
+            - ~/project/test/packages/monorepo/npm/functions/another/node_modules
+            - ~/project/test/packages/monorepo/npm/functions/base/node_modules
+            - ~/project/test/packages/monorepo/npm/lib/camel/node_modules
+            - ~/project/test/packages/monorepo/yarn/functions/base/node_modules
 
       # Info
       - run: node --version
@@ -88,14 +93,10 @@ workflows:
   builds:
     jobs:
       - build_and_test:
-          name: build-linux-node-10
-          executor_tag: '10'
-      - build_and_test:
-          name: build-linux-node-12
-          executor_tag: '12'
-      - build_and_test:
-          name: build-linux-node-14
-          executor_tag: '14'
+          name: build-linux-node-<< matrix.executor_tag >>
+          matrix:
+            parameters:
+              executor_tag: ['10', '12', '14']
       # TODO(83): Out of windows OSS credits
       # See: https://github.com/FormidableLabs/serverless-jetpack/issues/83
       # - build_and_test:
