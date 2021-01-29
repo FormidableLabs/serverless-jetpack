@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.10.8
 
 * Feature: Support application source paths as keys in `jetpack.trace.allowMissing`.
 
