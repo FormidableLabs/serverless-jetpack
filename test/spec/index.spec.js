@@ -191,6 +191,8 @@ describe("index", () => {
                   - "!**"
                 trace:
                   allowMissing:
+                    "./has-missings.js":
+                      - allowed-app-src-missing-service
                     all-missing:
                       - one-missing
                     partially-missing:
@@ -210,6 +212,8 @@ describe("index", () => {
                 jetpack:
                   trace:
                     allowMissing:
+                      "./has-missings.js":
+                        - allowed-app-src-missing-fn
                       partially-missing:
                         - two-missing
                         - three-actually-on-disk
@@ -224,6 +228,9 @@ describe("index", () => {
             });
           `,
           "has-missings.js": `
+            require("allowed-app-src-missing-service");
+            require("allowed-app-src-missing-fn");
+
             exports.handler = async () => ({
               body: JSON.stringify({
                 someMissing: require("partially-missing")

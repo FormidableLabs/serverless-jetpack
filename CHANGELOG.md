@@ -1,6 +1,10 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Feature: Support application source paths as keys in `jetpack.trace.allowMissing`.
+
 ## 0.10.7
 
 * Internal: Refactor inefficient JavaScript object usage in `reduce()`.

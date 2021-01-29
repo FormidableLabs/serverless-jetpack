@@ -299,11 +299,13 @@ class Jetpack {
       resolutions: smartMerge(serviceObj.dynamic.resolutions, functionObj.dynamic.resolutions)
     };
 
-    // Convert **relative** paths in resolutions to absolute paths.
+    // Convert **relative** paths in allowMissing, resolutions to absolute paths.
     // Anything starting with at dot (`.`) is considered an application path
     // and converted. Remaining relative paths are packages.
     const cwd = this.serverless.config.servicePath || ".";
     [
+      serviceObj.allowMissing,
+      functionObj.allowMissing,
       serviceObj.dynamic.resolutions,
       functionObj.dynamic.resolutions
     ].forEach((res) => Object.entries(res)
