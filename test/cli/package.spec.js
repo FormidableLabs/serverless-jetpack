@@ -73,50 +73,6 @@ describe("jetpack package", function () {
     });
   });
 
-  describe("individually", () => {
-    const cwd = path.resolve(__dirname, "../packages/individually/yarn");
-    const PKG_DIR = path.join(cwd, ".serverless");
-
-    beforeEach(async () => {
-      await remove(PKG_DIR);
-    });
-
-    it("packages all functions with no options", async () => {
-      const { stdout } = await sls(["jetpack", "package"], { cwd });
-      expect(stdout)
-        .to.contain(
-          `Packaged function (dependency mode): ${path.normalize(".serverless/base.zip")}`).and
-        .to.contain(
-          `Packaged function (dependency mode): ${path.normalize(".serverless/another.zip")}`);
-
-      expect(await exists(path.join(PKG_DIR, "base.zip"))).to.equal(true);
-      expect(await exists(path.join(PKG_DIR, "another.zip"))).to.equal(true);
-    });
-
-    it("packages all functions with no options in trace mode", async () => {
-      mode = "trace";
-      const { stdout } = await sls(["jetpack", "package"], { cwd });
-      expect(stdout)
-        .to.contain(`Packaged function (trace mode): ${path.normalize(".serverless/base.zip")}`).and
-        .to.contain(`Packaged function (trace mode): ${path.normalize(".serverless/another.zip")}`);
-
-      expect(await exists(path.join(PKG_DIR, "base.zip"))).to.equal(true);
-      expect(await exists(path.join(PKG_DIR, "another.zip"))).to.equal(true);
-    });
-
-    it("packages 1 function with -f base", async () => {
-      const { stdout } = await sls(["jetpack", "package", "-f", "base"], { cwd });
-      expect(stdout)
-        .to.contain(
-          `Packaged function (dependency mode): ${path.normalize(".serverless/base.zip")}`).and
-        .to.not.contain(
-          `Packaged function (dependency mode): ${path.normalize(".serverless/another.zip")}`);
-
-      expect(await exists(path.join(PKG_DIR, "base.zip"))).to.equal(true);
-      expect(await exists(path.join(PKG_DIR, "another.zip"))).to.equal(false);
-    });
-  });
-
   describe("complex", () => {
     const cwd = path.resolve(__dirname, "../packages/complex/yarn");
     const PKG_DIR = path.join(cwd, ".serverless");

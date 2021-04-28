@@ -39,21 +39,21 @@ provider:
   timeout: 30 # seconds (`300` max)
   memorySize: 128 # MB value (`1024` default)
 
-layers:
-  no-deps:
-    path: layers/no-deps
-  # serverless built-in _won't_ exclude devDeps nested in `nodejs`
-  with-deps:
-    path: layers/with-deps
-  # ... but Jetpack will with a `roots` configuration! (Special test excludes..)
-  with-deps-no-dev:
-    path: layers/with-deps
-    jetpack:
-      roots:
-        - layers/with-deps/nodejs
-  # serverless built-in _will_ exclude devDeps at root
-  with-deps-root:
-    path: layers/with-deps/nodejs
+#layers:
+#  no-deps:
+#    path: layers/no-deps
+#  # serverless built-in _won't_ exclude devDeps nested in `nodejs`
+#  with-deps:
+#    path: layers/with-deps
+#  # ... but Jetpack will with a `roots` configuration! (Special test excludes..)
+#  with-deps-no-dev:
+#    path: layers/with-deps
+#    jetpack:
+#      roots:
+#        - layers/with-deps/nodejs
+#  # serverless built-in _will_ exclude devDeps at root
+#  with-deps-root:
+#    path: layers/with-deps/nodejs
 
 functions:
   base:

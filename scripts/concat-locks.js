@@ -28,24 +28,24 @@ const LOCK_FILES = [
   // Package deps.
   "test/packages/complex/npm/package-lock.json",
   "test/packages/complex/yarn/yarn.lock",
-  "test/packages/dashboard/npm/package-lock.json",
-  "test/packages/dashboard/yarn/yarn.lock",
-  "test/packages/huge/npm/package-lock.json",
-  "test/packages/huge/yarn/yarn.lock",
-  "test/packages/huge-prod/npm/package-lock.json",
-  "test/packages/huge-prod/yarn/yarn.lock",
-  "test/packages/individually/npm/package-lock.json",
-  "test/packages/individually/yarn/yarn.lock",
-  "test/packages/monorepo/npm/package-lock.json",
-  "test/packages/monorepo/yarn/yarn.lock",
+  // "test/packages/dashboard/npm/package-lock.json",
+  // "test/packages/dashboard/yarn/yarn.lock",
+  // "test/packages/huge/npm/package-lock.json",
+  // "test/packages/huge/yarn/yarn.lock",
+  // "test/packages/huge-prod/npm/package-lock.json",
+  // "test/packages/huge-prod/yarn/yarn.lock",
+  // "test/packages/individually/npm/package-lock.json",
+  // "test/packages/individually/yarn/yarn.lock",
+  // "test/packages/monorepo/npm/package-lock.json",
+  // "test/packages/monorepo/yarn/yarn.lock",
   "test/packages/simple/npm/package-lock.json",
-  "test/packages/simple/yarn/yarn.lock",
-  "test/packages/webpack/npm/package-lock.json",
-  "test/packages/webpack/yarn/yarn.lock",
-  "test/packages/complex/npm/layers/with-deps/nodejs/package-lock.json",
-  "test/packages/monorepo/npm/functions/another/package-lock.json",
-  "test/packages/monorepo/npm/functions/base/package-lock.json",
-  "test/packages/monorepo/npm/lib/camel/package-lock.json"
+  "test/packages/simple/yarn/yarn.lock"
+  // "test/packages/webpack/npm/package-lock.json",
+  // "test/packages/webpack/yarn/yarn.lock",
+  // "test/packages/complex/npm/layers/with-deps/nodejs/package-lock.json"
+  // "test/packages/monorepo/npm/functions/another/package-lock.json",
+  // "test/packages/monorepo/npm/functions/base/package-lock.json",
+  // "test/packages/monorepo/npm/lib/camel/package-lock.json"
 ];
 
 const main = async () => {

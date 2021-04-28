@@ -48,41 +48,32 @@ const MODES = [
 
 const SCENARIOS = [
   "simple",
-  "dashboard",
-  "complex",
-  "individually",
-  "monorepo",
-  "webpack",
-  "huge",
-  "huge-prod"
+  "complex"
 ]
   .filter((s) => !TEST_SCENARIO || TEST_SCENARIO.split(",").includes(s));
 
 // Only some scenarios are part of our timing benchmark.
 const TIMING_SCENARIOS = new Set([
   "simple",
-  "complex",
-  "individually",
-  "huge",
-  "huge-prod"
+  "complex"
 ]);
 
 // Some scenarios are only feasible in Jetpack
 const JETPACK_ONLY_SCENARIOS = new Set([
-  "monorepo"
+//  "monorepo"
 ]);
 
 // Tests to exclude from correctness tests.
 const SKIP_CORRECTNESS_SCENARIOS = new Set([
-  "monorepo",
-  "webpack",
-  "huge-prod"
+//  "monorepo",
+//  "webpack",
+//  "huge-prod"
 ]);
 
 // Some scenarios allow failures in executing `serverless`
 // (Due to AWS creds we're not going to provide).
 const ALLOW_FAILURE_SCENARIOS = new Set([
-  "dashboard"
+//  "dashboard"
 ]);
 
 // All scenario to run.
@@ -129,8 +120,6 @@ const build = async () => {
     "*.py",
     "functions/*/src/**",
     "functions/*/package.json",
-    "layers/*/*.js",
-    "layers/*/nodejs/package.json",
     "lib/*/src/**",
     "lib/*/package.json"
   ];
