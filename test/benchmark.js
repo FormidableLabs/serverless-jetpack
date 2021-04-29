@@ -713,7 +713,8 @@ describe("benchmark", () => {
     });
 
     describeScenario("complex", () => {
-      it("has same npm and yarn layer package contents", () => {
+      // TODO(LAYERS): REENABLE
+      it.skip("has same npm and yarn layer package contents", () => {
         let yarnFiles = fixtures["complex/yarn/jetpack/deps"]["with-deps-no-dev.zip"];
         let npmFiles = fixtures["complex/npm/jetpack/deps"]["with-deps-no-dev.zip"];
 
