@@ -511,16 +511,17 @@ describe("benchmark", () => {
       return memo;
     }, {});
 
-    // Extract the equivalent files from webpack single bundle files.
-    const wepbpackZip = new AdmZip(path.resolve(
-      projRoot, ".test-zips/webpack/yarn/baseline/serverless-jetpack-plugins.zip"
-    ));
-    webpackFiles = wepbpackZip.readAsText("src/base.js")
-      .split("\n")
-      .filter((line) => (/\!\*\*\* .*? \*\*\*\!/).test(line))
-      .map((line) => line.replace(/\!\*\*\*|\*\*\*\!/g, "").trim())
-      .map((file) => path.relative(".", file))
-      .map(toPosixPath);
+    // TODO: Place in a scenario or exclude.
+    // // Extract the equivalent files from webpack single bundle files.
+    // const wepbpackZip = new AdmZip(path.resolve(
+    //   projRoot, ".test-zips/webpack/yarn/baseline/serverless-jetpack-plugins.zip"
+    // ));
+    // webpackFiles = wepbpackZip.readAsText("src/base.js")
+    //   .split("\n")
+    //   .filter((line) => (/\!\*\*\* .*? \*\*\*\!/).test(line))
+    //   .map((line) => line.replace(/\!\*\*\*|\*\*\*\!/g, "").trim())
+    //   .map((file) => path.relative(".", file))
+    //   .map(toPosixPath);
   });
 
   describe("dependencies mode", () => {
@@ -567,7 +568,8 @@ describe("benchmark", () => {
       });
     });
 
-    describeScenario("monorepo", () => {
+    // TODO: REMOVE?
+    describe.skip("monorepo", () => {
       it("has same npm and yarn package contents for base.zip", () => {
         let yarnFiles = fixtures["monorepo/yarn/jetpack/deps"]["base.zip"];
         let npmFiles = fixtures["monorepo/npm/jetpack/deps"]["base.zip"];
@@ -806,7 +808,8 @@ describe("benchmark", () => {
       });
     });
 
-    describeScenario("webpack", () => {
+    // TODO: Clean up or remove
+    describe.skip("webpack", () => {
       it("traces the same files as webpack", () => {
         // Trace files is "real" files and webpack files are from bundle control comments.
         const traceFixture = fixtures["webpack/yarn/jetpack/trace"];
