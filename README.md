@@ -1,8 +1,7 @@
 Serverless Jetpack 🚀
 ====================
 [![npm version][npm_img]][npm_site]
-[![CircleCI status][circle_img]][circle_site]
-[![AppVeyor status][appveyor_img]][appveyor_site]
+[![Actions Status][actions_img]][actions_site]
 [![MIT license][lic_img]][lic_site]
 [![Maintenance Status][maintenance-image]](#maintenance-status)
 
@@ -849,10 +848,8 @@ Results:
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
-[circle_img]: https://circleci.com/gh/FormidableLabs/serverless-jetpack.svg?style=shield
-[circle_site]: https://circleci.com/gh/FormidableLabs/serverless-jetpack
-[appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
-[appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
+[actions_img]: https://github.com/FormidableLabs/trace-deps/workflows/CI/badge.svg
+[actions_site]: https://github.com/FormidableLabs/trace-deps/actions
 [lic_img]: https://img.shields.io/npm/l/serverless-jetpack.svg?color=brightgreen&style=flat
 [lic_site]: https://github.com/FormidableLabs/serverless-jetpack/blob/master/LICENSE.txt
 [maintenance-image]: https://img.shields.io/badge/maintenance-active-brightgreen.svg
