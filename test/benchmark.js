@@ -20,6 +20,7 @@ const { TEST_MATRIX } = require("./script");
 // there are known cases of bad matches that we exclude from consideration.
 const PKG_IGNORE_ALL = new Set([
   // All metafiles.
+  "node_modules/.package-lock.json",
   "node_modules/.yarn-integrity"
 ]);
 
