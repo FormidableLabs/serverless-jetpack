@@ -30,23 +30,21 @@ jobs:
         env:
           CI: true
 
-      # TODO: ENABLE
-      # # TODO(CI): Set up caching to speed up test specs
-      # # Detect if `test/packages/*/*/node_modules` exists in any form and skip
-      # # installs on a per-directory basis.
-      # - name: Installation
-      #   run: yarn benchmark:install --skip-if-exists
-      #   env:
-      #     CI: true
+      # TODO(CI): Set up caching to speed up test specs
+      # Detect if `test/packages/*/*/node_modules` exists in any form and skip
+      # installs on a per-directory basis.
+      - name: Installation
+        run: yarn benchmark:install --skip-if-exists
+        env:
+          CI: true
 
       - name: Checks (lint, unit tests)
         run: yarn run check
 
-      # TODO: ENABLE
-      # - name: CLI tests
-      #   run: yarn run check
+      - name: CLI tests
+        run: yarn run check
 
-      # - name: Benchmark
-      #   run: yarn benchmark --parallel
-      # - name: Benchmark tests
-      #   run: yarn benchmark:test
+      - name: Benchmark
+        run: yarn benchmark --parallel
+      - name: Benchmark tests
+        run: yarn benchmark:test
