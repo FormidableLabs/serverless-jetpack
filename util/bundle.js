@@ -60,16 +60,13 @@ const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
   // See: https://github.com/FormidableLabs/serverless-jetpack/pull/123#issuecomment-648438156
   const filesMap = {};
   files.forEach((file) => {
-    //console.log("TODO HERE FILES", { file })
     filesMap[file] = true;
   });
   patterns.forEach((pattern) => {
-    //console.log("TODO HERE NANO", { pattern })
     // Do a positive match, but track "keep" or "remove".
     const includeFile = !pattern.startsWith("!");
     const positivePattern = includeFile ? pattern : pattern.slice(1);
     nanomatch(files, [positivePattern], NANOMATCH_OPTS).forEach((file) => {
-      //console.log("TODO HERE INCLUDE", { file, includeFile })
       filesMap[file] = includeFile;
     });
   });
@@ -112,7 +109,6 @@ const resolveFilePathsFromPatterns = async ({
 
   // Read files from disk matching include patterns.
   const files = await globby(globInclude, { ...GLOBBY_OPTS, cwd });
-  console.log("TODO HERE resolveFilePathsFromPatterns", { depInclude, files })
 
   // ==========================================================================
   // **Phase Two** (`nanomatch()`): Filter list of files.
@@ -513,7 +509,6 @@ const globAndZip = async ({
   let depInclude = ["!node_modules/**"];
   let traceMisses = mapTraceMisses();
   if (traceInclude) {
-
     // [Trace Mode] Trace and introspect all individual dependency files.
     // Add them as _patterns_ so that later globbing exclusions can apply.
     const srcPaths = (await globby(traceInclude, { ...GLOBBY_OPTS, cwd }))
@@ -524,7 +519,14 @@ const globAndZip = async ({
     depInclude = depInclude
       .concat(srcPaths, traced.dependencies)
       // Convert to relative paths and include in patterns for bundling.
-      .map((depPath) => path.relative(servicePath, depPath));
+      // Note that we also need to escape `[` and `]` as globby won't literally
+      // match `[...id].js` but _will_ for `\\[...id\\].js`.
+      .map((depPath) => path.relative(
+        servicePath,
+        depPath
+          .replace(/\[/g, "\\[")
+          .replace(/\]/g, "\\]")
+      ));
   } else {
     // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
     depInclude = depInclude.concat(

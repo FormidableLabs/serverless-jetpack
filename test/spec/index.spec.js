@@ -473,15 +473,15 @@ describe("index", () => {
             "red.js",
             "additional.js",
             "green.js",
+            "special/...id.js",
+            "special/[...id].js",
+            "special/[id].js",
             "node_modules/additional-pkg/index.js",
             "node_modules/additional-pkg/package.json",
             "node_modules/green-pkg/index.js",
             "node_modules/green-pkg/package.json",
             "node_modules/red-pkg/index.js",
-            "node_modules/red-pkg/package.json",
-            "special/...id.js",
-            "special/[...id].js",
-            "special/[id].js"
+            "node_modules/red-pkg/package.json"
           ] });
       });
 
