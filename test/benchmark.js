@@ -481,7 +481,6 @@ const describeScenario = (scenario, callback) =>
     ? describe(scenario, callback)
     : describe.skip(scenario, callback);
 
-const toPosixPath = (name) => name.split("\\").join("/");
 const SETUP_TIMEOUT = 10000;
 
 describe("benchmark", () => {
