@@ -110,80 +110,11 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/loose-envify"
 ];
 
-// ... and the huge scenario has even more false positives
-const SLS_FALSE_POSITIVES_WIN_HUGE = [
-  // yarn why acorn -> next#webpack
-  "node_modules/.bin/acorn",
-  // yarn why amphtml-validator -> next
-  "node_modules/.bin/amphtml-validator",
-  // yarn why ansi-html -> next#webpack-hot-middleware
-  "node_modules/.bin/ansi-html",
-  // yarn why browserslist -> @babel/preset-env
-  "node_modules/.bin/browserslist",
-  // yarn why cypress -> devDependencies
-  "node_modules/.bin/cypress",
-  // yarn why errno -> next#recursive-copy
-  "node_modules/.bin/errno",
-  // yarn why escodegen -> jest#jest-cli#jest-config#jest-environment-jsdom#jsdom
-  "node_modules/.bin/escodegen",
-  // yarn why esgenerate -> escodegen jest#jest-cli#jest-config#jest-environment-jsdom#jsdom
-  "node_modules/.bin/esgenerate",
-  // yarn why extract-zip -> cypress
-  "node_modules/.bin/extract-zip",
-  // yarn why handlebars -> jest#jest-cli#@jest/core#@jest/reporters#istanbul-api#istanbul-reports
-  "node_modules/.bin/handlebars",
-  // yarn why import-local-fixture -> import-local jest
-  "node_modules/.bin/import-local-fixture",
-  // yarn why jest-runtime -> jest#jest-cli#@jest/core
-  "node_modules/.bin/jest-runtime",
-  // yarn why jest -> devDependencies
-  "node_modules/.bin/jest",
-  // yarn why jsesc -> @babel/preset-env...
-  "node_modules/.bin/jsesc",
-  // yarn why json5 -> next#@babel/core
-  "node_modules/.bin/json5",
-  // yarn why miller-rabin -> next#webpack#node-libs-browser#crypto-browserify#diffie-hellman
-  "node_modules/.bin/miller-rabin",
-  // yarn why next -> devDependencies
-  "node_modules/.bin/next",
-  // yarn why regexp-tree -> @babel/preset-env#@babel/plugin-transform-named-capturing-groups-regex
-  "node_modules/.bin/regexp-tree",
-  // yarn why regjsparser -> @babel/preset-env#...
-  "node_modules/.bin/regjsparser",
-  // yarn why sane -> jest#jest-cli#@jest/core#jest-haste-map
-  "node_modules/.bin/sane",
-  // yarn why sha.js -> next#webpack#node-libs-browser#crypto-browserify#create-hash
-  "node_modules/.bin/sha.js",
-  // yarn why terser -> next
-  "node_modules/.bin/terser",
-  // yarn why tsc -> devDependencies
-  "node_modules/.bin/tsc",
-  // yarn why tsserver -> devDependencies
-  "node_modules/.bin/tsserver",
-  // yarn why uglifyjs -> uglify-js jest#jest-cli#@jest/core...
-  "node_modules/.bin/uglifyjs",
-  // yarn why uuid -> cypress#request
-  "node_modules/.bin/uuid",
-  // yarn why webpack -> next
-  "node_modules/.bin/webpack"
-];
-
 // False positives from serverless by scenario.
 // In general, it appears that `serverless` doesn't correctly detect
 // a lot of `jest` dependencies are `devDependencies` when installing with
 // `yarn` (although `npm` looks correct).
 const SLS_FALSE_POSITIVES = {
-  "dashboard/yarn": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
-
-    // Hoisted to `node_modules/.bin/mime`
-    "node_modules/send/node_modules/.bin/mime"
-  ]),
-
-  "dashboard/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE
-  ]),
-
   "simple/yarn": new Set([
     ...SLS_FALSE_POSITIVES_WIN_BASE,
 
@@ -262,187 +193,6 @@ const SLS_FALSE_POSITIVES = {
     // Jetpack properly excludes with `roots` (not available in Serverless)
     "nodejs/node_modules/.bin/uuid",
     "nodejs/node_modules/uuid"
-  ]),
-
-  "individually/yarn": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
-
-    // $ yarn why @babel/parser -> serverless
-    "node_modules/.bin/parser",
-    // $ yarn why uuid -> serverless
-    "node_modules/.bin/uuid",
-
-    // $ $ yarn why @serverless/platform-client
-    // - "serverless#@serverless#components#@serverless#platform-client"
-    "node_modules/@serverless/platform-client",
-    "node_modules/@serverless/platform-client/node_modules/.bin/js-yaml",
-
-    // $ $ yarn why isomorphic-ws
-    // - "serverless#@serverless#components#@serverless#platform-client#isomorphic-ws"
-    "node_modules/isomorphic-ws",
-
-    // Hoisted to `node_modules/.bin/mime`
-    "node_modules/send/node_modules/.bin/mime"
-  ]),
-
-  "individually/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
-
-    // $ yarn why @babel/parser -> serverless
-    "node_modules/.bin/parser"
-  ]),
-
-  "huge/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
-    ...SLS_FALSE_POSITIVES_WIN_HUGE,
-
-    // $ yarn why @babel/parser -> serverless
-    "node_modules/.bin/parser",
-    // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
-    "node_modules/.bin/watch",
-    // $ yarn why sshpk -> cypress#request#http-signature
-    "node_modules/.bin/sshpk-conv",
-    "node_modules/.bin/sshpk-sign",
-    "node_modules/.bin/sshpk-verify"
-  ]),
-
-  "huge/yarn": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
-    ...SLS_FALSE_POSITIVES_WIN_HUGE,
-
-    // $ yarn why detect-libc -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
-    "node_modules/.bin/detect-libc",
-    // $ yarn why needle -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
-    "node_modules/.bin/needle",
-    // $ yarn why node-pre-gyp -> jest#jest-cli#@jest/core#jest-haste-map#fsevents
-    "node_modules/.bin/node-pre-gyp",
-    // Likely dev dep.
-    "node_modules/.bin/node-which",
-    // $ yarn why nopt -> jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp
-    "node_modules/.bin/nopt",
-    // $ yarn why @babel/parser -> serverless
-    "node_modules/.bin/parser",
-    // $ yarn why sshpk -> cypress#request#http-signature
-    "node_modules/.bin/sshpk-conv",
-    "node_modules/.bin/sshpk-sign",
-    "node_modules/.bin/sshpk-verify",
-    // $ yarn why @cnakazawa/watch -> jest#jest-cli#@jest/core#jest-haste-map#sane
-    "node_modules/.bin/watch",
-
-    // $ $ yarn why @serverless/platform-client
-    // - "serverless#@serverless#components#@serverless#platform-client"
-    "node_modules/@serverless/platform-client",
-    "node_modules/@serverless/platform-client/node_modules/.bin/js-yaml",
-
-    // Hoisted to `node_modules/.bin/loose-envify`
-    "node_modules/react-dom/node_modules/.bin/loose-envify",
-    "node_modules/react-dom/node_modules/prop-types/node_modules/.bin/loose-envify",
-    "node_modules/react/node_modules/.bin/loose-envify",
-    "node_modules/react/node_modules/prop-types/node_modules/.bin/loose-envify",
-    "node_modules/scheduler/node_modules/.bin/loose-envify",
-
-    // Hoisted to `node_modules/.bin/mime`
-    "node_modules/send/node_modules/.bin/mime",
-
-    // $ yarn why abbrev
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
-    "node_modules/abbrev",
-
-    // $ yarn why are-we-there-yet
-    // - "fsevents#node-pre-gyp#npmlog"
-    "node_modules/are-we-there-yet",
-
-    // $ yarn why console-control-strings
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npmlog" depends on it
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npmlog#gauge"
-    "node_modules/console-control-strings",
-
-    // $ yarn why delegates
-    // - "fsevents#node-pre-gyp#npmlog#are-we-there-yet"
-    "node_modules/delegates",
-
-    // $ yarn why detect-libc
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp" depends on it.
-    "node_modules/detect-libc",
-
-    //  $ yarn why fs-minipass
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#tar"
-    "node_modules/fs-minipass",
-
-    // $ yarn why gauge
-    // - "fsevents#node-pre-gyp#npmlog"
-    "node_modules/gauge",
-
-    // $ yarn why has-unicode
-    // - "fsevents#node-pre-gyp#npmlog#gauge"
-    "node_modules/has-unicode",
-
-    // $ yarn why ignore-walk
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npm-packlist"
-    "node_modules/ignore-walk",
-
-    // $ $ yarn why isomorphic-ws
-    // - "serverless#@serverless#components#@serverless#platform-client#isomorphic-ws"
-    "node_modules/isomorphic-ws",
-
-    // $ yarn why minipass
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#tar" depends on it
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#tar#fs-minipass"
-    "node_modules/minipass",
-
-    // $ yarn why minizlib
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#tar"
-    "node_modules/minizlib",
-
-    // $ yarn why needle
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
-    "node_modules/needle",
-
-    // $ yarn why node-pre-gyp
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents"
-    "node_modules/node-pre-gyp",
-    "node_modules/node-pre-gyp/node_modules/.bin/detect-libc",
-    "node_modules/node-pre-gyp/node_modules/.bin/mkdirp",
-    "node_modules/node-pre-gyp/node_modules/.bin/needle",
-    "node_modules/node-pre-gyp/node_modules/.bin/nopt",
-    "node_modules/node-pre-gyp/node_modules/.bin/rc",
-    "node_modules/node-pre-gyp/node_modules/.bin/rimraf",
-    "node_modules/node-pre-gyp/node_modules/.bin/semver",
-
-    // $ yarn why nopt
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
-    "node_modules/nopt",
-
-    // $ yarn why npm-bundled
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npm-packlist"
-    "node_modules/npm-bundled",
-
-    // Part of node-pre-gyp
-    "node_modules/npm-normalize-package-bin",
-
-    // $ yarn why npm-packlist
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
-    "node_modules/npm-packlist",
-
-    // $ yarn why npmlog
-    // - "fsevents#node-pre-gyp"
-    "node_modules/npmlog",
-
-    // $ yarn why osenv
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#nopt"
-    "node_modules/osenv",
-
-    // Likely dev dep.
-    "node_modules/prop-types/node_modules/.bin/loose-envify",
-
-    // $ yarn why tar
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp"
-    "node_modules/tar",
-    "node_modules/tar/node_modules/.bin/mkdirp",
-
-    // $ yarn why wide-align
-    // - "jest#jest-cli#@jest/core#jest-haste-map#fsevents#node-pre-gyp#npmlog#gauge"
-    "node_modules/wide-align"
   ])
 };
 
@@ -485,7 +235,6 @@ const SETUP_TIMEOUT = 10000;
 
 describe("benchmark", () => {
   let fixtures;
-  let webpackFiles;
 
   before(async function () {
     this.timeout(SETUP_TIMEOUT); // eslint-disable-line no-invalid-this
@@ -510,18 +259,6 @@ describe("benchmark", () => {
 
       return memo;
     }, {});
-
-    // TODO: Place in a scenario or exclude.
-    // // Extract the equivalent files from webpack single bundle files.
-    // const wepbpackZip = new AdmZip(path.resolve(
-    //   projRoot, ".test-zips/webpack/yarn/baseline/serverless-jetpack-plugins.zip"
-    // ));
-    // webpackFiles = wepbpackZip.readAsText("src/base.js")
-    //   .split("\n")
-    //   .filter((line) => (/\!\*\*\* .*? \*\*\*\!/).test(line))
-    //   .map((line) => line.replace(/\!\*\*\*|\*\*\*\!/g, "").trim())
-    //   .map((file) => path.relative(".", file))
-    //   .map(toPosixPath);
   });
 
   describe("dependencies mode", () => {
@@ -568,151 +305,6 @@ describe("benchmark", () => {
       });
     });
 
-    // TODO: REMOVE?
-    describe.skip("monorepo", () => {
-      it("has same npm and yarn package contents for base.zip", () => {
-        let yarnFiles = fixtures["monorepo/yarn/jetpack/deps"]["base.zip"];
-        let npmFiles = fixtures["monorepo/npm/jetpack/deps"]["base.zip"];
-
-        expect(yarnFiles).to.be.ok;
-        expect(npmFiles).to.be.ok;
-
-        // Ignore some packages that have double vs. single flattened installation.
-        const IGNORE_PKGS = [
-          "node_modules/http-errors/",
-          "node_modules/safe-buffer/",
-          "node_modules/debug/",
-          "node_modules/ms/"
-        ];
-
-        // Now, normalize file lists before comparing.
-        yarnFiles = yarnFiles
-          .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
-          .sort();
-
-        // This diff dependency is expected to **stay** in place because we test
-        // forcing versions to prevent flattening by pinning
-        // `another/package.json` to `"diff": "^3.5.0`
-        const NESTED_DIFF = "functions/base/node_modules/diff/";
-
-        const NPM_NORMS = {
-          // Just differences in installation.
-          // eslint-disable-next-line max-len
-          "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/":
-            "node_modules/camelcase/",
-          "functions/base/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
-            "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
-          "functions/base/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-          // Hoist everything to root (which is what yarn should do).
-          "functions/base/node_modules/": "node_modules/",
-          "lib/camel/node_modules/": "node_modules/"
-        };
-        npmFiles = npmFiles
-          .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
-          .map((dep) => {
-            for (const norm of Object.keys(NPM_NORMS)) {
-              if (dep.startsWith(norm) && !dep.startsWith(NESTED_DIFF)) {
-                return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
-              }
-            }
-
-            return dep;
-          })
-          .filter(Boolean)
-          .sort();
-
-        [
-          "functions/base/src/base.js",
-          "functions/base/node_modules/diff/package.json",
-          "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
-          "node_modules/camelcase/package.json"
-        ].forEach((f) => {
-          expect(yarnFiles).to.include(f);
-        });
-
-        [
-          "functions/base/src/exclude-me.js",
-          "functions/base/node_modules/diff/README.md",
-          "node_modules/diff/package.json",
-          "node_modules/diff/README.md",
-          "functions/base/node_modules/uuid/package.json",
-          "node_modules/uuid/package.json"
-        ].forEach((f) => {
-          expect(yarnFiles).to.not.include(f);
-        });
-
-        expect(npmFiles).to.eql(yarnFiles);
-      });
-
-      it("has same npm and yarn package contents for another.zip", () => {
-        let yarnFiles = fixtures["monorepo/yarn/jetpack/deps"]["another.zip"];
-        let npmFiles = fixtures["monorepo/npm/jetpack/deps"]["another.zip"];
-
-        expect(yarnFiles).to.be.ok;
-        expect(npmFiles).to.be.ok;
-
-        // Ignore some packages that have double vs. single flattened installation.
-        const IGNORE_PKGS = [
-          "node_modules/http-errors/",
-          "node_modules/safe-buffer/",
-          "node_modules/debug/",
-          "node_modules/ms/"
-        ];
-
-        // Now, normalize file lists before comparing.
-        yarnFiles = yarnFiles
-          .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
-          .sort();
-
-        const NPM_NORMS = {
-          // Just differences in installation.
-          // eslint-disable-next-line max-len
-          "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/node_modules/camelcase/":
-            "node_modules/camelcase/",
-          "functions/another/node_modules/serverless-jetpack-monorepo-lib-camel/src/":
-            "node_modules/serverless-jetpack-monorepo-lib-camel/src/",
-          "functions/another/node_modules/cookie/": "node_modules/express/node_modules/cookie/",
-          // Hoist everything to root (which is what yarn should do) includeing `diff`.
-          "functions/another/node_modules/": "node_modules/",
-          "lib/camel/node_modules/": "node_modules/"
-        };
-        npmFiles = npmFiles
-          .filter((dep) => !IGNORE_PKGS.some((pkg) => dep.includes(pkg)))
-          .map((dep) => {
-            for (const norm of Object.keys(NPM_NORMS)) {
-              if (dep.startsWith(norm)) {
-                return NPM_NORMS[norm] === null ? null : dep.replace(norm, NPM_NORMS[norm]);
-              }
-            }
-
-            return dep;
-          })
-          .filter(Boolean)
-          .sort();
-
-        [
-          "functions/another/src/base.js",
-          "node_modules/diff/package.json",
-          "node_modules/serverless-jetpack-monorepo-lib-camel/src/camel.js",
-          "node_modules/camelcase/package.json"
-        ].forEach((f) => {
-          expect(yarnFiles).to.include(f);
-        });
-
-        [
-          "functions/another/src/exclude-me.js",
-          "functions/another/node_modules/diff/package.json",
-          "functions/another/node_modules/diff/README.md",
-          "node_modules/diff/README.md",
-          "functions/base/node_modules/uuid/package.json",
-          "node_modules/uuid/package.json"
-        ].forEach((f) => {
-          expect(yarnFiles).to.not.include(f);
-        });
-
-        expect(npmFiles).to.eql(yarnFiles);
-      });
-    });
 
     describeScenario("complex", () => {
       // TODO(LAYERS): REENABLE
@@ -805,18 +397,6 @@ describe("benchmark", () => {
             expect(missingInPlugin, `missing files in jetpack for ${fileName}`).to.eql([]);
           });
         });
-      });
-    });
-
-    // TODO: Clean up or remove
-    describe.skip("webpack", () => {
-      it("traces the same files as webpack", () => {
-        // Trace files is "real" files and webpack files are from bundle control comments.
-        const traceFixture = fixtures["webpack/yarn/jetpack/trace"];
-        const traceFiles = traceFixture[Object.keys(traceFixture)[0]];
-
-        // Compare everything except package.json which Node.js needs, but webpack resolves away.
-        expect(traceFiles.filter((file) => !file.endsWith("package.json"))).to.eql(webpackFiles);
       });
     });
   });
