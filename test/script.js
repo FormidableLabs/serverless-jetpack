@@ -120,6 +120,9 @@ const build = async () => {
     "*.py",
     "functions/*/src/**",
     "functions/*/package.json",
+    // TODO(LAYERS): reenable this?
+    // "layers/*/*.js",
+    // "layers/*/nodejs/package.json",
     "lib/*/src/**",
     "lib/*/package.json"
   ];
