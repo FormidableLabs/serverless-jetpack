@@ -732,16 +732,6 @@ Results:
 | simple       | baseline |    1 |   369 |  844693 |              |
 | complex      | jetpack  |    6 |  2145 | 5358022 | **-11.16 %** |
 | complex      | baseline |    6 |  2525 | 6030822 |              |
-| individually | jetpack  |    3 |   365 |  999269 | **-32.49 %** |
-| individually | baseline |    3 |   618 | 1480191 |              |
-| monorepo     | jetpack  |    2 |   360 |  834652 | **-39.16 %** |
-| monorepo     | baseline |    2 |   531 | 1371924 |              |
-| webpack      | jetpack  |    1 |     3 |    1804 | **-20.21 %** |
-| webpack      | baseline |    1 |     1 |    2261 |              |
-| huge         | jetpack  |    1 |   179 |  613943 | **-72.52 %** |
-| huge         | baseline |    1 |   505 | 2234279 |              |
-| huge-prod    | jetpack  |    1 |   179 |  512997 | **-92.27 %** |
-| huge-prod    | baseline |    1 |  4044 | 6633028 |              |
 
 ## Command Line Interface
 

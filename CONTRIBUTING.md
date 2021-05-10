@@ -30,25 +30,7 @@ test/packages/
 ├── complex
 │   ├── npm
 │   └── yarn
-├── dashboard
-│   ├── npm
-│   └── yarn
-├── huge
-│   ├── npm
-│   └── yarn
-├── huge-prod
-│   ├── npm
-│   └── yarn
-├── individually
-│   ├── npm
-│   └── yarn
-├── monorepo
-│   ├── npm
-│   └── yarn
-├── simple
-│   ├── npm
-│   └── yarn
-└── webpack
+└── simple
     ├── npm
     └── yarn
 ```

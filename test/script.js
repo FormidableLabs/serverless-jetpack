@@ -60,20 +60,15 @@ const TIMING_SCENARIOS = new Set([
 
 // Some scenarios are only feasible in Jetpack
 const JETPACK_ONLY_SCENARIOS = new Set([
-//  "monorepo"
 ]);
 
 // Tests to exclude from correctness tests.
 const SKIP_CORRECTNESS_SCENARIOS = new Set([
-//  "monorepo",
-//  "webpack",
-//  "huge-prod"
 ]);
 
 // Some scenarios allow failures in executing `serverless`
 // (Due to AWS creds we're not going to provide).
 const ALLOW_FAILURE_SCENARIOS = new Set([
-//  "dashboard"
 ]);
 
 // All scenario to run.
