@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+
+    # TODO(NODE16): Re-enable node16.
+    # Presently, serverless has _huge_ zips that are way bigger than expected
+    # on node16 (which also fails tests). We might just upgrade serverless
+    # first, then reenable tests.
+    # https://github.com/FormidableLabs/serverless-jetpack/issues/239
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node-version: [12.x, 14.x]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Installation
+        run: yarn install --frozen-lockfile --non-interactive
+        env:
+          CI: true
+
+      # TODO(CI): Set up caching to speed up test specs
+      # Detect if `test/packages/*/*/node_modules` exists in any form and skip
+      # installs on a per-directory basis.
+      - name: Installation
+        run: yarn benchmark:install --skip-if-exists
+        env:
+          CI: true
+
+      - name: Checks (lint, unit tests)
+        run: yarn run check
+
+      - name: CLI tests
+        run: yarn run check
+
+      - name: Benchmark
+        run: yarn benchmark --parallel
+      - name: Benchmark tests
+        run: yarn benchmark:test

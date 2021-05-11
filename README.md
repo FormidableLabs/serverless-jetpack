@@ -1,8 +1,7 @@
 Serverless Jetpack 🚀
 ====================
 [![npm version][npm_img]][npm_site]
-[![CircleCI status][circle_img]][circle_site]
-[![AppVeyor status][appveyor_img]][appveyor_site]
+[![Actions Status][actions_img]][actions_site]
 [![MIT license][lic_img]][lic_site]
 [![Maintenance Status][maintenance-image]](#maintenance-status)
 
@@ -733,16 +732,6 @@ Results:
 | simple       | baseline |    1 |   369 |  844693 |              |
 | complex      | jetpack  |    6 |  2145 | 5358022 | **-11.16 %** |
 | complex      | baseline |    6 |  2525 | 6030822 |              |
-| individually | jetpack  |    3 |   365 |  999269 | **-32.49 %** |
-| individually | baseline |    3 |   618 | 1480191 |              |
-| monorepo     | jetpack  |    2 |   360 |  834652 | **-39.16 %** |
-| monorepo     | baseline |    2 |   531 | 1371924 |              |
-| webpack      | jetpack  |    1 |     3 |    1804 | **-20.21 %** |
-| webpack      | baseline |    1 |     1 |    2261 |              |
-| huge         | jetpack  |    1 |   179 |  613943 | **-72.52 %** |
-| huge         | baseline |    1 |   505 | 2234279 |              |
-| huge-prod    | jetpack  |    1 |   179 |  512997 | **-92.27 %** |
-| huge-prod    | baseline |    1 |  4044 | 6633028 |              |
 
 ## Command Line Interface
 
@@ -849,10 +838,8 @@ Results:
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
-[circle_img]: https://circleci.com/gh/FormidableLabs/serverless-jetpack.svg?style=shield
-[circle_site]: https://circleci.com/gh/FormidableLabs/serverless-jetpack
-[appveyor_img]: https://ci.appveyor.com/api/projects/status/github/formidablelabs/serverless-jetpack?branch=master&svg=true
-[appveyor_site]: https://ci.appveyor.com/project/FormidableLabs/serverless-jetpack
+[actions_img]: https://github.com/FormidableLabs/trace-deps/workflows/CI/badge.svg
+[actions_site]: https://github.com/FormidableLabs/trace-deps/actions
 [lic_img]: https://img.shields.io/npm/l/serverless-jetpack.svg?color=brightgreen&style=flat
 [lic_site]: https://github.com/FormidableLabs/serverless-jetpack/blob/master/LICENSE.txt
 [maintenance-image]: https://img.shields.io/badge/maintenance-active-brightgreen.svg
