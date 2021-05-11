@@ -15,6 +15,6 @@
     "serverless-offline": "^5.12.1"
   },
   "scripts": {
-    "postinstall": "node postinstall.js"
+    "postinstall": "echo TODO LAYERS STUFF node postinstall.js"
   }
 }
