@@ -36,9 +36,8 @@ jobs:
         env:
           CI: true
 
-      # TODO: REENABLE - Check if benchmark tests pass.
-      # - name: Checks (lint, unit tests)
-      #   run: yarn run check
+      - name: Checks (lint, unit tests)
+        run: yarn run check
 
       # Benchmark scenarios-based checks.
       # TODO(CI): Set up caching to speed up test specs
