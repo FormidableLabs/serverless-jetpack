@@ -30,11 +30,16 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      # Core checks
       - name: Installation
         run: yarn install --frozen-lockfile --non-interactive
         env:
           CI: true
 
+      - name: Checks (lint, unit tests)
+        run: yarn run check
+
+      # Benchmark scenarios-based checks.
       # TODO(CI): Set up caching to speed up test specs
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
       # installs on a per-directory basis.
@@ -42,9 +47,6 @@ jobs:
         run: yarn benchmark:install --skip-if-exists
         env:
           CI: true
-
-      - name: Checks (lint, unit tests)
-        run: yarn run check
 
       - name: CLI tests
         run: yarn run check
