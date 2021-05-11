@@ -47,11 +47,7 @@ const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
     // Serverless: insert built-in excludes
     .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
     // Serverless: and finish with built-in includes
-    .concat(include || [])
-    // Follow sls here: globby returns forward slash only, so mutate patterns
-    // always be forward.
-    // https://github.com/serverless/serverless/issues/5609#issuecomment-452219161
-    .map((p) => IS_WIN ? p.replace(/\\/g, "/") : p);
+    .concat(include || []);
 
   // Now, iterate all the patterns individually, tracking state like sls.
   // The _last_ "exclude" vs. "include" wins.
@@ -519,8 +515,12 @@ const globAndZip = async ({
     depInclude = depInclude
       .concat(srcPaths, traced.dependencies)
       // Convert to relative paths and include in patterns for bundling.
-      // Note that we also need to escape `[` and `]` as globby won't literally
+      .map((depPath) => path.relative(servicePath, depPath))
+      // Change to all forward slashes for all globbing usage.
+      .map((depPath) => IS_WIN ? depPath.replace(/\\/g, "/") : depPath)
+      // Escape `[` and `]` as globby won't literally
       // match `[...id].js` but _will_ for `\\[...id\\].js`.
+      // **Note**: This needs to happen _after_ we mutate file slashes.
       .map((depPath) => path.relative(
         servicePath,
         depPath
@@ -530,7 +530,9 @@ const globAndZip = async ({
   } else {
     // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
     depInclude = depInclude.concat(
-      await createDepInclude({ cwd, rootPath, roots })
+      (await createDepInclude({ cwd, rootPath, roots }))
+        // Change to all forward slashes for all globbing usage.
+        .map((depPath) => IS_WIN ? depPath.replace(/\\/g, "/") : depPath)
     );
   }
 
