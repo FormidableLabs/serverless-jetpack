@@ -49,9 +49,6 @@ jobs:
         env:
           CI: true
 
-      - name: CLI tests
-        run: yarn run check
-
       - name: Benchmark
         run: yarn benchmark --parallel
       - name: Benchmark tests
