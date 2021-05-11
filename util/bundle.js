@@ -521,12 +521,10 @@ const globAndZip = async ({
       // Escape `[` and `]` as globby won't literally
       // match `[...id].js` but _will_ for `\\[...id\\].js`.
       // **Note**: This needs to happen _after_ we mutate file slashes.
-      .map((depPath) => path.relative(
-        servicePath,
-        depPath
-          .replace(/\[/g, "\\[")
-          .replace(/\]/g, "\\]")
-      ));
+      .map((depPath) => depPath
+        .replace(/\[/g, "\\[")
+        .replace(/\]/g, "\\]")
+      );
   } else {
     // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
     depInclude = depInclude.concat(
