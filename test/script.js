@@ -28,10 +28,10 @@ const numCpus = os.cpus().length;
  * Drive all the various scenarios. To limit packagers or scenario, try:
  *
  * ```sh
- * $ TEST_PKG=yarn TEST_SCENARIO=simple      node test/script.js install
- * $ TEST_PKG=yarn TEST_SCENARIO=simple,huge node test/script.js build
- * $ TEST_PKG=yarn,npm TEST_SCENARIO=simple  node test/script.js benchmark
- * $ TEST_MODE=trace TEST_SCENARIO=simple    node test/script.js benchmark
+ * $ TEST_PKG=yarn TEST_SCENARIO=simple         node test/script.js install
+ * $ TEST_PKG=yarn TEST_SCENARIO=simple,complex node test/script.js build
+ * $ TEST_PKG=yarn,npm TEST_SCENARIO=simple     node test/script.js benchmark
+ * $ TEST_MODE=trace TEST_SCENARIO=simple       node test/script.js benchmark
  * ```
  */
 const PKGS = [
