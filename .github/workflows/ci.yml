@@ -67,19 +67,17 @@ jobs:
       - name: Checks (lint, unit tests)
         run: yarn run check
 
-      # TODO(CI): ENABLE over items
-      # # Caching: test scenarios
-      # - name: Use node_modules cache
-      #   id: test-packages-cache
-      #   uses: actions/cache@v2
-      #   with:
-      #     path: test/packages/*/{npm/package-lock.json,yarn/yarn.lock}
-      #     key: test-packages-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./test/packages/TODO_SCENARIO/TODO_NPM_YARN/TODO_LOCKFILE') }}
-      #     restore-keys: |
-      #         test-packages-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-
-      #         test-packages-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-
+      # Caching: test scenarios
+      - name: Use test/packages node_modules cache
+        id: test-packages-cache
+        uses: actions/cache@v2
+        with:
+          path: test/packages/*/{npm,yarn}/node_modules
+          key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/{npm/package-lock.json,yarn/yarn.lock}') }}
+          restore-keys: |
+              test-packages-${{ runner.os }}-${{ matrix.node-version }}-
+              test-packages-${{ runner.os }}-
 
-      # TODO(CI): Set up caching to speed up test specs
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
       # installs on a per-directory basis.
       - name: Benchmark installation
@@ -90,8 +88,7 @@ jobs:
       - name: CLI tests
         run: yarn test:cli
 
-      # TODO(CI): Decide if adding back `--parallel` is better.
       - name: Benchmark
-        run: yarn benchmark
+        run: yarn benchmark --parallel
       - name: Benchmark tests
         run: yarn benchmark:test
