@@ -39,7 +39,7 @@ jobs:
       # TODO(CI): Reconsider this as independent test package installs may make this worth it?
       # Note: Yarn root cache restore is slow (1:30) on Windows, so only do on Linux.
       - name: Use Yarn cache
-        if: startsWith(runner.os, 'Linux')
+        # TODO REMOVE? OR REMOVE COMMENT ABOVE? if: startsWith(runner.os, 'Linux')
         uses: actions/cache@v2
         id: yarn-cache
         with:
