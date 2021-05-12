@@ -161,7 +161,15 @@ const install = async ({ skipIfExists }) => {
     }
 
     log(chalk `{cyan ${scenario}/${pkg}}: Installing`);
-    await execMode(pkg, ["install", "--no-progress"], execOpts);
+    if (pkg === "yarn") {
+      await execMode(
+        pkg,
+        ["install", "--prefer-offline", "--frozen-lockfile", "--non-interactive", "--no-progress"],
+        execOpts
+      );
+    } else if (pkg === "npm") {
+      await execMode(pkg, ["ci", "--no-progress"], execOpts);
+    }
 
     // Symlinks don't exist on Windows, so only on UNIX-ish.
     if (!IS_WIN) {
