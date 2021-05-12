@@ -94,6 +94,7 @@ const SLS_FALSE_POSITIVES_BASE = [
   "node_modules/.bin/filing-cabinet",
   "node_modules/.bin/find-process",
   "node_modules/.bin/gonzales",
+  "node_modules/.bin/java-invoke-local",
   "node_modules/.bin/lookup-amd",
   "node_modules/.bin/module-definition",
   "node_modules/.bin/msgpack",
