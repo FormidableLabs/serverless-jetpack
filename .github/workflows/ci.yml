@@ -67,14 +67,14 @@ jobs:
       # TODO(CI): ENABLE over items
       # # Caching: test scenarios
       # - name: Use node_modules cache
-      #   id: test-scenario-TODO_SCENARIO-TODO_NPM_YARN
+      #   id: test-packages-TODO_SCENARIO-TODO_NPM_YARN
       #   uses: actions/cache@v2
       #   with:
-      #     path: node_modules
-      #     key: test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('TODO_LOCKFILE') }}
+      #     path: test/packages/TODO_SCENARIO/TODO_NPM_YARN/node_modules/
+      #     key: test-packages-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./test/packages/TODO_SCENARIO/TODO_NPM_YARN/TODO_LOCKFILE') }}
       #     restore-keys: |
-      #         test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-
-      #         test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-
+      #         test-packages-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-
+      #         test-packages-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-
 
       # TODO(CI): Set up caching to speed up test specs
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
