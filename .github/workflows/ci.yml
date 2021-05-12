@@ -44,7 +44,7 @@ jobs:
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: yarn-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
+          key: yarn-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             yarn-${{ runner.os }}-${{ matrix.node-version }}-
             yarn-${{ runner.os }}-
@@ -72,8 +72,10 @@ jobs:
         id: test-packages-cache
         uses: actions/cache@v2
         with:
-          path: test/packages/*/{npm,yarn}/node_modules
-          key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/{npm/package-lock.json,yarn/yarn.lock}') }}
+          path: |
+            test/packages/*/npm/node_modules
+            test/packages/*/yarn/node_modules
+          key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/npm/package-lock.json, test/packages/*/yarn/yarn.lock') }}
           restore-keys: |
               test-packages-${{ runner.os }}-${{ matrix.node-version }}-
               test-packages-${{ runner.os }}-
