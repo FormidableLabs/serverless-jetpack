@@ -24,16 +24,45 @@ jobs:
         node-version: [12.x, 14.x]
 
     steps:
+      # Checkout
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
 
+      # Caching: root project
+      - name: Get Yarn cache directory
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      - name: Use Yarn cache
+        uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: yarn-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
+          restore-keys: |
+            yarn-${{ runner.os }}-${{ matrix.node-version }}-
+            yarn-${{ runner.os }}-
+
+      - name: Use node_modules cache
+        id: node-modules-cache
+        uses: actions/cache@v2
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('./yarn.lock') }}
+        restore-keys: |
+            node-modules-${{ runner.os }}-${{ matrix.node-version }}-
+            node-modules-${{ runner.os }}-
+
       - name: Installation
-        run: yarn install --frozen-lockfile --non-interactive
+        run: yarn install --prefer-offline --frozen-lockfile --non-interactive
         env:
           CI: true
+
+      - name: Checks (lint, unit tests)
+        run: yarn run check
 
       # TODO(CI): Set up caching to speed up test specs
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
@@ -43,11 +72,8 @@ jobs:
         env:
           CI: true
 
-      - name: Checks (lint, unit tests)
-        run: yarn run check
-
       - name: CLI tests
-        run: yarn run check
+        run: yarn test:cli
 
       - name: Benchmark
         run: yarn benchmark --parallel
