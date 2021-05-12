@@ -24,29 +24,71 @@ jobs:
         node-version: [12.x, 14.x]
 
     steps:
+      # Checkout
       - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
 
-      # Core checks
-      - name: Installation
-        run: yarn install --frozen-lockfile --non-interactive
+      # Caching: root project
+      - name: Get Yarn cache directory
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+
+      # Note: Yarn root cache restore is slow (1:30) on Windows, so only do on Linux.
+      - name: Use Yarn cache
+        if: startsWith(runner.os, 'Linux')
+        uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: yarn-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            yarn-${{ runner.os }}-${{ matrix.node-version }}-
+            yarn-${{ runner.os }}-
+
+      - name: Use node_modules cache
+        id: node-modules-cache
+        uses: actions/cache@v2
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-${{ matrix.node-version }}-
+            node-modules-${{ runner.os }}-
+
+      - name: Project installation
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
+        run: yarn install --prefer-offline --frozen-lockfile --non-interactive
         env:
           CI: true
 
       - name: Checks (lint, unit tests)
         run: yarn run check
 
-      # Benchmark scenarios-based checks.
-      # TODO(CI): Set up caching to speed up test specs
+      # Caching: test scenarios
+      # **Note**: _don't_ use permissive restore-keys because we skip installs
+      # all together.
+      - name: Use test/packages node_modules cache
+        id: test-packages-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            test/packages/*/npm/node_modules
+            test/packages/*/yarn/node_modules
+          key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/npm/package-lock.json', 'test/packages/*/yarn/yarn.lock') }}
+
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
       # installs on a per-directory basis.
-      - name: Installation
-        run: yarn benchmark:install --skip-if-exists
+      - name: Benchmark installation
+        if: steps.test-packages-cache.outputs.cache-hit != 'true'
+        run: yarn benchmark:ci --skip-if-exists
         env:
           CI: true
+
+      - name: CLI tests
+        run: yarn test:cli
 
       - name: Benchmark
         run: yarn benchmark --parallel

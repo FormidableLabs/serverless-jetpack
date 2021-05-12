@@ -7,10 +7,10 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.16.4",
-    "serverless-http": "^2.3.0"
+    "serverless-http": "^2.7.0"
   },
   "devDependencies": {
     "serverless": "^1.67.0",
-    "serverless-offline": "^5.12.1"
+    "serverless-offline": "^7.0.0"
   }
 }
