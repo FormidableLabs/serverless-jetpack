@@ -515,24 +515,25 @@ const globAndZip = async ({
     depInclude = depInclude
       .concat(srcPaths, traced.dependencies)
       // Convert to relative paths and include in patterns for bundling.
-      .map((depPath) => path.relative(servicePath, depPath))
-      // Change to all forward slashes for all globbing usage.
-      .map((depPath) => IS_WIN ? depPath.replace(/\\/g, "/") : depPath)
-      // Escape `[` and `]` as globby won't literally
-      // match `[...id].js` but _will_ for `\\[...id\\].js`.
-      // **Note**: This needs to happen _after_ we mutate file slashes.
-      .map((depPath) => depPath
-        .replace(/\[/g, "\\[")
-        .replace(/\]/g, "\\]")
-      );
+      .map((depPath) => path.relative(servicePath, depPath));
   } else {
     // [Dependency Mode] Iterate all dependency roots to gather production dependencies.
     depInclude = depInclude.concat(
-      (await createDepInclude({ cwd, rootPath, roots }))
-        // Change to all forward slashes for all globbing usage.
-        .map((depPath) => IS_WIN ? depPath.replace(/\\/g, "/") : depPath)
+      await createDepInclude({ cwd, rootPath, roots })
     );
   }
+
+  // Normalize files / patterns for globbing and OS specifics.
+  depInclude = depInclude
+    // Change to all forward slashes for all globbing usage.
+    .map((depPath) => IS_WIN ? depPath.replace(/\\/g, "/") : depPath)
+    // Escape `[` and `]` as globby won't literally
+    // match `[...id].js` but _will_ for `\\[...id\\].js`.
+    // **Note**: This needs to happen _after_ we mutate file slashes.
+    .map((depPath) => depPath
+      .replace(/\[/g, "\\[")
+      .replace(/\]/g, "\\]")
+    );
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(
