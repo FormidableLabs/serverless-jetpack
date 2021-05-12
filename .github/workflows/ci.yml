@@ -81,7 +81,7 @@ jobs:
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
       # installs on a per-directory basis.
       - name: Benchmark installation
-        run: yarn benchmark:install --skip-if-exists
+        run: yarn benchmark:ci --skip-if-exists
         env:
           CI: true
 

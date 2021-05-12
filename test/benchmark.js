@@ -24,9 +24,9 @@ const PKG_IGNORE_ALL = new Set([
   "node_modules/.yarn-integrity"
 ]);
 
-// Windows does poorly with false positives for the basic `serverless` +
+// Handle many false positives for the basic `serverless` +
 // `serverless-offline` dependencies.
-const SLS_FALSE_POSITIVES_WIN_BASE = [
+const SLS_FALSE_POSITIVES_BASE = [
   // yarn why atob -> jest#jest-cli#@jest/core#micromatch#snapdragon#source-map-resolve
   "node_modules/.bin/atob",
   // yarn why esparse -> esprima serverless#js-yaml
@@ -75,6 +75,7 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
   "node_modules/.bin/velocity",
   // yarn why which -> serverless#update-notifier#boxen#term-size#execa#cross-spawn
   "node_modules/.bin/which",
+  "node_modules/.bin/node-which",
   // yarn why yamljs -> serverless#@serverless#enterprise-plugin
   "node_modules/.bin/yaml2json",
   "node_modules/.bin/json2yaml",
@@ -116,7 +117,7 @@ const SLS_FALSE_POSITIVES_WIN_BASE = [
 // `yarn` (although `npm` looks correct).
 const SLS_FALSE_POSITIVES = {
   "simple/yarn": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
+    ...SLS_FALSE_POSITIVES_BASE,
 
     // $ yarn why @babel/parser -> serverless
     "node_modules/.bin/parser",
@@ -141,14 +142,14 @@ const SLS_FALSE_POSITIVES = {
   ]),
 
   "simple/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
+    ...SLS_FALSE_POSITIVES_BASE,
 
     // $ yarn why @babel/parser -> serverless
     "node_modules/.bin/parser"
   ]),
 
   "complex/yarn": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
+    ...SLS_FALSE_POSITIVES_BASE,
 
     // $ yarn why @babel/parser -> serverless
     "node_modules/.bin/parser",
@@ -181,7 +182,7 @@ const SLS_FALSE_POSITIVES = {
   ]),
 
   "complex/npm": new Set([
-    ...SLS_FALSE_POSITIVES_WIN_BASE,
+    ...SLS_FALSE_POSITIVES_BASE,
 
     // $ yarn why @babel/parser -> serverless
     "node_modules/.bin/parser",

@@ -147,7 +147,7 @@ const build = async () => {
   }
 };
 
-const install = async ({ skipIfExists }) => {
+const createInstall = ({ installCmd }) => async ({ skipIfExists }) => {
   for (const { scenario, pkg } of MATRIX) {
     const cwd = path.resolve(`test/packages/${scenario}/${pkg}`);
     const execOpts = {
@@ -161,15 +161,7 @@ const install = async ({ skipIfExists }) => {
     }
 
     log(chalk `{cyan ${scenario}/${pkg}}: Installing`);
-    if (pkg === "yarn") {
-      await execMode(
-        pkg,
-        ["install", "--prefer-offline", "--frozen-lockfile", "--non-interactive", "--no-progress"],
-        execOpts
-      );
-    } else if (pkg === "npm") {
-      await execMode(pkg, ["ci", "--no-progress"], execOpts);
-    }
+    await installCmd({ pkg, execOpts });
 
     // Symlinks don't exist on Windows, so only on UNIX-ish.
     if (!IS_WIN) {
@@ -180,6 +172,26 @@ const install = async ({ skipIfExists }) => {
     }
   }
 };
+
+const install = createInstall({
+  installCmd: async ({ pkg, execOpts }) => {
+    await execMode(pkg, ["install", "--no-progress"], execOpts);
+  }
+});
+
+const ci = createInstall({
+  installCmd: async ({ pkg, execOpts }) => {
+    if (pkg === "yarn") {
+      await execMode(
+        pkg,
+        ["install", "--prefer-offline", "--frozen-lockfile", "--non-interactive", "--no-progress"],
+        execOpts
+      );
+    } else if (pkg === "npm") {
+      await execMode(pkg, ["ci", "--no-progress"], execOpts);
+    }
+  }
+});
 
 const _logTask = (obj) => (msg) => log(chalk `{green ${msg}}: ${JSON.stringify(obj)}`);
 
@@ -411,6 +423,7 @@ const main = async () => {
   const actionStr = process.argv[2]; // eslint-disable-line no-magic-numbers
   const actions = {
     build,
+    ci,
     install,
     benchmark,
     size
