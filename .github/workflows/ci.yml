@@ -59,6 +59,7 @@ jobs:
               node-modules-${{ runner.os }}-
 
       - name: Installation
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: yarn install --prefer-offline --frozen-lockfile --non-interactive
         env:
           CI: true
@@ -81,6 +82,7 @@ jobs:
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
       # installs on a per-directory basis.
       - name: Benchmark installation
+        if: steps.test-packages-cache.outputs.cache-hit != 'true'
         run: yarn benchmark:ci --skip-if-exists
         env:
           CI: true
