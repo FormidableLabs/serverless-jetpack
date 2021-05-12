@@ -36,6 +36,7 @@ jobs:
         id: yarn-cache-dir-path
         run: echo "::set-output name=dir::$(yarn cache dir)"
 
+      # TODO(CI): Reconsider this as independent test package installs may make this worth it?
       # Note: Yarn root cache restore is slow (1:30) on Windows, so only do on Linux.
       - name: Use Yarn cache
         if: startsWith(runner.os, 'Linux')
@@ -69,10 +70,10 @@ jobs:
       # TODO(CI): ENABLE over items
       # # Caching: test scenarios
       # - name: Use node_modules cache
-      #   id: test-packages-TODO_SCENARIO-TODO_NPM_YARN
+      #   id: test-packages-cache
       #   uses: actions/cache@v2
       #   with:
-      #     path: test/packages/TODO_SCENARIO/TODO_NPM_YARN/node_modules/
+      #     path: test/packages/*/{npm/package-lock.json,yarn/yarn.lock}
       #     key: test-packages-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./test/packages/TODO_SCENARIO/TODO_NPM_YARN/TODO_LOCKFILE') }}
       #     restore-keys: |
       #         test-packages-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-
@@ -89,7 +90,8 @@ jobs:
       - name: CLI tests
         run: yarn test:cli
 
+      # TODO(CI): Decide if adding back `--parallel` is better.
       - name: Benchmark
-        run: yarn benchmark --parallel
+        run: yarn benchmark
       - name: Benchmark tests
         run: yarn benchmark:test
