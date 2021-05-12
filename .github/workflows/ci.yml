@@ -79,7 +79,7 @@ jobs:
       # TODO(CI): Set up caching to speed up test specs
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
       # installs on a per-directory basis.
-      - name: Installation
+      - name: Benchmark installation
         run: yarn benchmark:install --skip-if-exists
         env:
           CI: true
