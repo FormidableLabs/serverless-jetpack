@@ -52,9 +52,9 @@ jobs:
         with:
           path: node_modules
           key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
-        restore-keys: |
-            node-modules-${{ runner.os }}-${{ matrix.node-version }}-
-            node-modules-${{ runner.os }}-
+          restore-keys: |
+              node-modules-${{ runner.os }}-${{ matrix.node-version }}-
+              node-modules-${{ runner.os }}-
 
       - name: Installation
         run: yarn install --prefer-offline --frozen-lockfile --non-interactive
@@ -72,9 +72,9 @@ jobs:
       #   with:
       #     path: node_modules
       #     key: test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('TODO_LOCKFILE') }}
-      #   restore-keys: |
-      #       test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-
-      #       test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-
+      #     restore-keys: |
+      #         test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-
+      #         test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-
 
       # TODO(CI): Set up caching to speed up test specs
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
