@@ -22,6 +22,7 @@
     "clean": "del-cli \"test/packages/*/*/.serverless\" .test-zips",
     "build:toc": "doctoc --github --notitle --maxlevel 4 README.md",
     "build": "yarn build:toc",
+    "benchmark:ci": "node test/script.js ci",
     "benchmark:install": "node test/script.js install",
     "benchmark:build": "node test/script.js build",
     "benchmark:test": "mocha test/benchmark.js",
