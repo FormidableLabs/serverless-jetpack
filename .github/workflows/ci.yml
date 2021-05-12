@@ -51,7 +51,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ hashFiles('./yarn.lock') }}
+          key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
         restore-keys: |
             node-modules-${{ runner.os }}-${{ matrix.node-version }}-
             node-modules-${{ runner.os }}-
@@ -63,6 +63,18 @@ jobs:
 
       - name: Checks (lint, unit tests)
         run: yarn run check
+
+      # TODO(CI): ENABLE over items
+      # # Caching: test scenarios
+      # - name: Use node_modules cache
+      #   id: test-scenario-TODO_SCENARIO-TODO_NPM_YARN
+      #   uses: actions/cache@v2
+      #   with:
+      #     path: node_modules
+      #     key: test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('TODO_LOCKFILE') }}
+      #   restore-keys: |
+      #       test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-${{ matrix.node-version }}-
+      #       test-scenario-TODO_SCENARIO-TODO_NPM_YARN-${{ runner.os }}-
 
       # TODO(CI): Set up caching to speed up test specs
       # Detect if `test/packages/*/*/node_modules` exists in any form and skip
