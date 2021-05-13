@@ -55,10 +55,10 @@ jobs:
           path: node_modules
           key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
           restore-keys: |
-              node-modules-${{ runner.os }}-${{ matrix.node-version }}-
-              node-modules-${{ runner.os }}-
+            node-modules-${{ runner.os }}-${{ matrix.node-version }}-
+            node-modules-${{ runner.os }}-
 
-      - name: Installation
+      - name: Project installation
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
         run: yarn install --prefer-offline --frozen-lockfile --non-interactive
         env:

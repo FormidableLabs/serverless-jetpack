@@ -20,6 +20,10 @@ const GLOBBY_OPTS = {
   follow: true,
   nodir: true
 };
+const NANOMATCH_OPTS = {
+  basename: true, // Match if literal pattern matches name.
+  dot: true
+};
 
 // Stubbable container object.
 let bundle = {};
@@ -43,11 +47,7 @@ const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
     // Serverless: insert built-in excludes
     .concat((exclude || []).map((e) => e[0] === "!" ? e.substring(1) : `!${e}`))
     // Serverless: and finish with built-in includes
-    .concat(include || [])
-    // Follow sls here: globby returns forward slash only, so mutate patterns
-    // always be forward.
-    // https://github.com/serverless/serverless/issues/5609#issuecomment-452219161
-    .map((p) => IS_WIN ? p.replace(/\\/g, "/") : p);
+    .concat(include || []);
 
   // Now, iterate all the patterns individually, tracking state like sls.
   // The _last_ "exclude" vs. "include" wins.
@@ -62,7 +62,7 @@ const filterFiles = ({ files, preInclude, depInclude, include, exclude }) => {
     // Do a positive match, but track "keep" or "remove".
     const includeFile = !pattern.startsWith("!");
     const positivePattern = includeFile ? pattern : pattern.slice(1);
-    nanomatch(files, [positivePattern], { dot: true }).forEach((file) => {
+    nanomatch(files, [positivePattern], NANOMATCH_OPTS).forEach((file) => {
       filesMap[file] = includeFile;
     });
   });
@@ -522,6 +522,18 @@ const globAndZip = async ({
       await createDepInclude({ cwd, rootPath, roots })
     );
   }
+
+  // Normalize files / patterns for globbing and OS specifics.
+  depInclude = depInclude
+    // Change to all forward slashes for all globbing usage.
+    .map((depPath) => IS_WIN ? depPath.replace(/\\/g, "/") : depPath)
+    // Escape `[` and `]` as globby won't literally
+    // match `[...id].js` but _will_ for `\\[...id\\].js`.
+    // **Note**: This needs to happen _after_ we mutate file slashes.
+    .map((depPath) => depPath
+      .replace(/\[/g, "\\[")
+      .replace(/\]/g, "\\]")
+    );
 
   // Glob and filter all files in package.
   const { included, excluded } = await resolveFilePathsFromPatterns(

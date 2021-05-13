@@ -345,6 +345,8 @@ describe("index", () => {
                   trace:
                     include:
                       - "green.*"
+                      # Special characters in file name
+                      - "special/**/*.js"
               dont-include:
                 handler: dont-include.handler
                 package:
@@ -429,6 +431,11 @@ describe("index", () => {
               }),
               "index.js": "module.exports = 'dont-include';"
             }
+          },
+          special: {
+            "[...id].js": "module.exports = 'dots and brackets in file name';",
+            "...id.js": "module.exports = 'just dots in file name';",
+            "[id].js": "module.exports = 'just brackets in file name';"
           }
         });
 
@@ -442,7 +449,7 @@ describe("index", () => {
           ] }).and
           // function package
           .to.be.calledWithMatch({ traceInclude: [
-            "red.js", "additional.*", "green.*"
+            "red.js", "additional.*", "green.*", "special/**/*.js"
           ] });
         expect(bundle.createZip)
           .to.have.callCount(2).and
@@ -466,6 +473,9 @@ describe("index", () => {
             "red.js",
             "additional.js",
             "green.js",
+            "special/...id.js",
+            "special/[...id].js",
+            "special/[id].js",
             "node_modules/additional-pkg/index.js",
             "node_modules/additional-pkg/package.json",
             "node_modules/green-pkg/index.js",

@@ -1,6 +1,11 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Bug: Handle special characters in filenames like `[...id].js` during tracing.
+* Deps: Upgrade `globby` to `v11`.
+
 ## 0.10.8
 
 * Feature: Support application source paths as keys in `jetpack.trace.allowMissing`.
