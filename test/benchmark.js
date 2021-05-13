@@ -98,6 +98,8 @@ const SLS_FALSE_POSITIVES_BASE = [
   "node_modules/.bin/lookup-amd",
   "node_modules/.bin/module-definition",
   "node_modules/.bin/msgpack",
+  "node_modules/.bin/pbjs",
+  "node_modules/.bin/pbts",
   "node_modules/.bin/precinct",
   "node_modules/.bin/r_js",
   "node_modules/.bin/r.js",
