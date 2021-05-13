@@ -1,6 +1,11 @@
 Changes
 =======
 
+## UNRELEASED
+
+* Deps: Update various production and development dependencies.
+  [#254](https://github.com/FormidableLabs/serverless-jetpack/pull/254)
+
 ## 0.10.9
 
 * Bug: Handle special characters in filenames like `[...id].js` during tracing.
