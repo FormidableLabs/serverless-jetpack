@@ -818,8 +818,8 @@ Results:
 
 [npm_img]: https://badge.fury.io/js/serverless-jetpack.svg
 [npm_site]: http://badge.fury.io/js/serverless-jetpack
-[actions_img]: https://github.com/FormidableLabs/trace-deps/workflows/CI/badge.svg
-[actions_site]: https://github.com/FormidableLabs/trace-deps/actions
+[actions_img]: https://github.com/FormidableLabs/serverless-jetpack/workflows/CI/badge.svg
+[actions_site]: https://github.com/FormidableLabs/serverless-jetpack/actions
 [lic_img]: https://img.shields.io/npm/l/serverless-jetpack.svg?color=brightgreen&style=flat
 [lic_site]: https://github.com/FormidableLabs/serverless-jetpack/blob/master/LICENSE.txt
 [maintenance-image]: https://img.shields.io/badge/maintenance-active-brightgreen.svg
