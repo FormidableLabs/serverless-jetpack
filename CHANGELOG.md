@@ -1,7 +1,7 @@
 Changes
 =======
 
-## UNRELEASED
+## 0.11.0
 
 * Feature: Add full support for modern Node.js ESM and `exports`.
 * Deps: Upgrade more various dependencies.
