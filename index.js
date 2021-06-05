@@ -2,7 +2,7 @@
 
 const path = require("path");
 const pLimit = require("p-limit");
-const Worker = require("jest-worker").default;
+const { Worker } = require("jest-worker");
 const { globAndZip } = require("./util/bundle");
 const globby = require("globby");
 

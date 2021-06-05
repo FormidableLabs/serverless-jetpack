@@ -3,6 +3,8 @@ Changes
 
 ## UNRELEASED
 
+* Feature: Add full support for modern Node.js ESM and `exports`.
+* Deps: Upgrade more various dependencies.
 * Deps: Update various production and development dependencies.
   [#254](https://github.com/FormidableLabs/serverless-jetpack/pull/254)
 
