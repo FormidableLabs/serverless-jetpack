@@ -94,11 +94,13 @@ class Jetpack {
             options: {
               "function": {
                 usage: "Function name. Packages a single function (see 'deploy function')",
-                shortcut: "f"
+                shortcut: "f",
+                type: "string"
               },
               report: {
                 usage: "Generate full bundle report",
-                shortcut: "r"
+                shortcut: "r",
+                type: "boolean"
               }
             }
           }
