@@ -1,6 +1,12 @@
 Changes
 =======
 
+## 0.11.1
+
+* Chore: Add plugin options types for serverless v3.
+  [#206](https://github.com/FormidableLabs/trace-pkg/issues/206)
+  (*[XuluWarrior][]*)
+
 ## 0.11.0
 
 * Feature: Add full support for modern Node.js ESM and `exports`.
@@ -163,3 +169,4 @@ Changes
 * Initial release.
 
 [@gabmontes]: https://github.com/gabmontes
+[@XuluWarrior]: https://github.com/XuluWarrior
