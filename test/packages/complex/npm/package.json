@@ -7,7 +7,7 @@
   "license": "MIT",
   "dependencies": {
     "aws-sdk": "^2.814.0",
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "serverless-http": "^2.7.0"
   },
   "devDependencies": {
