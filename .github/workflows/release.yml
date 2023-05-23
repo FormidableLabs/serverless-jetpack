@@ -28,7 +28,7 @@ jobs:
         run: yarn build
 
       - name: Unit Tests
-        run: yarn test
+        run: yarn test:cli
 
       - name: PR or Publish
         id: changesets
