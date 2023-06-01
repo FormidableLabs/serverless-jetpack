@@ -27,6 +27,9 @@ jobs:
       - name: Build
         run: yarn build
 
+      - name: Testing Setups
+        run: yarn benchmark:ci
+
       - name: Unit Tests
         run: yarn test:cli
 
