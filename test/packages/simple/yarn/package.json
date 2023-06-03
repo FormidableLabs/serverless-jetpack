@@ -6,7 +6,7 @@
   "author": "Ryan Roemer <ryan.roemer@formidable.com>",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "serverless-http": "^2.7.0"
   },
   "devDependencies": {
