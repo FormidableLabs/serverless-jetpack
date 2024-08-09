@@ -21,25 +21,25 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node-version: [12.x, 14.x]
+        node-version: [18.x]
 
     steps:
       # Checkout
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v1
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
       # Caching: root project
       - name: Get Yarn cache directory
         id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
 
       # Note: Yarn root cache restore is slow (1:30) on Windows, so only do on Linux.
       - name: Use Yarn cache
         if: startsWith(runner.os, 'Linux')
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         id: yarn-cache
         with:
           path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
@@ -50,7 +50,7 @@ jobs:
 
       - name: Use node_modules cache
         id: node-modules-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
@@ -72,7 +72,7 @@ jobs:
       # all together.
       - name: Use test/packages node_modules cache
         id: test-packages-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             test/packages/*/npm/node_modules
