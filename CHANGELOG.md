@@ -1,5 +1,11 @@
 Changes
 
+## 0.12.0
+
+### Minor Changes
+
+- Update to latest trace-deps. ([#366](https://github.com/FormidableLabs/serverless-jetpack/pull/366))
+
 ## 0.11.2
 
 ### Patch Changes
