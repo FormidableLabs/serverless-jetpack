@@ -5,23 +5,17 @@ Thanks for contributing!
 
 ## Development
 
-We primarily develop in `yarn`, but use `npm` in our benchmarks. Please make sure to have something like:
-
-* node: `8+`
-* yarn: (anything modern)
-* npm:  (anything modern)
-
-available. Also note that for the time being, our development tools assume a Unix-like environment, which means Mac, Linux, or something like the Windows Subsystem for Linux.
+We manage dependencies using `npm`. Note that for the time being, our development tools assume a Unix-like environment, which means Mac, Linux, or something like the Windows Subsystem for Linux.
 
 Our development revolves around various fixture packages we have in `test`. Get set up with:
 
 ```sh
-$ yarn
+$ npm install
 
 # If not changing deps
-$ yarn benchmark:ci
+$ npm run benchmark:ci
 # If changing deps
-$ yarn benchmark:install
+$ npm run benchmark:install
 ```
 
 to install the root project and a lot of fixture packages. (This is **meant** to take a while as we install a lot of dependencies to give us sizable app simulations to work with...) You will need to re-run `benchmark:install` whenever you update dependencies inside `test/` packages.
@@ -41,32 +35,31 @@ test/packages/
 
 **Note**: Only **some** of the scenarios contribute to the timed benchmark results as some scenarios don't actually use either built-in Serverless or Jetpack packaging.
 
-For ease of development, we want to do `yarn benchmark:ci`/`yarn benchmark:install` and install the respective yarn/npm packages **once**. However, this means we keep duplicates of source code / package.json files across the `npm`/`yarn` variant directories. To keep things in sync, we designate the `yarn` directory as "the source of truth" for everything except for `SCENARIO/npm/package-lock.json` and copy files across scenarios with:
+For ease of development, we want to do `npm run benchmark:ci`/`npm run benchmark:install` and install the respective yarn/npm packages **once**. However, this means we keep duplicates of source code / package.json files across the `npm`/`yarn` variant directories. To keep things in sync, we designate the `yarn` directory as "the source of truth" for everything except for `SCENARIO/npm/package-lock.json` and copy files across scenarios with:
 
 ```sh
-$ yarn benchmark:build
+$ npm run benchmark:build
 ```
 
 From there you can run various packaging configurations and perform benchmarks.
 
 ```sh
-$ TEST_PKG=yarn TEST_SCENARIO=simple yarn benchmark
-$ TEST_PKG=yarn TEST_SCENARIO=simple,complex yarn benchmark
-$ TEST_PKG=yarn,npm TEST_SCENARIO=simple yarn benchmark
+$ TEST_SCENARIO=simple npm run benchmark
+$ TEST_SCENARIO=simple,complex npm run benchmark
 
 # Faster, because scenarios run in parallel, but less reliable results because
 # of impact on your machine. Use this for faster development, but do a normal
 # serial benchmark for pasting results.
 # ... using all CPU cores
-$ yarn benchmark --parallel
+$ npm run benchmark --parallel
 # ... or set the level of concurrency manually
-$ yarn benchmark --concurrency=2
+$ npm run benchmark --concurrency=2
 ```
 
 After this, we can run benchmark specific QA stuff:
 
 ```sh
-$ yarn benchmark:test
+$ npm run benchmark:test
 ```
 
 (The `lint` needs the individual installs and `test` needs file list output from a full benchmark).
@@ -78,11 +71,11 @@ $ yarn benchmark:test
 Run these often -- unit tests and lint:
 
 ```sh
-$ yarn lint
-$ yarn test
+$ npm run lint
+$ npm run test
 
 # ... or all together ...
-$ yarn run check
+$ npm run run check
 ```
 
 ### Slow stuff
@@ -93,28 +86,28 @@ Run these before a PR and when changing things / kicking tires...
 
 ```sh
 # Install once (or on changes to dependencies or fixtures)
-$ yarn benchmark:ci # or yarn benchmark:install if changing deps
-$ yarn benchmark:build
+$ npm run benchmark:ci # or npm run benchmark:install if changing deps
+$ npm run benchmark:build
 ```
 
 *CLI tests*: Use the fixtures
 
 ```sh
-$ yarn test:cli
+$ npm run test:cli
 ```
 
 *Benchmark tests*: Run the benchmark to gather data and assess correctness of packages vs. real Serverless.
 
 ```sh
-$ yarn benchmark
-$ yarn benchmark:test
+$ npm run benchmark
+$ npm run benchmark:test
 ```
 
 *Serverless Enterprise*: Unfortunately, these tests require a login account and special `SERVERLESS_ACCESS_KEY` environment variable. The Jetpack project has two active tokens for `localdev` and `ci`. You can enable these and our `dashboard` tests with something like:
 
 ```sh
-$ SERVERLESS_ACCESS_KEY="<INSERT_HERE>" yarn benchmark
-$ SERVERLESS_ACCESS_KEY="<INSERT_HERE>" yarn benchmark:test
+$ SERVERLESS_ACCESS_KEY="<INSERT_HERE>" npm run benchmark
+$ SERVERLESS_ACCESS_KEY="<INSERT_HERE>" npm run benchmark:test
 ```
 
 ## Before submitting a PR...
@@ -123,34 +116,34 @@ Before you go ahead and submit a PR, make sure that you have done the following:
 
 ```sh
 # Update the documentation TOCs (and commit changes).
-$ yarn run build
+$ npm run run build
 
 # Run lint and unit tests
-$ yarn run check
+$ npm run run check
 
 # Make sure all fixtures are updated and valid
-$ yarn benchmark:install
-$ yarn benchmark:ci
-$ yarn benchmark:build
+$ npm run benchmark:install
+$ npm run benchmark:ci
+$ npm run benchmark:build
 
 # After this, you can run the CLI tests which use real fixtures in E2E scenarios
 # They're relatively slow (several seconds a test), but nowhere near as slow
 # as the benchmark.
-$ yarn test:cli
+$ npm run test:cli
 
 # Run a benchmark.
 # Then, actually generate the benchmark.
 # _Note_: Unfortunately, this takes some **time**. Grab a ☕
-$ yarn benchmark
+$ npm run benchmark
 # Now, test the benchmark for correctness.
-$ yarn benchmark:test
+$ npm run benchmark:test
 
 # If the timed benchmark stats and/or usage is notably different
 # than what's in README.md, update relevant sections and commit your changes.
 $ vim README.md
 
 # Run all final checks.
-$ yarn run check
+$ npm run run check
 ```
 
 ### Using changesets
@@ -168,7 +161,7 @@ Here are more details:
 When you would like to add a changeset (which creates a file indicating the type of change), in your branch/PR issue this command:
 
 ```sh
-$ yarn changeset
+$ npm run changeset
 ```
 
 to produce an interactive menu. Navigate the packages with arrow keys and hit `<space>` to select 1+ packages. Hit `<return>` when done. Select semver versions for packages and add appropriate messages. From there, you'll be prompted to enter a summary of the change. Some tips for this summary:
