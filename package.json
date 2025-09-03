@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "preversion": "npm run check",
-    "clean": "del-cli \"test/packages/*/*/.serverless\" .test-zips",
+    "clean": "del-cli \"test/packages/*/.serverless\" .test-zips",
     "build:toc": "doctoc --github --notitle --maxlevel 4 README.md",
     "build": "npm run build:toc",
     "test:install": "cd test/packages/simple && npm install",
