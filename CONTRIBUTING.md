@@ -59,7 +59,7 @@ Here are more details:
 When you would like to add a changeset (which creates a file indicating the type of change), in your branch/PR issue this command:
 
 ```sh
-$ npm run changeset
+$ npm exec changeset
 ```
 
 to produce an interactive menu. Navigate the packages with arrow keys and hit `<space>` to select 1+ packages. Hit `<return>` when done. Select semver versions for packages and add appropriate messages. From there, you'll be prompted to enter a summary of the change. Some tips for this summary:
