@@ -4,7 +4,7 @@
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
   "repository": "https://github.com/FormidableLabs/serverless-jetpack",
-  "author": "Ryan Roemer <ryan.roemer@formidable.com>",
+  "author": "Ryan Roemer <ryan.roemer@nearform.com>",
   "license": "MIT",
   "keywords": [
     "serverless",
@@ -18,22 +18,17 @@
     "yarn"
   ],
   "scripts": {
-    "preversion": "yarn run check",
-    "clean": "del-cli \"test/packages/*/*/.serverless\" .test-zips",
+    "preversion": "npm run check",
+    "clean": "del-cli \"test/packages/*/.serverless\" .test-zips",
     "build:toc": "doctoc --github --notitle --maxlevel 4 README.md",
-    "build": "yarn build:toc",
-    "benchmark:ci": "node test/script.js ci",
-    "benchmark:install": "node test/script.js install",
-    "benchmark:build": "node test/script.js build",
-    "benchmark:test": "mocha test/benchmark.js",
-    "benchmark:size": "node test/script.js size",
-    "benchmark": "node test/script.js benchmark",
+    "build": "npm run build:toc",
+    "test:install": "cd test/packages/simple && npm install",
     "test:cli": "mocha test/cli",
     "test:spec": "mocha test/spec",
     "lint": "eslint .",
-    "test": "yarn test:spec",
+    "test": "npm run test:spec",
     "check:git-dirty": "test -z \"$(git status --porcelain)\" || (echo \"ERROR: Found git dirty files:\n$(git status --porcelain)\" && exit 1)",
-    "check": "yarn lint && yarn test:spec"
+    "check": "npm run lint && npm run test:spec"
   },
   "engines": {
     "node": ">=8.0.0"

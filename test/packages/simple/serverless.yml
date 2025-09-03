@@ -12,7 +12,7 @@ custom:
 plugins:
   modules:
     - serverless-offline
-    - ../../../plugins/wrapper
+    - ../../../cli/plugins/wrapper
 
 provider:
   name: aws

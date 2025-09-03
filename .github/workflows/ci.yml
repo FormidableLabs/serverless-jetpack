@@ -12,15 +12,10 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
 
-    # TODO(NODE16): Re-enable node16.
-    # Presently, serverless has _huge_ zips that are way bigger than expected
-    # on node16 (which also fails tests). We might just upgrade serverless
-    # first, then reenable tests.
-    # https://github.com/FormidableLabs/serverless-jetpack/issues/239
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node-version: [12.x, 14.x]
+        node-version: [22.x, 24.x]
 
     steps:
       # Checkout
@@ -29,26 +24,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "yarn"
 
       - name: Use node_modules cache
         id: node-modules-cache
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
+          key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./package-lock.json') }}
           restore-keys: |
             node-modules-${{ runner.os }}-${{ matrix.node-version }}-
             node-modules-${{ runner.os }}-
 
       - name: Project installation
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: yarn install --prefer-offline --frozen-lockfile --non-interactive
+        run: npm ci
         env:
           CI: true
-
-      - name: Checks (lint, unit tests)
-        run: yarn run check
 
       # Caching: test scenarios
       # **Note**: _don't_ use permissive restore-keys because we skip installs
@@ -58,22 +49,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            test/packages/*/npm/node_modules
-            test/packages/*/yarn/node_modules
-          key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/npm/package-lock.json', 'test/packages/*/yarn/yarn.lock') }}
+            test/packages/*/node_modules
+          key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/package-lock.json') }}
 
-      # Detect if `test/packages/*/*/node_modules` exists in any form and skip
-      # installs on a per-directory basis.
-      - name: Benchmark installation
-        if: steps.test-packages-cache.outputs.cache-hit != 'true'
-        run: yarn benchmark:ci --skip-if-exists
-        env:
-          CI: true
+      - name: Install test fixtures
+        run: npm run test:install
+
+      # Note: linting also catches the `test/packages/*` fixtures.
+      - name: Checks (lint, unit tests)
+        run: npm run check
 
       - name: CLI tests
-        run: yarn test:cli
-
-      - name: Benchmark
-        run: yarn benchmark --parallel
-      - name: Benchmark tests
-        run: yarn benchmark:test
+        run: npm run test:cli
