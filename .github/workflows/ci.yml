@@ -12,15 +12,10 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
 
-    # TODO(NODE16): Re-enable node16.
-    # Presently, serverless has _huge_ zips that are way bigger than expected
-    # on node16 (which also fails tests). We might just upgrade serverless
-    # first, then reenable tests.
-    # https://github.com/FormidableLabs/serverless-jetpack/issues/239
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node-version: [12.x, 14.x]
+        node-version: [22.x, 24.x]
 
     steps:
       # Checkout
@@ -29,7 +24,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "yarn"
 
       - name: Use node_modules cache
         id: node-modules-cache
@@ -43,12 +37,12 @@ jobs:
 
       - name: Project installation
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
-        run: yarn install --prefer-offline --frozen-lockfile --non-interactive
+        run: npm ci
         env:
           CI: true
 
       - name: Checks (lint, unit tests)
-        run: yarn run check
+        run: npm run check
 
       # Caching: test scenarios
       # **Note**: _don't_ use permissive restore-keys because we skip installs
