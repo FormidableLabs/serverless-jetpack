@@ -4,7 +4,7 @@
   "description": "A faster JavaScript packager for Serverless applications.",
   "main": "index.js",
   "repository": "https://github.com/FormidableLabs/serverless-jetpack",
-  "author": "Ryan Roemer <ryan.roemer@formidable.com>",
+  "author": "Ryan Roemer <ryan.roemer@nearform.com>",
   "license": "MIT",
   "keywords": [
     "serverless",
@@ -22,6 +22,7 @@
     "clean": "del-cli \"test/packages/*/*/.serverless\" .test-zips",
     "build:toc": "doctoc --github --notitle --maxlevel 4 README.md",
     "build": "npm run build:toc",
+    "test:install": "cd test/packages/simple && npm install",
     "test:cli": "mocha test/cli",
     "test:spec": "mocha test/spec",
     "lint": "eslint .",

@@ -58,9 +58,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            test/packages/*/npm/node_modules
-            test/packages/*/yarn/node_modules
+            test/packages/*/node_modules
           key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/npm/package-lock.json', 'test/packages/*/yarn/yarn.lock') }}
 
+      - name: Install test fixtures
+        run: npm run test:install
       - name: CLI tests
         run: npm run test:cli

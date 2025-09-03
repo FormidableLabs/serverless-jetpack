@@ -1,0 +1,16 @@
+{
+  "name": "serverless-jetpack-simple",
+  "version": "0.0.1",
+  "description": "A simple example sls application.",
+  "repository": "https://github.com/FormidableLabs/serverless-jetpack",
+  "author": "Ryan Roemer <ryan.roemer@nearform.com>",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.17.3",
+    "serverless-http": "^2.7.0"
+  },
+  "devDependencies": {
+    "serverless": "^2.35.0",
+    "serverless-offline": "^6.9.0"
+  }
+}

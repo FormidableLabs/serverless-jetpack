@@ -1,4 +1,4 @@
-[![Serverless Jetpack 🚀 — Formidable, We build the modern web](https://raw.githubusercontent.com/FormidableLabs/serverless-jetpack/master/serverless-jetpack-Hero.png)](https://formidable.com/open-source/)
+[![Serverless Jetpack 🚀 — Nearform](https://raw.githubusercontent.com/FormidableLabs/serverless-jetpack/master/serverless-jetpack-Hero.png)](https://nearform.com/open-source/)
 
 [![npm version][npm_img]][npm_site]
 [![Actions Status][actions_img]][actions_site]
@@ -737,7 +737,7 @@ which allows you to package just one named function exactly the same as `serverl
 
 ## Maintenance status
 
-**Active:** Formidable is actively working on this project, and we expect to continue for work for the foreseeable future. Bug reports, feature requests and pull requests are welcome.
+**Active:** Nearform is actively working on this project, and we expect to continue for work for the foreseeable future. Bug reports, feature requests and pull requests are welcome.
 
 [Serverless]: https://serverless.com/
 [lerna]: https://lerna.js.org/
