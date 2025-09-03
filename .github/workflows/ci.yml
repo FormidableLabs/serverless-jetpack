@@ -62,18 +62,5 @@ jobs:
             test/packages/*/yarn/node_modules
           key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/npm/package-lock.json', 'test/packages/*/yarn/yarn.lock') }}
 
-      # Detect if `test/packages/*/*/node_modules` exists in any form and skip
-      # installs on a per-directory basis.
-      - name: Benchmark installation
-        if: steps.test-packages-cache.outputs.cache-hit != 'true'
-        run: yarn benchmark:ci --skip-if-exists
-        env:
-          CI: true
-
       - name: CLI tests
-        run: yarn test:cli
-
-      - name: Benchmark
-        run: yarn benchmark --parallel
-      - name: Benchmark tests
-        run: yarn benchmark:test
+        run: npm run test:cli

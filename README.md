@@ -24,7 +24,6 @@ With the `serverless-jetpack` plugin, many common, slow Serverless packaging sce
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Usage](#usage)
   - [The short, short version](#the-short-short-version)
   - [A little more detail...](#a-little-more-detail)
@@ -33,7 +32,6 @@ With the `serverless-jetpack` plugin, many common, slow Serverless packaging sce
   - [The nitty gritty of why it's faster](#the-nitty-gritty-of-why-its-faster)
   - [Complexities](#complexities)
     - [Other Serverless plugins that set `package.artifact`](#other-serverless-plugins-that-set-packageartifact)
-    - [Minor differences vs. Serverless globbing](#minor-differences-vs-serverless-globbing)
     - [Layers](#layers)
     - [Be careful with `include` configurations and `node_modules`](#be-careful-with-include-configurations-and-node_modules)
     - [Packaging files Outside CWD](#packaging-files-outside-cwd)
@@ -42,9 +40,7 @@ With the `serverless-jetpack` plugin, many common, slow Serverless packaging sce
     - [Tracing options](#tracing-options)
   - [Tracing caveats](#tracing-caveats)
   - [Handling dynamic import misses](#handling-dynamic-import-misses)
-  - [Tracing results](#tracing-results)
 - [Command Line Interface](#command-line-interface)
-- [Benchmarks](#benchmarks)
 - [Maintenance status](#maintenance-status)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -287,10 +283,6 @@ Some notable plugins that **do** set `package.artifact` and thus don't need and 
 
 - [`serverless-plugin-typescript`](https://github.com/prisma-labs/serverless-plugin-typescript): See [#74](https://github.com/FormidableLabs/serverless-jetpack/issues/74)
 - [`serverless-webpack`](https://github.com/serverless-heaven/serverless-webpack): See, e.g. [`packageModules.js`](https://github.com/serverless-heaven/serverless-webpack/blob/21393845fb173a6f806b0bc2bee0be7daf0adc86/lib/packageModules.js#L11-L24)
-
-#### Minor differences vs. Serverless globbing
-
-Our [benchmark correctness tests](./test/benchmark.js) highlight a number of various files not included by Jetpack that are included by `serverless` in packaging our benchmark scenarios. Some of these are things like `node_modules/.yarn-integrity` which Jetpack knowingly ignores because you shouldn't need it. All of the others we've discovered to date are instances in which `serverless` incorrectly includes `devDependencies`...
 
 #### Layers
 
@@ -710,28 +702,6 @@ custom:
 
 Once we have analyzed all of our misses and added `resolutions` to either ignore the miss or add other imports, we can then set `trace.dynamic.bail = true` to make sure that if future dependency upgrades adds new, unhandled dynamic misses we will get a failed build notification so we know that we're always deploying known, good code.
 
-### Tracing results
-
-The following is a table of generated packages using vanilla Serverless vs Jetpack with tracing (using `yarn benchmark:sizes`).
-
-The relevant portions of our measurement chart.
-
-- `Scenario`: Same benchmark scenarios
-- `Type`: `jetpack` is this plugin in `trace` mode and `baseline` is Serverless built-in packaging.
-- `Zips`: The number of zip files generated per scenario (e.g., service bundle + individually packaged function bundles).
-- `Files`: The aggregated number of individual files in **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in many less files.
-- `Size`: The aggregated total byte size of **all** zip files for a given scenario. This shows how Jetpack in tracing mode results in smaller bundle packages.
-- `vs Base`: Percentage difference of the aggregated zip bundle byte sizes for a given scenario of Jetpack vs. Serverless built-in packaging.
-
-Results:
-
-| Scenario | Type     | Zips | Files |    Size |      vs Base |
-| :------- | :------- | ---: | ----: | ------: | -----------: |
-| simple   | jetpack  |    1 |   200 |  529417 | **-42.78 %** |
-| simple   | baseline |    1 |   433 |  925260 |              |
-| complex  | jetpack  |    2 |  1588 | 3835544 | **-18.20 %** |
-| complex  | baseline |    2 |  2120 | 4688648 |              |
-
 ## Command Line Interface
 
 Jetpack also provides some CLI options.
@@ -764,45 +734,6 @@ $ serverless jetpack package -f|--function {NAME}
 ```
 
 which allows you to package just one named function exactly the same as `serverless deploy -f {NAME}` does. (Curiously `serverless deploy` implements the `-f {NAME}` option but `serverless package` does not.)
-
-## Benchmarks
-
-The following is a simple, "on my machine" benchmark generated with `yarn benchmark`. It should not be taken to imply any real world timings, but more to express relative differences in speed using the `serverless-jetpack` versus the built-in baseline Serverless framework packaging logic.
-
-As a quick guide to the results table:
-
-- `Scenario`: Contrived scenarios for the purpose of generating results. E.g.,
-    - `simple`: Very small production and development dependencies.
-    - `complex`: Many different serverless configurations all in one.
-- `Pkg`: Project installed via `yarn` or `npm`? This really only matters in that `npm` and `yarn` may flatten dependencies differently, so we want to make sure Jetpack is correct in both cases.
-- `Type`: `jetpack` is this plugin and `baseline` is Serverless built-in packaging.
-- `Mode`: For `jetpack` benchmarks, either:
-    - `deps`: Dependency filtering with equivalent output to `serverless` (just faster).
-    - `trace`: Tracing dependencies from specified source files. Not equivalent to `serverless` packaging, but functionally correct, way faster, and with smaller packages.
-- `Time`: Elapsed build time in milliseconds.
-- `vs Base`: Percentage difference of `serverless-jetpack` vs. Serverless built-in. Negative values are faster, positive values are slower.
-
-Machine information:
-
-* os:   `darwin 18.7.0 x64`
-* node: `v12.14.1`
-
-Results:
-
-| Scenario | Pkg  | Type     | Mode  |  Time |      vs Base |
-| :------- | :--- | :------- | :---- | ----: | -----------: |
-| simple   | yarn | jetpack  | trace |  4878 | **-74.25 %** |
-| simple   | yarn | jetpack  | deps  |  3861 | **-79.62 %** |
-| simple   | yarn | baseline |       | 18941 |              |
-| simple   | npm  | jetpack  | trace |  7290 | **-68.34 %** |
-| simple   | npm  | jetpack  | deps  |  4017 | **-82.55 %** |
-| simple   | npm  | baseline |       | 23023 |              |
-| complex  | yarn | jetpack  | trace | 10475 | **-70.93 %** |
-| complex  | yarn | jetpack  | deps  |  8821 | **-75.52 %** |
-| complex  | yarn | baseline |       | 36032 |              |
-| complex  | npm  | jetpack  | trace | 15644 | **-59.13 %** |
-| complex  | npm  | jetpack  | deps  |  9896 | **-74.15 %** |
-| complex  | npm  | baseline |       | 38282 |              |
 
 ## Maintenance status
 

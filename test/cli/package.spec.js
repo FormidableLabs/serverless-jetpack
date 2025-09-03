@@ -11,7 +11,7 @@ const TIMEOUT = 60000;
 
 // Helpers.
 const IS_WIN = process.platform === "win32";
-const SLS_CMD = `node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`;
+const SLS_CMD = path.resolve(`node_modules/.bin/serverless${IS_WIN ? ".cmd" : ""}`);
 
 describe("jetpack package", function () {
   this.timeout(TIMEOUT); // eslint-disable-line no-invalid-this
