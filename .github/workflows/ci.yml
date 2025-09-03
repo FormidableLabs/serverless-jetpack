@@ -41,9 +41,6 @@ jobs:
         env:
           CI: true
 
-      - name: Checks (lint, unit tests)
-        run: npm run check
-
       # Caching: test scenarios
       # **Note**: _don't_ use permissive restore-keys because we skip installs
       # all together.
@@ -57,5 +54,10 @@ jobs:
 
       - name: Install test fixtures
         run: npm run test:install
+
+      # Note: linting also catches the `test/packages/*` fixtures.
+      - name: Checks (lint, unit tests)
+        run: npm run check
+
       - name: CLI tests
         run: npm run test:cli

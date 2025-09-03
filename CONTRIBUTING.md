@@ -11,9 +11,10 @@ Get set up with:
 
 ```sh
 $ npm install
+$ npm run test:install
 ```
 
-to install the root project.
+to install the root project and our test fixtures.
 
 ## Checks
 
@@ -40,7 +41,6 @@ $ npm run check
 
 # After this, you can run the CLI tests which use real fixtures in E2E scenarios
 # They're relatively slow (several seconds a test).
-$ npm run test:install
 $ npm run test:cli
 ```
 
