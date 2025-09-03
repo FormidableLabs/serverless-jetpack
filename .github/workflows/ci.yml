@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./yarn.lock') }}
+          key: node-modules-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('./package-lock.json') }}
           restore-keys: |
             node-modules-${{ runner.os }}-${{ matrix.node-version }}-
             node-modules-${{ runner.os }}-
@@ -59,7 +59,7 @@ jobs:
         with:
           path: |
             test/packages/*/node_modules
-          key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/npm/package-lock.json', 'test/packages/*/yarn/yarn.lock') }}
+          key: test-packages-${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('test/packages/*/package-lock.json') }}
 
       - name: Install test fixtures
         run: npm run test:install
